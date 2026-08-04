@@ -24,7 +24,7 @@ import { getLocale } from "./locale-actions"
 export async function retrieveCart(cartId?: string, fields?: string) {
   const id = cartId || (await getCartId())
   fields ??=
-    "*items, *region, *items.product, *items.variant, *items.thumbnail, *items.metadata, +items.total, *promotions, +shipping_methods.name"
+    "*items, *items.adjustments, *region, *items.product, *items.product.categories, *items.product.collection, *items.variant, *items.variant.options, *items.thumbnail, *items.metadata, +items.total, +items.original_total, +items.discount_total, +metadata, *promotions, +shipping_methods.name"
 
   if (!id) {
     return null
@@ -103,6 +103,8 @@ export async function updateCart(data: HttpTypes.StoreUpdateCart) {
   return sdk.store.cart
     .update(cartId, data, {}, headers)
     .then(async ({ cart }: { cart: HttpTypes.StoreCart }) => {
+      await syncCartRules(cart.id, headers)
+
       const cartCacheTag = await getCacheTag("carts")
       revalidateTag(cartCacheTag)
 
@@ -148,6 +150,9 @@ export async function addToCart({
       headers
     )
     .then(async () => {
+      await syncCartRules(cart.id, headers)
+    })
+    .then(async () => {
       const cartCacheTag = await getCacheTag("carts")
       revalidateTag(cartCacheTag)
 
@@ -181,6 +186,9 @@ export async function updateLineItem({
   await sdk.store.cart
     .updateLineItem(cartId, lineId, { quantity }, {}, headers)
     .then(async () => {
+      await syncCartRules(cartId, headers)
+    })
+    .then(async () => {
       const cartCacheTag = await getCacheTag("carts")
       revalidateTag(cartCacheTag)
 
@@ -208,6 +216,9 @@ export async function deleteLineItem(lineId: string) {
   await sdk.store.cart
     .deleteLineItem(cartId, lineId, {}, headers)
     .then(async () => {
+      await syncCartRules(cartId, headers)
+    })
+    .then(async () => {
       const cartCacheTag = await getCacheTag("carts")
       revalidateTag(cartCacheTag)
 
@@ -231,6 +242,9 @@ export async function setShippingMethod({
   return sdk.store.cart
     .addShippingMethod(cartId, { option_id: shippingMethodId }, {}, headers)
     .then(async () => {
+      await syncCartRules(cartId, headers)
+    })
+    .then(async () => {
       const cartCacheTag = await getCacheTag("carts")
       revalidateTag(cartCacheTag)
     })
@@ -244,6 +258,8 @@ export async function initiatePaymentSession(
   const headers = {
     ...(await getAuthHeaders()),
   }
+
+  await syncCartRules(cart.id, headers)
 
   return sdk.store.payment
     .initiatePaymentSession(cart, data, {}, headers)
@@ -402,6 +418,8 @@ export async function placeOrder(cartId?: string) {
     ...(await getAuthHeaders()),
   }
 
+  await syncCartRules(id, headers)
+
   const cartRes = await sdk.store.cart
     .complete(id, {}, headers)
     .then(async (cartRes) => {
@@ -470,4 +488,17 @@ export async function listCartOptions() {
     headers,
     cache: "force-cache",
   })
+}
+
+async function syncCartRules(
+  cartId: string,
+  headers: Record<string, string>
+) {
+  return sdk.client
+    .fetch(`/store/tranh-tran-vien/cart-rules/${cartId}/sync`, {
+      method: "POST",
+      headers,
+      cache: "no-store",
+    })
+    .catch(medusaError)
 }

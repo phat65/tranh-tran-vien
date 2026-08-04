@@ -1,0 +1,47 @@
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+Image with src "https://medusa-public-images.s3.eu-west-1.amazonaws.com/shorts-vintage-front.png" is using quality "50" which is not configured in images.qualities. This config will be required starting in Next.js 16.
+Read more: https://nextjs.org/docs/messages/next-image-unconfigured-qualities
+Image with src "https://medusa-public-images.s3.eu-west-1.amazonaws.com/tee-black-front.png" is using quality "50" which is not configured in images.qualities. This config will be required starting in Next.js 16.
+Read more: https://nextjs.org/docs/messages/next-image-unconfigured-qualities
+Image with src "https://medusa-public-images.s3.eu-west-1.amazonaws.com/sweatshirt-vintage-front.png" is using quality "50" which is not configured in images.qualities. This config will be required starting in Next.js 16.
+Read more: https://nextjs.org/docs/messages/next-image-unconfigured-qualities
+Image with src "https://medusa-public-images.s3.eu-west-1.amazonaws.com/sweatpants-gray-front.png" is using quality "50" which is not configured in images.qualities. This config will be required starting in Next.js 16.
+Read more: https://nextjs.org/docs/messages/next-image-unconfigured-qualities
+ ⨯ Error: Error setting up the request: Cart id not found: cart_01KYN6VKTAHW3BM3ZTDVCDTHT4
+    at medusaError (src\lib\util\medusa-error.ts:31:11)
+    at async updateRegion (src\lib\data\cart.ts:460:5)
+  29 |     throw new Error("No response received: " + String(err.request))
+  30 |   } else {
+> 31 |     throw new Error("Error setting up the request: " + err.message)
+     |           ^
+  32 |   }
+  33 | }
+  34 | {
+  digest: '2991622652'
+}
+ ⨯ Error: Error setting up the request: Cart id not found: cart_01KYN6VKTAHW3BM3ZTDVCDTHT4
+    at medusaError (src\lib\util\medusa-error.ts:31:11)
+    at async updateRegion (src\lib\data\cart.ts:460:5)
+  29 |     throw new Error("No response received: " + String(err.request))
+  30 |   } else {
+> 31 |     throw new Error("Error setting up the request: " + err.message)
+     |           ^
+  32 |   }
+  33 | }
+  34 | {
+  digest: '2991622652'
+}
+ ⨯ Error: Error setting up the request: Cart id not found: cart_01KYN6VKTAHW3BM3ZTDVCDTHT4
+    at medusaError (src\lib\util\medusa-error.ts:31:11)
+    at async updateRegion (src\lib\data\cart.ts:460:5)
+  29 |     throw new Error("No response received: " + String(err.request))
+  30 |   } else {
+> 31 |     throw new Error("Error setting up the request: " + err.message)
+     |           ^
+  32 |   }
+  33 | }
+  34 | {
+  digest: '2991622652'
+}

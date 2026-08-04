@@ -56,9 +56,12 @@ export const listProducts = async ({
     ...(await getAuthHeaders()),
   }
 
-  const next = {
-    ...(await getCacheOptions("products")),
-  }
+  const shouldBypassCache = process.env.NODE_ENV === "development"
+  const next = shouldBypassCache
+    ? {}
+    : {
+        ...(await getCacheOptions("products")),
+      }
 
   return sdk.client
     .fetch<{ products: HttpTypes.StoreProduct[]; count: number }>(
@@ -74,8 +77,9 @@ export const listProducts = async ({
           ...queryParams,
         },
         headers,
-        next,
-        cache: "force-cache",
+        ...(shouldBypassCache
+          ? { cache: "no-store" as const }
+          : { next, cache: "force-cache" as const }),
       }
     )
     .then(({ products, count }) => {

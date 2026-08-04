@@ -69,9 +69,17 @@ function getImagesForVariant(
   return product.images?.filter((i) => imageIdsMap.has(i.id)) ?? null
 }
 
+function normalizeHandle(handle: string): string {
+  try {
+    return decodeURIComponent(handle)
+  } catch {
+    return handle
+  }
+}
+
 export async function generateMetadata(props: Props): Promise<Metadata> {
   const params = await props.params
-  const { handle } = params
+  const handle = normalizeHandle(params.handle)
   const region = await getRegion(params.countryCode)
 
   if (!region) {
@@ -111,14 +119,14 @@ export default async function ProductPage(props: Props) {
 
   const pricedProduct = await listProducts({
     countryCode: params.countryCode,
-    queryParams: { handle: params.handle },
+    queryParams: { handle: normalizeHandle(params.handle) },
   }).then(({ response }) => response.products[0])
-
-  const images = getImagesForVariant(pricedProduct, selectedVariantId)
 
   if (!pricedProduct) {
     notFound()
   }
+
+  const images = getImagesForVariant(pricedProduct, selectedVariantId)
 
   return (
     <ProductTemplate

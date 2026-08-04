@@ -1,6 +1,8 @@
 "use client"
 
 import { Popover, PopoverPanel, Transition } from "@headlessui/react"
+import type { Locale } from "@lib/data/locales"
+import type { TtvNavGroup, TtvNavLink } from "@lib/util/ttv-navigation"
 import useToggleState from "@lib/hooks/use-toggle-state"
 import { ArrowRightMini, XMark } from "@medusajs/icons"
 import { HttpTypes } from "@medusajs/types"
@@ -9,12 +11,12 @@ import { Text, clx } from "@modules/common/components/ui"
 import { Fragment } from "react"
 import CountrySelect from "../country-select"
 import LanguageSelect from "../language-select"
-import { Locale } from "@lib/data/locales"
 
 
 const SideMenuItems = {
   Home: "/",
   Store: "/store",
+  Combo: "/combo",
   Account: "/account",
   Cart: "/cart",
 }
@@ -23,11 +25,28 @@ type SideMenuProps = {
   regions: HttpTypes.StoreRegion[] | null
   locales: Locale[] | null
   currentLocale: string | null
+  menuItems?: TtvNavLink[]
+  navGroups?: TtvNavGroup[]
+  siteName?: string
 }
 
-const SideMenu = ({ regions, locales, currentLocale }: SideMenuProps) => {
+const SideMenu = ({
+  regions,
+  locales,
+  currentLocale,
+  menuItems,
+  navGroups = [],
+  siteName = "Medusa Store",
+}: SideMenuProps) => {
   const countryToggleState = useToggleState()
   const languageToggleState = useToggleState()
+  const links = menuItems?.length
+    ? menuItems
+    : Object.entries(SideMenuItems).map(([label, href]) => ({
+        id: label,
+        label,
+        href,
+      }))
 
   return (
     <div className="h-full">
@@ -72,22 +91,50 @@ const SideMenu = ({ regions, locales, currentLocale }: SideMenuProps) => {
                         <XMark />
                       </button>
                     </div>
-                    <ul className="flex flex-col gap-6 items-start justify-start">
-                      {Object.entries(SideMenuItems).map(([name, href]) => {
-                        return (
-                          <li key={name}>
-                            <LocalizedClientLink
-                              href={href}
-                              className="text-3xl leading-10 hover:text-ui-fg-disabled"
-                              onClick={close}
-                              data-testid={`${name.toLowerCase()}-link`}
-                            >
-                              {name}
-                            </LocalizedClientLink>
-                          </li>
-                        )
-                      })}
-                    </ul>
+                    <div className="flex flex-col gap-8 items-start justify-start overflow-y-auto pr-2">
+                      {!!navGroups.length && (
+                        <div className="grid w-full gap-6">
+                          {navGroups.map((group) => (
+                            <div key={group.id} className="grid gap-3">
+                              <p className="txt-compact-small-plus text-ui-fg-on-color">
+                                {group.label}
+                              </p>
+                              <ul className="grid gap-2">
+                                {group.links.map((item) => (
+                                  <li key={item.id}>
+                                    <LocalizedClientLink
+                                      href={item.href}
+                                      className="text-2xl leading-9 hover:text-ui-fg-disabled"
+                                      onClick={close}
+                                      data-testid={`${item.label.toLowerCase()}-link`}
+                                    >
+                                      {item.label}
+                                    </LocalizedClientLink>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <ul className="flex flex-col gap-4 items-start justify-start">
+                        {links.map((item) => {
+                          return (
+                            <li key={item.id}>
+                              <LocalizedClientLink
+                                href={item.href}
+                                className="text-3xl leading-10 hover:text-ui-fg-disabled"
+                                onClick={close}
+                                data-testid={`${item.label.toLowerCase()}-link`}
+                              >
+                                {item.label}
+                              </LocalizedClientLink>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </div>
                     <div className="flex flex-col gap-y-6">
                       {!!locales?.length && (
                         <div
@@ -127,7 +174,7 @@ const SideMenu = ({ regions, locales, currentLocale }: SideMenuProps) => {
                         />
                       </div>
                       <Text className="flex justify-between txt-compact-small">
-                        © {new Date().getFullYear()} Medusa Store. All rights
+                        © {new Date().getFullYear()} {siteName}. All rights
                         reserved.
                       </Text>
                     </div>

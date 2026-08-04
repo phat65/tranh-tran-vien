@@ -1,9 +1,16 @@
 import { HttpTypes } from "@medusajs/types"
 import { NextRequest, NextResponse } from "next/server"
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL
+const BACKEND_URL = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL?.replace(
+  /\/$/,
+  ""
+)
 const PUBLISHABLE_API_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
-const DEFAULT_REGION = process.env.NEXT_PUBLIC_DEFAULT_REGION || "dk"
+const DEFAULT_REGION = (
+  process.env.NEXT_PUBLIC_DEFAULT_REGION || "dk"
+)
+  .replace(/^\/+/, "")
+  .toLowerCase()
 
 const regionMapCache = {
   regionMap: new Map<string, HttpTypes.StoreRegion>(),
@@ -24,23 +31,31 @@ async function getRegionMap(cacheId: string) {
     regionMapUpdated < Date.now() - 3600 * 1000
   ) {
     // Fetch regions from Medusa. We can't use the JS client here because middleware is running on Edge and the client needs a Node environment.
-    const response = await fetch(`${BACKEND_URL}/store/regions`, {
-      method: "GET",
-      headers: {
-        "x-publishable-api-key": PUBLISHABLE_API_KEY!,
-      },
-      next: {
-        revalidate: 3600,
-        tags: [`regions-${cacheId}`],
-      },
-      cache: "force-cache",
-    })
+    let json: { regions?: HttpTypes.StoreRegion[] }
 
-    if (!response.ok) {
-      throw new Error(`Backend returned ${response.status}`)
+    try {
+      const response = await fetch(`${BACKEND_URL}/store/regions`, {
+        method: "GET",
+        headers: PUBLISHABLE_API_KEY
+          ? {
+              "x-publishable-api-key": PUBLISHABLE_API_KEY,
+            }
+          : {},
+        next: {
+          revalidate: 3600,
+          tags: [`regions-${cacheId}`],
+        },
+        cache: "force-cache",
+      })
+
+      if (!response.ok) {
+        return new Map<string, HttpTypes.StoreRegion>()
+      }
+
+      json = await response.json()
+    } catch {
+      return new Map<string, HttpTypes.StoreRegion>()
     }
-
-    const json = await response.json()
 
     const { regions } = json
 

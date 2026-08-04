@@ -6,16 +6,17 @@ export const ACTIVE_FOUNDATION_MODULES = [
   "taxonomy",
   "navigation",
   "site-setting",
-] as const
-
-export const PLANNED_BACKEND_MODULES = [
   "custom-design",
   "gift-rule",
   "shipping-rule",
+  "combo-rule",
   "feedback",
   "content",
   "audit-log",
+  "wishlist",
 ] as const
+
+export const PLANNED_BACKEND_MODULES = [] as const
 
 export function getBackendStatus() {
   return {

@@ -4,14 +4,19 @@ import EmptyCartMessage from "../components/empty-cart-message"
 import SignInPrompt from "../components/sign-in-prompt"
 import Divider from "@modules/common/components/divider"
 import { HttpTypes } from "@medusajs/types"
+import { listTtvComboRules } from "@lib/data/ttv"
 
-const CartTemplate = ({
+const CartTemplate = async ({
   cart,
   customer,
 }: {
   cart: HttpTypes.StoreCart | null
   customer: HttpTypes.StoreCustomer | null
 }) => {
+  const comboRules = cart?.region_id
+    ? await listTtvComboRules({ regionId: cart.region_id })
+    : []
+
   return (
     <div className="py-12">
       <div className="content-container" data-testid="cart-container">
@@ -31,7 +36,7 @@ const CartTemplate = ({
                 {cart && cart.region && (
                   <>
                     <div className="bg-white py-6">
-                      <Summary cart={cart} />
+                      <Summary cart={cart} comboRules={comboRules} />
                     </div>
                   </>
                 )}

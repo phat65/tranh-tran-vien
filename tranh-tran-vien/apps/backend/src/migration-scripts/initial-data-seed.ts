@@ -35,7 +35,8 @@ export default async function initial_data_seed({
     ModuleRegistrationName.FULFILLMENT
   );
 
-  const countries = ["gb", "de", "dk", "se", "fr", "es", "it"];
+  const europeanCountries = ["gb", "de", "dk", "se", "fr", "es", "it"];
+  const storefrontCountries = [...europeanCountries, "vn"];
 
   logger.info("Seeding store data...");
   const {
@@ -88,6 +89,10 @@ export default async function initial_data_seed({
               currency_code: "usd",
               is_default: false,
             },
+            {
+              currency_code: "vnd",
+              is_default: false,
+            },
           ],
           default_sales_channel_id: defaultSalesChannel.id,
         },
@@ -102,18 +107,25 @@ export default async function initial_data_seed({
         {
           name: "Europe",
           currency_code: "eur",
-          countries,
+          countries: europeanCountries,
+          payment_providers: ["pp_system_default"],
+        },
+        {
+          name: "Vietnam",
+          currency_code: "vnd",
+          countries: ["vn"],
           payment_providers: ["pp_system_default"],
         },
       ],
     },
   });
   const region = regionResult[0];
+  const vietnamRegion = regionResult[1];
   logger.info("Finished seeding regions.");
 
   logger.info("Seeding tax regions...");
   await createTaxRegionsWorkflow(container).run({
-    input: countries.map((country_code) => ({
+    input: storefrontCountries.map((country_code) => ({
       country_code,
       provider_id: "tp_system",
     })),
@@ -161,37 +173,11 @@ export default async function initial_data_seed({
     type: "shipping",
     service_zones: [
       {
-        name: "Europe",
-        geo_zones: [
-          {
-            country_code: "gb",
-            type: "country",
-          },
-          {
-            country_code: "de",
-            type: "country",
-          },
-          {
-            country_code: "dk",
-            type: "country",
-          },
-          {
-            country_code: "se",
-            type: "country",
-          },
-          {
-            country_code: "fr",
-            type: "country",
-          },
-          {
-            country_code: "es",
-            type: "country",
-          },
-          {
-            country_code: "it",
-            type: "country",
-          },
-        ],
+        name: "Storefront delivery",
+        geo_zones: storefrontCountries.map((country_code) => ({
+          country_code,
+          type: "country" as const,
+        })),
       },
     ],
   });
@@ -231,6 +217,10 @@ export default async function initial_data_seed({
             region_id: region.id,
             amount: 10,
           },
+          {
+            region_id: vietnamRegion.id,
+            amount: 30000,
+          },
         ],
         rules: [
           {
@@ -268,6 +258,10 @@ export default async function initial_data_seed({
           {
             region_id: region.id,
             amount: 10,
+          },
+          {
+            region_id: vietnamRegion.id,
+            amount: 50000,
           },
         ],
         rules: [

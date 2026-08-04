@@ -1,28 +1,53 @@
 import { Suspense } from "react"
 
-import { listLocales } from "@lib/data/locales"
-import { getLocale } from "@lib/data/locale-actions"
+import { listCategories } from "@lib/data/categories"
+import { listCollections } from "@lib/data/collections"
 import { listRegions } from "@lib/data/regions"
-import { StoreRegion } from "@medusajs/types"
+import { getTtvSiteConfig } from "@lib/data/ttv"
+import { buildTtvShopNavGroups } from "@lib/util/ttv-navigation"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import CartButton from "@modules/layout/components/cart-button"
-import SideMenu from "@modules/layout/components/side-menu"
+import MegaMenu from "@modules/layout/components/mega-menu"
+import NavCountrySelect from "@modules/layout/components/nav-country-select"
 
 export default async function Nav() {
-  const [regions, locales, currentLocale] = await Promise.all([
-    listRegions().then((regions: StoreRegion[]) => regions),
-    listLocales(),
-    getLocale(),
-  ])
+  const [siteConfig, categories, collectionsResponse, regions] =
+    await Promise.all([
+      getTtvSiteConfig(),
+      listCategories(
+        {
+          limit: 200,
+          include_descendants_tree: true,
+        },
+        { cache: "no-store" }
+      ).catch(() => []),
+      listCollections(
+        { limit: "100" },
+        { cache: "no-store" }
+      ).catch(() => ({
+        collections: [],
+        count: 0,
+      })),
+      listRegions().catch(() => []),
+    ])
+  const navGroups = buildTtvShopNavGroups({
+    categories,
+    collections: collectionsResponse.collections,
+  })
 
   return (
     <div className="sticky top-0 inset-x-0 z-50 group">
       <header className="relative h-16 mx-auto border-b duration-200 bg-white border-ui-border-base">
         <nav className="content-container txt-xsmall-plus text-ui-fg-subtle flex items-center justify-between w-full h-full text-small-regular">
-          <div className="flex-1 basis-0 h-full flex items-center">
-            <div className="h-full">
-              <SideMenu regions={regions} locales={locales} currentLocale={currentLocale} />
-            </div>
+          <div className="flex-1 basis-0 h-full flex items-center gap-x-6">
+            <MegaMenu groups={navGroups} triggerLabel="Store" />
+            <LocalizedClientLink
+              className="hover:text-ui-fg-base"
+              href="/combo"
+              data-testid="nav-combo-link"
+            >
+              Combo
+            </LocalizedClientLink>
           </div>
 
           <div className="flex items-center h-full">
@@ -31,7 +56,7 @@ export default async function Nav() {
               className="txt-compact-xlarge-plus hover:text-ui-fg-base uppercase"
               data-testid="nav-store-link"
             >
-              Medusa Store
+              {siteConfig.siteName}
             </LocalizedClientLink>
           </div>
 
@@ -60,6 +85,9 @@ export default async function Nav() {
             </Suspense>
           </div>
         </nav>
+        <div className="absolute right-4 top-0 hidden h-full items-center small:flex">
+          <NavCountrySelect regions={regions} />
+        </div>
       </header>
     </div>
   )

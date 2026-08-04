@@ -9,6 +9,7 @@ const PRODUCT_LIMIT = 12
 
 type PaginatedProductsParams = {
   limit: number
+  q?: string
   collection_id?: string[]
   category_id?: string[]
   id?: string[]
@@ -18,19 +19,23 @@ type PaginatedProductsParams = {
 export default async function PaginatedProducts({
   sortBy,
   page,
+  q,
   collectionId,
   categoryId,
   productsIds,
   countryCode,
   optionValueIds,
+  showCount = false,
 }: {
   sortBy?: SortOptions
   page: number
+  q?: string
   collectionId?: string
   categoryId?: string
   productsIds?: string[]
   countryCode: string
   optionValueIds?: OptionValueIds
+  showCount?: boolean
 }) {
   const queryParams: PaginatedProductsParams = {
     limit: 12,
@@ -38,6 +43,10 @@ export default async function PaginatedProducts({
 
   if (collectionId) {
     queryParams["collection_id"] = [collectionId]
+  }
+
+  if (q) {
+    queryParams["q"] = q
   }
 
   if (categoryId) {
@@ -72,6 +81,11 @@ export default async function PaginatedProducts({
 
   return (
     <>
+      {showCount && (
+        <p className="mb-4 text-small-regular text-ui-fg-subtle">
+          {count} products
+        </p>
+      )}
       <ul
         className="grid grid-cols-2 w-full small:grid-cols-3 medium:grid-cols-4 gap-x-6 gap-y-8"
         data-testid="products-list"

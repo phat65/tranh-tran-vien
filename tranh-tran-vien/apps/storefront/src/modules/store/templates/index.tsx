@@ -10,11 +10,13 @@ import PaginatedProducts from "./paginated-products"
 const StoreTemplate = ({
   sortBy,
   page,
+  q,
   countryCode,
   optionValueIds,
 }: {
   sortBy?: SortOptions
   page?: string
+  q?: string
   countryCode: string
   optionValueIds?: OptionValueIds
 }) => {
@@ -35,6 +37,7 @@ const StoreTemplate = ({
           <PaginatedProducts
             sortBy={sort}
             page={pageNumber}
+            q={q}
             countryCode={countryCode}
             optionValueIds={optionValueIds}
           />

@@ -14,6 +14,7 @@ import { StateType } from "@lib/hooks/use-toggle-state"
 import { useParams, usePathname } from "next/navigation"
 import { updateRegion } from "@lib/data/cart"
 import { HttpTypes } from "@medusajs/types"
+import { clx } from "@modules/common/components/ui"
 
 type CountryOption = {
   country: string
@@ -24,9 +25,14 @@ type CountryOption = {
 type CountrySelectProps = {
   toggleState: StateType
   regions: HttpTypes.StoreRegion[]
+  align?: "left" | "right"
 }
 
-const CountrySelect = ({ toggleState, regions }: CountrySelectProps) => {
+const CountrySelect = ({
+  toggleState,
+  regions,
+  align = "left",
+}: CountrySelectProps) => {
   const [current, setCurrent] = useState<CountryOption | undefined>(undefined)
 
   const { countryCode } = useParams()
@@ -61,7 +67,7 @@ const CountrySelect = ({ toggleState, regions }: CountrySelectProps) => {
   }
 
   return (
-    <div>
+    <div className="relative">
       <Listbox
         as="span"
         onChange={handleChange}
@@ -73,7 +79,6 @@ const CountrySelect = ({ toggleState, regions }: CountrySelectProps) => {
       >
         <ListboxButton className="py-1 w-full">
           <div className="txt-compact-small flex items-start gap-x-2">
-            <span>Shipping to:</span>
             {current && (
               <span className="txt-compact-small flex items-center gap-x-2">
                 <ReactCountryFlag
@@ -89,7 +94,7 @@ const CountrySelect = ({ toggleState, regions }: CountrySelectProps) => {
             )}
           </div>
         </ListboxButton>
-        <div className="flex relative w-full min-w-[320px]">
+        <div className="relative w-full min-w-[220px]">
           <Transition
             show={state}
             as={Fragment}
@@ -98,7 +103,13 @@ const CountrySelect = ({ toggleState, regions }: CountrySelectProps) => {
             leaveTo="opacity-0"
           >
             <ListboxOptions
-              className="absolute -bottom-[calc(100%-36px)] left-0 xsmall:left-auto xsmall:right-0 max-h-[442px] overflow-y-scroll z-[900] bg-white drop-shadow-md text-small-regular uppercase text-black no-scrollbar rounded-rounded w-full"
+              className={clx(
+                "absolute top-2 max-h-[442px] min-w-[220px] overflow-y-auto z-[900] bg-white drop-shadow-md text-small-regular uppercase text-black no-scrollbar rounded-rounded",
+                {
+                  "left-0": align === "left",
+                  "right-0": align === "right",
+                }
+              )}
               static
             >
               {options?.map((o, index) => {

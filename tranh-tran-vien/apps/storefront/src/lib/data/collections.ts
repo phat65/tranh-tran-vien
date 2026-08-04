@@ -21,11 +21,13 @@ export const retrieveCollection = async (id: string) => {
 }
 
 export const listCollections = async (
-  queryParams: Record<string, string> = {}
+  queryParams: Record<string, string> = {},
+  options?: { cache?: "force-cache" | "no-store" }
 ): Promise<{ collections: HttpTypes.StoreCollection[]; count: number }> => {
   const next = {
     ...(await getCacheOptions("collections")),
   }
+  const cache = options?.cache ?? "force-cache"
 
   queryParams.limit = queryParams.limit || "100"
   queryParams.offset = queryParams.offset || "0"
@@ -35,8 +37,8 @@ export const listCollections = async (
       "/store/collections",
       {
         query: queryParams,
-        next,
-        cache: "force-cache",
+        ...(cache === "force-cache" ? { next } : {}),
+        cache,
       }
     )
     .then(({ collections }) => ({ collections, count: collections.length }))

@@ -26,23 +26,47 @@ export default async function ProductPreview({
   const { cheapestPrice } = getProductPrice({
     product,
   })
+  const isSoldOut = !product.variants?.some((variant) => {
+    if (!variant.manage_inventory || variant.allow_backorder) {
+      return true
+    }
+
+    return Number(variant.inventory_quantity ?? 0) > 0
+  })
 
   return (
     <LocalizedClientLink href={`/products/${product.handle}`} className="group">
-      <div data-testid="product-wrapper">
+      <div
+        className="relative overflow-hidden rounded-lg border-2 border-[#ffdc36] bg-white p-3 transition-shadow duration-150 group-hover:shadow-[0_18px_45px_rgba(15,23,42,0.12)]"
+        data-testid="product-wrapper"
+      >
+        {isSoldOut && (
+          <span className="absolute right-3 top-3 z-10 rounded-full bg-black px-3 py-1 text-xs font-semibold text-[#ffdc36]">
+            Sold out
+          </span>
+        )}
         <Thumbnail
           thumbnail={product.thumbnail}
           images={product.images}
           size="full"
           isFeatured={isFeatured}
+          className="rounded-lg"
         />
-        <div className="flex txt-compact-medium mt-4 justify-between">
-          <Text className="text-ui-fg-subtle" data-testid="product-title">
-            {product.title}
-          </Text>
-          <div className="flex items-center gap-x-2">
-            {cheapestPrice && <PreviewPrice price={cheapestPrice} />}
+        <div className="mt-3 grid gap-3">
+          <div className="grid grid-cols-[1fr_auto] items-start gap-3">
+            <Text
+              className="line-clamp-2 text-sm font-semibold leading-5 text-ui-fg-base"
+              data-testid="product-title"
+            >
+              {product.title}
+            </Text>
+            <div className="flex shrink-0 items-center gap-x-2 text-sm font-semibold text-ui-fg-base">
+              {cheapestPrice && <PreviewPrice price={cheapestPrice} />}
+            </div>
           </div>
+          <span className="flex h-10 items-center justify-center rounded-md bg-[#ffe476] px-4 text-sm font-semibold text-black transition-colors group-hover:bg-[#ffdc36]">
+            View product
+          </span>
         </div>
       </div>
     </LocalizedClientLink>

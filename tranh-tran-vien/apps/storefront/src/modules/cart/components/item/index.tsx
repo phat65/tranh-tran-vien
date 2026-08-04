@@ -3,7 +3,6 @@
 import { Table, Text, clx } from "@modules/common/components/ui"
 import { updateLineItem } from "@lib/data/cart"
 import { HttpTypes } from "@medusajs/types"
-import CartItemSelect from "@modules/cart/components/cart-item-select"
 import ErrorMessage from "@modules/checkout/components/error-message"
 import DeleteButton from "@modules/common/components/delete-button"
 import LineItemOptions from "@modules/common/components/line-item-options"
@@ -25,6 +24,10 @@ const Item = ({ item, type = "full", currencyCode }: ItemProps) => {
   const [error, setError] = useState<string | null>(null)
 
   const changeQuantity = async (quantity: number) => {
+    if (updating || quantity === item.quantity) {
+      return
+    }
+
     setError(null)
     setUpdating(true)
 
@@ -40,9 +43,12 @@ const Item = ({ item, type = "full", currencyCode }: ItemProps) => {
       })
   }
 
-  // TODO: Update this to grab the actual max inventory
-  const maxQtyFromInventory = 10
-  const maxQuantity = item.variant?.manage_inventory ? 10 : maxQtyFromInventory
+  const fallbackMaxQuantity = 999
+  const inventoryQuantity = Number(item.variant?.inventory_quantity)
+  const maxQuantity =
+    item.variant?.manage_inventory && Number.isFinite(inventoryQuantity)
+      ? Math.max(1, inventoryQuantity)
+      : fallbackMaxQuantity
 
   return (
     <Table.Row className="w-full" data-testid="product-row">
@@ -74,30 +80,40 @@ const Item = ({ item, type = "full", currencyCode }: ItemProps) => {
 
       {type === "full" && (
         <Table.Cell>
-          <div className="flex gap-2 items-center w-28">
+          <div className="flex items-center gap-2">
             <DeleteButton id={item.id} data-testid="product-delete-button" />
-            <CartItemSelect
-              value={item.quantity}
-              onChange={(value) => changeQuantity(parseInt(value.target.value))}
-              className="w-14 h-10 p-4"
-              data-testid="product-select-button"
+            <div
+              className="grid h-10 w-28 grid-cols-[2.25rem_1fr_2.25rem] items-center overflow-hidden rounded-lg border border-ui-border-base bg-[#f2f0f1]"
+              data-testid="product-quantity-stepper"
             >
-              {/* TODO: Update this with the v2 way of managing inventory */}
-              {Array.from(
-                {
-                  length: Math.min(maxQuantity, 10),
-                },
-                (_, i) => (
-                  <option value={i + 1} key={i}>
-                    {i + 1}
-                  </option>
-                )
-              )}
-
-              <option value={1} key={1}>
-                1
-              </option>
-            </CartItemSelect>
+              <button
+                type="button"
+                className="h-10 text-lg text-ui-fg-base disabled:text-ui-fg-disabled"
+                onClick={() => changeQuantity(Math.max(1, item.quantity - 1))}
+                disabled={updating || item.quantity <= 1}
+                aria-label="Decrease quantity"
+              >
+                -
+              </button>
+              <span
+                className="flex h-10 items-center justify-center bg-white text-sm font-semibold"
+                data-testid="product-quantity"
+                data-value={item.quantity}
+              >
+                {item.quantity}
+              </span>
+              <button
+                type="button"
+                className="h-10 text-lg text-ui-fg-base disabled:text-ui-fg-disabled"
+                onClick={() =>
+                  changeQuantity(Math.min(maxQuantity, item.quantity + 1))
+                }
+                disabled={updating || item.quantity >= maxQuantity}
+                aria-label="Increase quantity"
+              >
+                +
+              </button>
+            </div>
             {updating && <Spinner />}
           </div>
           <ErrorMessage error={error} data-testid="product-error-message" />
