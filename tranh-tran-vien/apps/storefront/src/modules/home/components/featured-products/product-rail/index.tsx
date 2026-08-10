@@ -1,4 +1,5 @@
 import { listProducts } from "@lib/data/products"
+import { filterTtvVisibleStorefrontProducts } from "@lib/util/product-visibility"
 import { HttpTypes } from "@medusajs/types"
 import { Text } from "@modules/common/components/ui"
 
@@ -22,7 +23,9 @@ export default async function ProductRail({
     },
   })
 
-  if (!pricedProducts) {
+  const visibleProducts = filterTtvVisibleStorefrontProducts(pricedProducts)
+
+  if (!visibleProducts.length) {
     return null
   }
 
@@ -35,12 +38,11 @@ export default async function ProductRail({
         </InteractiveLink>
       </div>
       <ul className="grid grid-cols-2 small:grid-cols-3 gap-x-6 gap-y-24 small:gap-y-36">
-        {pricedProducts &&
-          pricedProducts.map((product) => (
-            <li key={product.id}>
-              <ProductPreview product={product} region={region} isFeatured />
-            </li>
-          ))}
+        {visibleProducts.map((product) => (
+          <li key={product.id}>
+            <ProductPreview product={product} region={region} isFeatured />
+          </li>
+        ))}
       </ul>
     </div>
   )

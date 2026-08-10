@@ -139,27 +139,126 @@ export async function addToCart({
     ...(await getAuthHeaders()),
   }
 
-  await sdk.store.cart
-    .createLineItem(
-      cart.id,
-      {
-        variant_id: variantId,
-        quantity,
-      },
-      {},
-      headers
-    )
-    .then(async () => {
-      await syncCartRules(cart.id, headers)
-    })
-    .then(async () => {
-      const cartCacheTag = await getCacheTag("carts")
-      revalidateTag(cartCacheTag)
+  try {
+    await addSingleLineItem(cart.id, variantId, quantity, headers)
+  } catch (error) {
+    await removeCartId()
+    const freshCart = await getOrSetCart(countryCode)
 
-      const fulfillmentCacheTag = await getCacheTag("fulfillment")
-      revalidateTag(fulfillmentCacheTag)
+    if (!freshCart) {
+      medusaError(error)
+    }
+
+    await addSingleLineItem(freshCart.id, variantId, quantity, headers).catch(
+      medusaError
+    )
+  }
+}
+
+export async function addItemsToCart({
+  items,
+  countryCode,
+}: {
+  items: {
+    variantId: string
+    quantity: number
+    metadata?: Record<string, unknown>
+  }[]
+  countryCode: string
+}) {
+  const normalizedItems = items
+    .map((item) => ({
+      variantId: item.variantId,
+      quantity: Math.max(1, Math.floor(Number(item.quantity) || 0)),
+      metadata: item.metadata,
+    }))
+    .filter((item) => item.variantId && item.quantity > 0)
+
+  if (!normalizedItems.length) {
+    throw new Error("Missing line items when adding to cart")
+  }
+
+  const cart = await getOrSetCart(countryCode)
+
+  if (!cart) {
+    throw new Error("Error retrieving or creating cart")
+  }
+
+  const headers = {
+    ...(await getAuthHeaders()),
+  }
+
+  try {
+    await addMultipleLineItems(cart.id, normalizedItems, headers)
+  } catch (error) {
+    await removeCartId()
+    const freshCart = await getOrSetCart(countryCode)
+
+    if (!freshCart) {
+      medusaError(error)
+    }
+
+    await addMultipleLineItems(freshCart.id, normalizedItems, headers).catch(
+      medusaError
+    )
+  }
+}
+
+async function addSingleLineItem(
+  cartId: string,
+  variantId: string,
+  quantity: number,
+  headers: Record<string, string>
+) {
+  await sdk.store.cart.createLineItem(
+    cartId,
+    {
+      variant_id: variantId,
+      quantity,
+    },
+    {},
+    headers
+  )
+
+  await refreshCartAfterMutation(cartId, headers)
+}
+
+async function addMultipleLineItems(
+  cartId: string,
+  items: {
+    variantId: string
+    quantity: number
+    metadata?: Record<string, unknown>
+  }[],
+  headers: Record<string, string>
+) {
+  for (const item of items) {
+    await sdk.client.fetch(`/store/carts/${cartId}/line-items`, {
+      method: "POST",
+      body: {
+        variant_id: item.variantId,
+        quantity: item.quantity,
+        ...(item.metadata ? { metadata: item.metadata } : {}),
+      },
+      headers,
+      cache: "no-store",
     })
-    .catch(medusaError)
+  }
+
+  await refreshCartAfterMutation(cartId, headers)
+}
+
+async function refreshCartAfterMutation(
+  cartId: string,
+  headers: Record<string, string>
+) {
+  await syncCartRules(cartId, headers)
+
+  const cartCacheTag = await getCacheTag("carts")
+  revalidateTag(cartCacheTag)
+
+  const fulfillmentCacheTag = await getCacheTag("fulfillment")
+  revalidateTag(fulfillmentCacheTag)
 }
 
 export async function updateLineItem({
@@ -235,6 +334,10 @@ export async function setShippingMethod({
   cartId: string
   shippingMethodId: string
 }) {
+  if (!shippingMethodId) {
+    throw new Error("Please select a shipping method")
+  }
+
   const headers = {
     ...(await getAuthHeaders()),
   }
@@ -355,7 +458,7 @@ export async function setAddresses(currentState: unknown, formData: FormData) {
     if (!formData) {
       throw new Error("No form data found when setting addresses")
     }
-    const cartId = getCartId()
+    const cartId = await getCartId()
     if (!cartId) {
       throw new Error("No existing cart found when setting addresses")
     }
@@ -393,6 +496,12 @@ export async function setAddresses(currentState: unknown, formData: FormData) {
         phone: formData.get("billing_address.phone"),
       }
     await updateCart(data)
+
+    const headers = {
+      ...(await getAuthHeaders()),
+    }
+
+    await ensureDefaultShippingMethod(cartId, headers)
   } catch (e: any) {
     return e.message
   }
@@ -488,6 +597,73 @@ export async function listCartOptions() {
     headers,
     cache: "force-cache",
   })
+}
+
+async function ensureDefaultShippingMethod(
+  cartId: string,
+  headers: Record<string, string>
+) {
+  const cart = await sdk.client
+    .fetch<{ cart: HttpTypes.StoreCart }>(`/store/carts/${cartId}`, {
+      method: "GET",
+      query: {
+        fields: "id,*shipping_methods",
+      },
+      headers,
+      cache: "no-store",
+    })
+    .then(({ cart }) => cart)
+    .catch(() => null)
+
+  if ((cart?.shipping_methods?.length ?? 0) > 0) {
+    return
+  }
+
+  const shippingOptions = await sdk.client
+    .fetch<{ shipping_options: HttpTypes.StoreCartShippingOption[] }>(
+      "/store/shipping-options",
+      {
+        method: "GET",
+        query: {
+          cart_id: cartId,
+        },
+        headers,
+        cache: "no-store",
+      }
+    )
+    .then(({ shipping_options }) => shipping_options)
+    .catch(() => [])
+
+  const shippingOption =
+    shippingOptions.find((option) => !isPickupShippingOption(option)) ??
+    shippingOptions[0]
+
+  if (!shippingOption?.id) {
+    return
+  }
+
+  await sdk.store.cart.addShippingMethod(
+    cartId,
+    { option_id: shippingOption.id },
+    {},
+    headers
+  )
+
+  await syncCartRules(cartId, headers)
+}
+
+function isPickupShippingOption(option: HttpTypes.StoreCartShippingOption) {
+  return (
+    (
+      option as unknown as {
+        service_zone?: {
+          fulfillment_set?: {
+            type?: string
+          }
+        }
+      }
+    ).service_zone?.fulfillment_set?.type === "pickup"
+  )
 }
 
 async function syncCartRules(

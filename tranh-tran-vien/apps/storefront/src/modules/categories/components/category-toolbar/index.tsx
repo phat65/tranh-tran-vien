@@ -13,6 +13,8 @@ type CategoryToolbarProps = {
 
 const sortOptions: { value: SortOptions; label: string }[] = [
   { value: "created_at", label: "Moi nhat" },
+  { value: "title_asc", label: "A-Z" },
+  { value: "title_desc", label: "Z-A" },
   { value: "price_asc", label: "Gia tang dan" },
   { value: "price_desc", label: "Gia giam dan" },
 ]

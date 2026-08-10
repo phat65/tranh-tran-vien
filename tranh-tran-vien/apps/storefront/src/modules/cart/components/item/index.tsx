@@ -9,6 +9,7 @@ import LineItemOptions from "@modules/common/components/line-item-options"
 import LineItemPrice from "@modules/common/components/line-item-price"
 import LineItemUnitPrice from "@modules/common/components/line-item-unit-price"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
+import CustomLineItemThumbnail from "@modules/cart/components/custom-line-item-thumbnail"
 import Spinner from "@modules/common/icons/spinner"
 import Thumbnail from "@modules/products/components/thumbnail"
 import { useState } from "react"
@@ -49,22 +50,32 @@ const Item = ({ item, type = "full", currencyCode }: ItemProps) => {
     item.variant?.manage_inventory && Number.isFinite(inventoryQuantity)
       ? Math.max(1, inventoryQuantity)
       : fallbackMaxQuantity
+  const customImageUrl = getCustomImageUrl(item)
+  const customFilename = getCustomFilename(item)
+  const customDisplayTitle = getCustomDisplayTitle(item)
+  const productHref = customImageUrl
+    ? "/custom/tranh-luc-giac"
+    : `/products/${item.product_handle}`
 
   return (
     <Table.Row className="w-full" data-testid="product-row">
       <Table.Cell className="!pl-0 p-4 w-24">
         <LocalizedClientLink
-          href={`/products/${item.product_handle}`}
+          href={productHref}
           className={clx("flex", {
             "w-16": type === "preview",
             "small:w-24 w-12": type === "full",
           })}
         >
-          <Thumbnail
-            thumbnail={item.thumbnail}
-            images={item.variant?.product?.images}
-            size="square"
-          />
+          {customImageUrl ? (
+            <CustomLineItemThumbnail item={item} />
+          ) : (
+            <Thumbnail
+              thumbnail={item.thumbnail}
+              images={item.variant?.product?.images}
+              size="square"
+            />
+          )}
         </LocalizedClientLink>
       </Table.Cell>
 
@@ -73,9 +84,14 @@ const Item = ({ item, type = "full", currencyCode }: ItemProps) => {
           className="txt-medium-plus text-ui-fg-base"
           data-testid="product-title"
         >
-          {item.product_title}
+          {customDisplayTitle ?? item.product_title}
         </Text>
         <LineItemOptions variant={item.variant} data-testid="product-variant" />
+        {customImageUrl && (
+          <Text className="mt-1 text-xs text-ui-fg-muted">
+            Custom image{customFilename ? `: ${customFilename}` : ""}
+          </Text>
+        )}
       </Table.Cell>
 
       {type === "full" && (
@@ -155,6 +171,24 @@ const Item = ({ item, type = "full", currencyCode }: ItemProps) => {
       </Table.Cell>
     </Table.Row>
   )
+}
+
+function getCustomImageUrl(item: HttpTypes.StoreCartLineItem) {
+  const value = item.metadata?.ttv_custom_image_url
+
+  return typeof value === "string" && value ? value : null
+}
+
+function getCustomFilename(item: HttpTypes.StoreCartLineItem) {
+  const value = item.metadata?.ttv_custom_original_filename
+
+  return typeof value === "string" && value ? value : null
+}
+
+function getCustomDisplayTitle(item: HttpTypes.StoreCartLineItem) {
+  const value = item.metadata?.ttv_custom_display_title
+
+  return typeof value === "string" && value ? value : null
 }
 
 export default Item

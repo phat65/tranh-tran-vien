@@ -15,7 +15,7 @@ export function sortProducts(
   products: HttpTypes.StoreProduct[],
   sortBy: SortOptions
 ): HttpTypes.StoreProduct[] {
-  const sortedProducts = products as MinPricedProduct[]
+  const sortedProducts = [...products] as MinPricedProduct[]
 
   if (["price_asc", "price_desc"].includes(sortBy)) {
     // Precompute the minimum price for each product
@@ -43,6 +43,14 @@ export function sortProducts(
       return (
         new Date(b.created_at!).getTime() - new Date(a.created_at!).getTime()
       )
+    })
+  }
+
+  if (sortBy === "title_asc" || sortBy === "title_desc") {
+    sortedProducts.sort((first, second) => {
+      const diff = (first.title ?? "").localeCompare(second.title ?? "")
+
+      return sortBy === "title_asc" ? diff : -diff
     })
   }
 

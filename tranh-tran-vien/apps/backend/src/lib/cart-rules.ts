@@ -41,9 +41,8 @@ type CartService = {
   ) => Promise<CartTypes.CartLineItemDTO>
   deleteLineItems: (ids: string[] | string) => Promise<void>
   updateShippingMethods: (
-    id: string,
-    data: Partial<CartTypes.UpdateShippingMethodDTO>
-  ) => Promise<CartTypes.CartShippingMethodDTO>
+    data: CartTypes.UpdateShippingMethodDTO[]
+  ) => Promise<CartTypes.CartShippingMethodDTO[]>
   setLineItemAdjustments: (
     cartId: string,
     data: CartTypes.UpsertLineItemAdjustmentDTO[]
@@ -218,7 +217,11 @@ export async function syncCartRules(
   const shippingRule =
     selectComboShippingRule(appliedComboRules) ??
     selectShippingRule(activeShippingRules, enrichedItems)
-  const shippingMutated = await syncShippingMethods(cartService, cart, shippingRule)
+  const shippingMutated = await syncShippingMethods(
+    cartService,
+    cart,
+    shippingRule
+  )
 
   const metadata = {
     combo_discounts: appliedComboRules.map(({ rule, tier }) => ({
@@ -1004,8 +1007,13 @@ async function syncShippingMethods(
   let mutated = false
 
   for (const method of shippingMethods) {
+    if (!method.id) {
+      continue
+    }
+
     const data = { ...(method.data ?? {}) }
-    const originalAmount = getStoredOriginalAmount(data, Number(method.amount))
+    const currentAmount = toNumber(method.amount)
+    const originalAmount = getStoredOriginalAmount(data, currentAmount)
     const targetAmount = rule
       ? rule.is_free_shipping
         ? 0
@@ -1019,14 +1027,17 @@ async function syncShippingMethods(
           ttv_shipping_rule_id: rule.id,
           ttv_shipping_rule_name: rule.name,
           ttv_is_free_shipping: rule.is_free_shipping,
-        }
+      }
       : omitTtvShippingData(data)
 
-    if (method.amount !== targetAmount || !shallowEqualData(data, nextData)) {
-      await cartService.updateShippingMethods(method.id, {
-        amount: targetAmount,
-        data: nextData,
-      })
+    if (currentAmount !== targetAmount || !shallowEqualData(data, nextData)) {
+      await cartService.updateShippingMethods([
+        {
+          id: method.id,
+          amount: targetAmount,
+          data: nextData,
+        },
+      ])
       mutated = true
     }
   }
@@ -1069,12 +1080,16 @@ function getStoredOriginalAmount(
 ): number {
   const stored = data.ttv_original_amount
 
-  if (typeof stored === "number") {
+  if (typeof stored === "number" && Number.isFinite(stored)) {
     return stored
   }
 
   if (typeof stored === "string" && stored.trim()) {
-    return Number(stored)
+    const parsed = Number(stored)
+
+    if (Number.isFinite(parsed)) {
+      return parsed
+    }
   }
 
   return fallback

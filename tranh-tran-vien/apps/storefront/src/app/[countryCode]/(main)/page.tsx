@@ -9,6 +9,7 @@ import {
   type TtvCategoryPageConfig,
 } from "@lib/data/ttv"
 import { HttpTypes } from "@medusajs/types"
+import { filterTtvVisibleStorefrontProducts } from "@lib/util/product-visibility"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import HomeHeroCarousel from "@modules/home/components/hero-carousel"
 import ProductPreview from "@modules/products/components/product-preview"
@@ -47,7 +48,9 @@ export default async function Home(props: {
     })),
     getTtvHomeHeroConfig(),
   ])
-  const products = productsResponse.response.products
+  const products = filterTtvVisibleStorefrontProducts(
+    productsResponse.response.products
+  )
   const displayCategories = getRootCategories(categories).slice(0, 8)
   const categoryConfigs = await Promise.all(
     displayCategories.map((category) =>
@@ -110,12 +113,6 @@ export default async function Home(props: {
                   Cac mau moi nhat duoc lay truc tiep tu san pham Medusa.
                 </p>
               </div>
-              <LocalizedClientLink
-                href="/store?sortBy=created_at"
-                className="hidden text-small-regular text-ui-fg-interactive hover:text-ui-fg-base small:block"
-              >
-                Xem tat ca
-              </LocalizedClientLink>
             </div>
             <ul className="grid grid-cols-2 gap-x-4 gap-y-10 small:grid-cols-4 small:gap-x-6">
               {products.slice(0, 8).map((product) => (
@@ -124,6 +121,14 @@ export default async function Home(props: {
                 </li>
               ))}
             </ul>
+            <div className="mt-10 flex justify-center">
+              <LocalizedClientLink
+                href="/store?sortBy=created_at"
+                className="border border-ui-border-strong bg-ui-fg-base px-6 py-3 text-small-regular text-ui-bg-base transition-colors hover:bg-ui-fg-subtle"
+              >
+                Xem them
+              </LocalizedClientLink>
+            </div>
           </div>
         </section>
       )}

@@ -1,6 +1,5 @@
 "use client"
 
-import { addToCart } from "@lib/data/cart"
 import { useIntersection } from "@lib/hooks/use-in-view"
 import { convertToLocale } from "@lib/util/money"
 import { HttpTypes } from "@medusajs/types"
@@ -61,6 +60,7 @@ export default function ProductActions({
     parseQuantity(searchParams.get("qty"))
   )
   const [isAdding, setIsAdding] = useState(false)
+  const [addToCartError, setAddToCartError] = useState<string | null>(null)
   const [now, setNow] = useState(() => Date.now())
   const countryCode = useParams().countryCode as string
 
@@ -202,14 +202,42 @@ export default function ProductActions({
     if (!selectedVariant?.id) return null
 
     setIsAdding(true)
+    setAddToCartError(null)
 
-    await addToCart({
-      variantId: selectedVariant.id,
-      quantity,
-      countryCode,
-    })
+    try {
+      const response = await fetch("/api/cart/add", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          variantId: selectedVariant.id,
+          quantity,
+          countryCode,
+        }),
+      })
+      const payload = await response.json().catch(() => null)
 
-    setIsAdding(false)
+      if (!response.ok) {
+        throw new Error(payload?.message ?? "Could not add to cart")
+      }
+
+      window.dispatchEvent(
+        new CustomEvent("ttv-cart-updated", {
+          detail: {
+            delta: quantity,
+          },
+        })
+      )
+      router.refresh()
+    } catch (error) {
+      setAddToCartError(
+        error instanceof Error ? error.message : "Could not add to cart"
+      )
+    } finally {
+      setIsAdding(false)
+    }
   }
 
   return (
@@ -356,6 +384,11 @@ export default function ProductActions({
             {addToCartLabel}
           </Button>
         </div>
+        {addToCartError && (
+          <Text className="text-sm font-medium text-red-600">
+            {addToCartError}
+          </Text>
+        )}
 
         <MobileActions
           product={product}

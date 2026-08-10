@@ -20,6 +20,7 @@ const HomeHeroCarousel = ({
   )
   const [activeIndex, setActiveIndex] = useState(0)
   const activeSlide = slides[activeIndex] ?? slides[0]
+  const showControls = slides.length > 1
 
   useEffect(() => {
     setActiveIndex(0)
@@ -37,54 +38,68 @@ const HomeHeroCarousel = ({
     return () => window.clearInterval(interval)
   }, [config.slide_interval_seconds, slides.length])
 
+  const goToPreviousSlide = () => {
+    setActiveIndex((current) => (current - 1 + slides.length) % slides.length)
+  }
+
+  const goToNextSlide = () => {
+    setActiveIndex((current) => (current + 1) % slides.length)
+  }
+
   return (
-    <section className="relative min-h-[calc(100dvh-4rem)] overflow-hidden border-b border-ui-border-base bg-[#141414] text-white">
-      {activeSlide ? (
-        <HeroMedia slide={activeSlide} priority={activeIndex === 0} />
+    <section className="group relative h-[calc(100dvh-4rem)] min-h-[28rem] max-h-[760px] overflow-hidden border-b border-ui-border-base bg-[#141414]">
+      {slides.length ? (
+        <div
+          className="flex h-full transition-transform duration-700 ease-out"
+          style={{ transform: `translateX(-${activeIndex * 100}%)` }}
+        >
+          {slides.map((slide, index) => (
+            <div className="relative h-full w-full shrink-0" key={index}>
+              <HeroMedia slide={slide} priority={index === 0} />
+            </div>
+          ))}
+        </div>
       ) : (
         <div className="absolute inset-0 bg-[#202327]" />
       )}
-      <div className="absolute inset-0 bg-black/45" />
-      <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/70 to-transparent" />
-      <div className="content-container relative flex min-h-[calc(100dvh-4rem)] items-center py-14">
-        <div className="max-w-[39rem]">
-          <p className="txt-compact-small-plus mb-4 text-white/78">
-            {config.eyebrow}
-          </p>
-          <h1 className="text-[2.75rem] font-semibold leading-[0.96] tracking-normal small:text-[4.75rem]">
-            {config.title}
-          </h1>
-          <p className="mt-6 max-w-[32rem] text-base leading-7 text-white/78">
-            {config.body}
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <LocalizedClientLink
-              href={config.primary_href}
-              className="inline-flex h-11 items-center justify-center bg-white px-5 text-small-regular text-ui-fg-base transition-colors hover:bg-white/86"
-            >
-              {config.primary_label}
-            </LocalizedClientLink>
-            <LocalizedClientLink
-              href={config.secondary_href}
-              className="inline-flex h-11 items-center justify-center border border-white/60 px-5 text-small-regular text-white transition-colors hover:bg-white/12"
-            >
-              {config.secondary_label}
-            </LocalizedClientLink>
-          </div>
-        </div>
-      </div>
+      {activeSlide?.link_url && <BannerLinkOverlay href={activeSlide.link_url} />}
 
-      {slides.length > 1 && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-7 z-10 flex justify-center">
-          <div className="pointer-events-auto flex items-center gap-2 rounded-full border border-white/20 bg-black/30 px-3 py-2 backdrop-blur">
+      {showControls && (
+        <>
+          <button
+            type="button"
+            className="absolute left-4 top-1/2 z-20 flex h-16 w-11 -translate-y-1/2 items-center justify-center rounded-md bg-black/55 text-4xl leading-none text-white opacity-0 shadow-lg backdrop-blur transition-all hover:bg-black/75 group-hover:opacity-100 small:left-8"
+            onClick={goToPreviousSlide}
+            aria-label="Previous banner"
+          >
+            <span className="-translate-y-[2px]" aria-hidden="true">
+              ‹
+            </span>
+          </button>
+          <button
+            type="button"
+            className="absolute right-4 top-1/2 z-20 flex h-16 w-11 -translate-y-1/2 items-center justify-center rounded-md bg-black/55 text-4xl leading-none text-white opacity-0 shadow-lg backdrop-blur transition-all hover:bg-black/75 group-hover:opacity-100 small:right-8"
+            onClick={goToNextSlide}
+            aria-label="Next banner"
+          >
+            <span className="-translate-y-[2px]" aria-hidden="true">
+              ›
+            </span>
+          </button>
+        </>
+      )}
+
+      {showControls && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-7 z-20 flex justify-center">
+          <div className="pointer-events-auto flex items-center gap-2 rounded-full bg-black/25 px-3 py-2 backdrop-blur">
             {slides.map((_, index) => (
               <button
                 key={index}
                 type="button"
-                className={`h-2.5 rounded-full transition-all ${
+                className={`h-1 transition-all ${
                   activeIndex === index
-                    ? "w-7 bg-white"
-                    : "w-2.5 bg-white/45 hover:bg-white/75"
+                    ? "w-10 bg-white"
+                    : "w-5 bg-white/45 hover:bg-white/75"
                 }`}
                 onClick={() => setActiveIndex(index)}
                 aria-label={`Show banner ${index + 1}`}
@@ -94,6 +109,30 @@ const HomeHeroCarousel = ({
         </div>
       )}
     </section>
+  )
+}
+
+function BannerLinkOverlay({ href }: { href: string }) {
+  if (href.startsWith("http")) {
+    return (
+      <a
+        href={href}
+        className="absolute inset-0 z-10"
+        aria-label="Open banner link"
+      >
+        <span className="sr-only">Open banner link</span>
+      </a>
+    )
+  }
+
+  return (
+    <LocalizedClientLink
+      href={href}
+      className="absolute inset-0 z-10"
+      aria-label="Open banner link"
+    >
+      <span className="sr-only">Open banner link</span>
+    </LocalizedClientLink>
   )
 }
 
@@ -131,15 +170,6 @@ function HeroMedia({
   )
 }
 
-function HeroFact({ value, label }: { value: string; label: string }) {
-  return (
-    <div>
-      <p className="text-2xl font-semibold leading-none text-white">{value}</p>
-      <p className="mt-1 text-small-regular">{label}</p>
-    </div>
-  )
-}
-
 function getSlides(
   config: TtvHomeHeroConfig,
   fallbackMediaUrl?: string | null
@@ -156,6 +186,7 @@ function getSlides(
           media_type: config.media_type,
           media_url: mediaUrl,
           media_object_position: config.media_object_position,
+          link_url: config.primary_href,
         },
       ]
     : []

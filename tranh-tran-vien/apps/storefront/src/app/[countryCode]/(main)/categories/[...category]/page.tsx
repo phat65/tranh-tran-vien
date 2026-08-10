@@ -8,7 +8,6 @@ import { getTtvCategoryPageConfig } from "@lib/data/ttv"
 import { HttpTypes, StoreRegion } from "@medusajs/types"
 import CategoryTemplate from "@modules/categories/templates"
 import { SortOptions } from "@modules/store/components/refinement-list/sort-products"
-import { parseOptionValueIds } from "@lib/util/product-option-filters"
 
 export const dynamic = "force-dynamic"
 
@@ -18,7 +17,6 @@ type Props = {
     Record<string, string | string[] | undefined> & {
       sortBy?: SortOptions
       page?: string
-      optionValueIds?: string | string[]
       q?: string
       collection_id?: string
     }
@@ -80,7 +78,6 @@ export default async function CategoryPage(props: Props) {
   const searchParams = await props.searchParams
   const params = await props.params
   const { sortBy, page, q, collection_id } = searchParams
-  const optionValueIds = parseOptionValueIds(searchParams)
 
   const productCategory = await getCategoryByHandle(params.category)
 
@@ -104,7 +101,6 @@ export default async function CategoryPage(props: Props) {
       q={typeof q === "string" ? q : undefined}
       collectionId={typeof collection_id === "string" ? collection_id : undefined}
       countryCode={params.countryCode}
-      optionValueIds={optionValueIds}
       collections={collectionsResponse.collections}
       config={categoryPageConfig}
     />

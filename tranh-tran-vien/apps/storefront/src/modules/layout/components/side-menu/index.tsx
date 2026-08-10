@@ -15,8 +15,8 @@ import LanguageSelect from "../language-select"
 
 const SideMenuItems = {
   Home: "/",
-  Store: "/store",
-  Combo: "/combo",
+  "Custom tranh luc giac": "/custom/tranh-luc-giac",
+  "Build Wall": "/custom-wall",
   Account: "/account",
   Cart: "/cart",
 }

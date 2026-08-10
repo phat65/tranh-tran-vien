@@ -27,6 +27,8 @@ export default function medusaError(error: unknown): never {
     throw new Error(message.charAt(0).toUpperCase() + message.slice(1) + ".")
   } else if (err.request) {
     throw new Error("No response received: " + String(err.request))
+  } else if (error instanceof Error) {
+    throw error
   } else {
     throw new Error("Error setting up the request: " + err.message)
   }

@@ -5,6 +5,7 @@ import { listCollections } from "@lib/data/collections"
 import { listRegions } from "@lib/data/regions"
 import { getTtvSiteConfig } from "@lib/data/ttv"
 import { buildTtvShopNavGroups } from "@lib/util/ttv-navigation"
+import { User } from "@medusajs/icons"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import CartButton from "@modules/layout/components/cart-button"
 import MegaMenu from "@modules/layout/components/mega-menu"
@@ -34,46 +35,66 @@ export default async function Nav() {
     categories,
     collections: collectionsResponse.collections,
   })
+  const customNavGroups = [
+    {
+      id: "custom",
+      label: "Custom",
+      links: [
+        {
+          id: "custom-hexagon",
+          label: "Custom tranh luc giac",
+          href: "/custom/tranh-luc-giac",
+        },
+        {
+          id: "custom-wall",
+          label: "Build Wall",
+          href: "/custom-wall",
+        },
+      ],
+    },
+  ]
 
   return (
     <div className="sticky top-0 inset-x-0 z-50 group">
-      <header className="relative h-16 mx-auto border-b duration-200 bg-white border-ui-border-base">
-        <nav className="content-container txt-xsmall-plus text-ui-fg-subtle flex items-center justify-between w-full h-full text-small-regular">
-          <div className="flex-1 basis-0 h-full flex items-center gap-x-6">
-            <MegaMenu groups={navGroups} triggerLabel="Store" />
-            <LocalizedClientLink
-              className="hover:text-ui-fg-base"
-              href="/combo"
-              data-testid="nav-combo-link"
-            >
-              Combo
-            </LocalizedClientLink>
-          </div>
-
-          <div className="flex items-center h-full">
+      <header className="relative h-16 mx-auto border-b border-white/10 bg-[#10131a] text-white duration-200">
+        <nav className="content-container txt-xsmall-plus flex h-full w-full items-center justify-between text-small-regular">
+          <div className="flex h-full items-center gap-x-7">
             <LocalizedClientLink
               href="/"
-              className="txt-compact-xlarge-plus hover:text-ui-fg-base uppercase"
+              className="txt-compact-xlarge-plus uppercase tracking-normal text-white hover:text-white/80"
               data-testid="nav-store-link"
             >
               {siteConfig.siteName}
             </LocalizedClientLink>
+            <LocalizedClientLink
+              href="/"
+              className="hidden text-white/70 hover:text-white small:block"
+            >
+              Home
+            </LocalizedClientLink>
+            <MegaMenu groups={navGroups} triggerLabel="Explore" />
+            <MegaMenu groups={customNavGroups} triggerLabel="Custom" />
+            <LocalizedClientLink
+              href="/about-us"
+              className="hidden text-white/70 hover:text-white small:block"
+            >
+              About Us
+            </LocalizedClientLink>
           </div>
 
-          <div className="flex items-center gap-x-6 h-full flex-1 basis-0 justify-end">
-            <div className="hidden small:flex items-center gap-x-6 h-full">
-              <LocalizedClientLink
-                className="hover:text-ui-fg-base"
-                href="/account"
-                data-testid="nav-account-link"
-              >
-                Account
-              </LocalizedClientLink>
-            </div>
+          <div className="flex h-full items-center justify-end gap-x-6">
+            <LocalizedClientLink
+              href="/account"
+              className="grid h-9 w-9 place-items-center text-white/75 transition-colors hover:text-white"
+              aria-label="Account"
+              data-testid="nav-account-link"
+            >
+              <User />
+            </LocalizedClientLink>
             <Suspense
               fallback={
                 <LocalizedClientLink
-                  className="hover:text-ui-fg-base flex gap-2"
+                  className="flex gap-2 text-white/70 hover:text-white"
                   href="/cart"
                   data-testid="nav-cart-link"
                 >
@@ -83,11 +104,11 @@ export default async function Nav() {
             >
               <CartButton />
             </Suspense>
+            <div className="hidden text-white/70 small:flex">
+              <NavCountrySelect regions={regions} />
+            </div>
           </div>
         </nav>
-        <div className="absolute right-4 top-0 hidden h-full items-center small:flex">
-          <NavCountrySelect regions={regions} />
-        </div>
       </header>
     </div>
   )

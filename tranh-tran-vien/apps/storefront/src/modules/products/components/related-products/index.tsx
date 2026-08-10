@@ -1,5 +1,6 @@
 import { listProducts } from "@lib/data/products"
 import { getRegion } from "@lib/data/regions"
+import { filterTtvVisibleStorefrontProducts } from "@lib/util/product-visibility"
 import { HttpTypes } from "@medusajs/types"
 import Product from "../product-preview"
 
@@ -37,7 +38,7 @@ export default async function RelatedProducts({
     queryParams,
     countryCode,
   }).then(({ response }) => {
-    return response.products.filter(
+    return filterTtvVisibleStorefrontProducts(response.products).filter(
       (responseProduct) => responseProduct.id !== product.id
     )
   })

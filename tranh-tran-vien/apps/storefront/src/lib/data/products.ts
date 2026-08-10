@@ -1,7 +1,7 @@
 "use server"
 
 import { sdk } from "@lib/config"
-import { OptionValueIds } from "@lib/util/product-option-filters"
+import { filterTtvVisibleStorefrontProducts } from "@lib/util/product-visibility"
 import { sortProducts } from "@lib/util/sort-products"
 import { HttpTypes } from "@medusajs/types"
 import { SortOptions } from "@modules/store/components/refinement-list/sort-products"
@@ -9,10 +9,7 @@ import { getAuthHeaders, getCacheOptions } from "./cookies"
 import { getRegion, retrieveRegion } from "./regions"
 
 type ProductListQueryParams = (HttpTypes.FindParams &
-  HttpTypes.StoreProductListParams) & {
-  options?: string[]
-  option_value_id?: string | string[]
-}
+  HttpTypes.StoreProductListParams)
 
 export const listProducts = async ({
   pageParam = 1,
@@ -105,22 +102,17 @@ export const listProductsWithSort = async ({
   queryParams,
   sortBy = "created_at",
   countryCode,
-  optionValueIds,
 }: {
   page?: number
   queryParams?: ProductListQueryParams
   sortBy?: SortOptions
   countryCode: string
-  optionValueIds?: OptionValueIds
 }): Promise<{
   response: { products: HttpTypes.StoreProduct[]; count: number }
   nextPage: number | null
   queryParams?: ProductListQueryParams
 }> => {
   const limit = queryParams?.limit || 12
-  const optionFilters = Array.from(
-    new Set((optionValueIds || []).filter(Boolean))
-  )
 
   const {
     response: { products },
@@ -128,17 +120,17 @@ export const listProductsWithSort = async ({
     pageParam: 0,
     queryParams: {
       ...queryParams,
-      ...(optionFilters.length ? { option_value_id: optionFilters } : {}),
       limit: 100,
     },
     countryCode,
   })
 
-  const sortedProducts = sortProducts(products, sortBy)
+  const visibleProducts = filterTtvVisibleStorefrontProducts(products)
+  const sortedProducts = sortProducts(visibleProducts, sortBy)
 
   const pageParam = (page - 1) * limit
 
-  const filteredCount = products.length
+  const filteredCount = visibleProducts.length
 
   const nextPage = filteredCount > pageParam + limit ? pageParam + limit : null
 

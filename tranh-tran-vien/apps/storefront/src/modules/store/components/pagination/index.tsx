@@ -1,114 +1,127 @@
 "use client"
 
+import ChevronDown from "@modules/common/icons/chevron-down"
 import { clx } from "@modules/common/components/ui"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
+
+type PageItem = number | "start-ellipsis" | "end-ellipsis"
 
 export function Pagination({
   page,
   totalPages,
-  'data-testid': dataTestid
+  "data-testid": dataTestid,
 }: {
   page: number
   totalPages: number
-  'data-testid'?: string
+  "data-testid"?: string
 }) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
-  // Helper function to generate an array of numbers within a range
   const arrayRange = (start: number, stop: number) =>
     Array.from({ length: stop - start + 1 }, (_, index) => start + index)
 
-  // Function to handle page changes
   const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > totalPages || newPage === page) {
+      return
+    }
+
     const params = new URLSearchParams(searchParams)
-    params.set("page", newPage.toString())
-    router.push(`${pathname}?${params.toString()}`)
+
+    if (newPage === 1) {
+      params.delete("page")
+    } else {
+      params.set("page", newPage.toString())
+    }
+
+    const nextQuery = params.toString()
+
+    router.push(nextQuery ? `${pathname}?${nextQuery}` : pathname)
   }
 
-  // Function to render a page button
-  const renderPageButton = (
-    p: number,
-    label: string | number,
-    isCurrent: boolean
-  ) => (
+  const renderPageButton = (p: number) => (
     <button
       key={p}
-      className={clx("txt-xlarge-plus text-ui-fg-muted", {
-        "text-ui-fg-base hover:text-ui-fg-subtle": isCurrent,
-      })}
-      disabled={isCurrent}
+      type="button"
+      aria-current={p === page ? "page" : undefined}
+      className={clx(
+        "grid h-9 w-9 place-items-center rounded-full border text-small-regular transition-colors",
+        p === page
+          ? "border-ui-fg-base bg-ui-fg-base text-ui-bg-base"
+          : "border-ui-border-strong bg-white text-ui-fg-base hover:bg-ui-bg-subtle"
+      )}
+      disabled={p === page}
       onClick={() => handlePageChange(p)}
     >
-      {label}
+      {p}
     </button>
   )
 
-  // Function to render ellipsis
   const renderEllipsis = (key: string) => (
     <span
       key={key}
-      className="txt-xlarge-plus text-ui-fg-muted items-center cursor-default"
+      className="grid h-9 w-9 place-items-center text-small-regular text-ui-fg-subtle"
     >
       ...
     </span>
   )
 
-  // Function to render page buttons based on the current page and total pages
-  const renderPageButtons = () => {
-    const buttons = []
-
+  const getPageItems = (): PageItem[] => {
     if (totalPages <= 7) {
-      // Show all pages
-      buttons.push(
-        ...arrayRange(1, totalPages).map((p) =>
-          renderPageButton(p, p, p === page)
-        )
-      )
-    } else {
-      // Handle different cases for displaying pages and ellipses
-      if (page <= 4) {
-        // Show 1, 2, 3, 4, 5, ..., lastpage
-        buttons.push(
-          ...arrayRange(1, 5).map((p) => renderPageButton(p, p, p === page))
-        )
-        buttons.push(renderEllipsis("ellipsis1"))
-        buttons.push(
-          renderPageButton(totalPages, totalPages, totalPages === page)
-        )
-      } else if (page >= totalPages - 3) {
-        // Show 1, ..., lastpage - 4, lastpage - 3, lastpage - 2, lastpage - 1, lastpage
-        buttons.push(renderPageButton(1, 1, 1 === page))
-        buttons.push(renderEllipsis("ellipsis2"))
-        buttons.push(
-          ...arrayRange(totalPages - 4, totalPages).map((p) =>
-            renderPageButton(p, p, p === page)
-          )
-        )
-      } else {
-        // Show 1, ..., page - 1, page, page + 1, ..., lastpage
-        buttons.push(renderPageButton(1, 1, 1 === page))
-        buttons.push(renderEllipsis("ellipsis3"))
-        buttons.push(
-          ...arrayRange(page - 1, page + 1).map((p) =>
-            renderPageButton(p, p, p === page)
-          )
-        )
-        buttons.push(renderEllipsis("ellipsis4"))
-        buttons.push(
-          renderPageButton(totalPages, totalPages, totalPages === page)
-        )
-      }
+      return arrayRange(1, totalPages)
     }
 
-    return buttons
+    if (page <= 3) {
+      return [...arrayRange(1, 4), "end-ellipsis", totalPages]
+    }
+
+    if (page >= totalPages - 2) {
+      return [1, "start-ellipsis", ...arrayRange(totalPages - 3, totalPages)]
+    }
+
+    return [
+      1,
+      "start-ellipsis",
+      page - 1,
+      page,
+      page + 1,
+      "end-ellipsis",
+      totalPages,
+    ]
   }
 
-  // Render the component
   return (
-    <div className="flex justify-center w-full mt-12">
-      <div className="flex gap-3 items-end" data-testid={dataTestid}>{renderPageButtons()}</div>
+    <div className="mt-12 flex w-full justify-center px-4 py-6">
+      <div
+        className="flex items-center gap-3"
+        data-testid={dataTestid}
+        aria-label="Pagination"
+      >
+        <button
+          type="button"
+          aria-label="Previous page"
+          disabled={page <= 1}
+          className="grid h-9 w-9 place-items-center rounded-full border border-ui-border-strong bg-white text-ui-fg-base transition-colors hover:bg-ui-bg-subtle disabled:cursor-not-allowed disabled:border-ui-border-base disabled:text-ui-fg-disabled"
+          onClick={() => handlePageChange(page - 1)}
+        >
+          <ChevronDown className="rotate-90" size={16} />
+        </button>
+
+        {getPageItems().map((item) =>
+          typeof item === "number" ? renderPageButton(item) : renderEllipsis(item)
+        )}
+
+        <button
+          type="button"
+          aria-label="Next page"
+          disabled={page >= totalPages}
+          className="grid h-9 w-9 place-items-center rounded-full border border-ui-border-strong bg-white text-ui-fg-base transition-colors hover:bg-ui-bg-subtle disabled:cursor-not-allowed disabled:border-ui-border-base disabled:text-ui-fg-disabled"
+          onClick={() => handlePageChange(page + 1)}
+        >
+          <ChevronDown className="-rotate-90" size={16} />
+        </button>
+      </div>
     </div>
   )
 }

@@ -122,6 +122,7 @@ export type TtvHomeHeroSlide = {
   media_type: "image" | "video"
   media_url: string
   media_object_position: string
+  link_url: string | null
 }
 
 export type TtvCategoryPageConfig = {
@@ -148,8 +149,8 @@ const defaultHomeHeroConfig: TtvHomeHeroConfig = {
   media_object_position: "center center",
   media_slides: [],
   slide_interval_seconds: 5,
-  primary_label: "Shop combos",
-  primary_href: "/combo",
+  primary_label: "Xem san pham",
+  primary_href: "/store",
   secondary_label: "Browse all",
   secondary_href: "/store",
   background_image_url: null,
@@ -236,6 +237,7 @@ export async function getTtvHomeHeroConfig(): Promise<TtvHomeHeroConfig> {
     media_object_position:
       getString(config.media_object_position) ??
       defaultHomeHeroConfig.media_object_position,
+    link_url: getString(config.primary_href),
   })
 
   return {
@@ -447,6 +449,7 @@ function getHomeHeroSlides(
           media_url: mediaUrl,
           media_object_position:
             getString(slide.media_object_position) ?? "center center",
+          link_url: getString(slide.link_url) ?? getString(slide.href),
         }
       })
       .filter((slide): slide is TtvHomeHeroSlide => Boolean(slide))

@@ -6,7 +6,6 @@ import {
   Input,
   Select,
   Text,
-  Textarea,
   toast,
 } from "@medusajs/ui"
 import { ChangeEvent, FormEvent, ReactNode, useEffect, useState } from "react"
@@ -24,6 +23,37 @@ type HeroSlideForm = {
   media_type: "image" | "video"
   media_url: string
   media_object_position: string
+  link_url: string
+}
+
+type LinkOption = {
+  label: string
+  href: string
+  group: string
+}
+
+type RuleOption = {
+  id: string
+  label: string
+  subtitle?: string
+}
+
+type RuleOptions = {
+  products: RuleOption[]
+  categories: RuleOption[]
+  collections: RuleOption[]
+}
+
+type PageRecord = {
+  title?: string
+  slug?: string
+  status?: string
+}
+
+type PostRecord = {
+  title?: string
+  slug?: string
+  status?: string
 }
 
 type HeroForm = {
@@ -45,6 +75,28 @@ type HeroForm = {
 
 const SETTINGS_API = "/admin/tranh-tran-vien/catalog/site-settings"
 const HOME_HERO_KEY = "home_hero"
+const NO_LINK_VALUE = "__none__"
+
+const baseLinkOptions: LinkOption[] = [
+  { label: "Home", href: "/", group: "Default" },
+  { label: "Store", href: "/store", group: "Default" },
+  { label: "Build Wall", href: "/custom-wall", group: "Default" },
+  { label: "Posts", href: "/posts", group: "Default" },
+]
+
+const emptyRuleOptions: RuleOptions = {
+  products: [],
+  categories: [],
+  collections: [],
+}
+
+const emptyPagesResponse: { pages: PageRecord[] } = {
+  pages: [],
+}
+
+const emptyPostsResponse: { posts: PostRecord[] } = {
+  posts: [],
+}
 
 const defaultHeroForm: HeroForm = {
   eyebrow: "Combo decor for anime, Pokemon and custom walls",
@@ -56,8 +108,8 @@ const defaultHeroForm: HeroForm = {
   media_object_position: "center center",
   media_slides: [],
   slide_interval_seconds: "5",
-  primary_label: "Shop combos",
-  primary_href: "/combo",
+  primary_label: "Build Wall",
+  primary_href: "/custom-wall",
   secondary_label: "Browse all",
   secondary_href: "/store",
   background_image_url: "",
@@ -66,6 +118,7 @@ const defaultHeroForm: HeroForm = {
 const TtvStorefrontPage = () => {
   const [settingId, setSettingId] = useState<string | null>(null)
   const [form, setForm] = useState<HeroForm>(defaultHeroForm)
+  const [linkOptions, setLinkOptions] = useState<LinkOption[]>(baseLinkOptions)
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
@@ -74,7 +127,7 @@ const TtvStorefrontPage = () => {
     setIsLoading(true)
 
     try {
-      await loadHero()
+      await Promise.all([loadHero(), loadLinkOptions()])
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Could not load storefront"
@@ -82,6 +135,63 @@ const TtvStorefrontPage = () => {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const loadLinkOptions = async () => {
+    const [ruleOptions, pagesResponse, postsResponse] = await Promise.all([
+      adminFetch<RuleOptions>("/admin/tranh-tran-vien/rules/options").catch(
+        () => emptyRuleOptions
+      ),
+      adminFetch<{ pages: PageRecord[] }>(
+        "/admin/tranh-tran-vien/business/pages?limit=200"
+      ).catch(() => emptyPagesResponse),
+      adminFetch<{ posts: PostRecord[] }>(
+        "/admin/tranh-tran-vien/business/posts?limit=200"
+      ).catch(() => emptyPostsResponse),
+    ])
+
+    setLinkOptions([
+      ...baseLinkOptions,
+      ...ruleOptions.categories
+        .filter((option) => option.subtitle)
+        .map((option) => ({
+          label: option.label,
+          href: `/categories/${option.subtitle}`,
+          group: "Categories",
+        })),
+      ...ruleOptions.collections
+        .filter((option) => option.subtitle)
+        .map((option) => ({
+          label: option.label,
+          href: `/collections/${option.subtitle}`,
+          group: "Collections",
+        })),
+      ...ruleOptions.products
+        .map((option) => ({
+          ...option,
+          handle: option.subtitle?.split(" / ")[0],
+        }))
+        .filter((option) => option.handle)
+        .map((option) => ({
+          label: option.label,
+          href: `/products/${option.handle}`,
+          group: "Products",
+        })),
+      ...pagesResponse.pages
+        .filter((page) => page.slug)
+        .map((page) => ({
+          label: page.title ?? page.slug ?? "",
+          href: `/pages/${page.slug}`,
+          group: "Pages",
+        })),
+      ...postsResponse.posts
+        .filter((post) => post.slug)
+        .map((post) => ({
+          label: post.title ?? post.slug ?? "",
+          href: `/posts/${post.slug}`,
+          group: "Posts",
+        })),
+    ])
   }
 
   const loadHero = async () => {
@@ -102,16 +212,6 @@ const TtvStorefrontPage = () => {
 
   const saveHero = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-
-    if (!form.title.trim()) {
-      toast.error("Hero title is required")
-      return
-    }
-
-    if (!form.primary_label.trim() || !form.primary_href.trim()) {
-      toast.error("Primary button label and link are required")
-      return
-    }
 
     setIsSaving(true)
 
@@ -201,12 +301,13 @@ const TtvStorefrontPage = () => {
         media_type: file.type.startsWith("video/") ? "video" : "image",
         media_url: uploadedUrl,
         background_image_url: uploadedUrl,
-        media_slides: [
+          media_slides: [
           ...current.media_slides,
           {
             media_type: file.type.startsWith("video/") ? "video" : "image",
             media_url: uploadedUrl,
             media_object_position: current.media_object_position,
+            link_url: "",
           },
         ],
       }))
@@ -361,6 +462,7 @@ const TtvStorefrontPage = () => {
                           media_type: "image",
                           media_url: "",
                           media_object_position: "center center",
+                          link_url: "",
                         },
                       ],
                     }))
@@ -396,6 +498,34 @@ const TtvStorefrontPage = () => {
                         }
                         placeholder="https://..."
                       />
+                    </Field>
+                    <Field
+                      label="Banner link"
+                      description="Optional. Clicking this banner opens the configured page."
+                    >
+                      <Select
+                        value={slide.link_url || NO_LINK_VALUE}
+                        onValueChange={(value) =>
+                          updateSlide(index, {
+                            link_url: value === NO_LINK_VALUE ? "" : value,
+                          })
+                        }
+                      >
+                        <Select.Trigger>
+                          <Select.Value placeholder="No link" />
+                        </Select.Trigger>
+                        <Select.Content>
+                          <Select.Item value={NO_LINK_VALUE}>No link</Select.Item>
+                          {linkOptions.map((option) => (
+                            <Select.Item
+                              key={`${option.group}:${option.href}`}
+                              value={option.href}
+                            >
+                              {formatLinkOption(option)}
+                            </Select.Item>
+                          ))}
+                        </Select.Content>
+                      </Select>
                     </Field>
                     <div className="grid gap-3 md:grid-cols-2">
                       <Field label="Media type">
@@ -450,91 +580,6 @@ const TtvStorefrontPage = () => {
             </div>
           </div>
 
-          <Field label="Small line">
-            <Input
-              value={form.eyebrow}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  eyebrow: event.target.value,
-                }))
-              }
-            />
-          </Field>
-
-          <Field label="Main title">
-            <Input
-              value={form.title}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  title: event.target.value,
-                }))
-              }
-            />
-          </Field>
-
-          <Field label="Body text">
-            <Textarea
-              value={form.body}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  body: event.target.value,
-                }))
-              }
-            />
-          </Field>
-
-          <Field label="Primary button text">
-            <Input
-              value={form.primary_label}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  primary_label: event.target.value,
-                }))
-              }
-            />
-          </Field>
-
-          <Field label="Primary button link">
-            <Input
-              value={form.primary_href}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  primary_href: event.target.value,
-                }))
-              }
-              placeholder="/combo"
-            />
-          </Field>
-
-          <Field label="Secondary button text">
-            <Input
-              value={form.secondary_label}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  secondary_label: event.target.value,
-                }))
-              }
-            />
-          </Field>
-
-          <Field label="Secondary button link">
-            <Input
-              value={form.secondary_href}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  secondary_href: event.target.value,
-                }))
-              }
-              placeholder="/store"
-            />
-          </Field>
         </div>
 
         {!!form.media_slides.filter((slide) => slide.media_url.trim()).length && (
@@ -620,6 +665,27 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>
 }
 
+async function adminFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(path, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      ...(init?.headers ?? {}),
+    },
+  })
+
+  if (!response.ok) {
+    const text = await response.text()
+    throw new Error(text || `Request failed with status ${response.status}`)
+  }
+
+  return response.json() as Promise<T>
+}
+
+function formatLinkOption(option: LinkOption): string {
+  return `${option.group} / ${option.label}`
+}
+
 function toHeroForm(value: unknown): HeroForm {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return defaultHeroForm
@@ -634,6 +700,7 @@ function toHeroForm(value: unknown): HeroForm {
     media_object_position:
       getObjectPosition(config.media_object_position) ??
       defaultHeroForm.media_object_position,
+    link_url: getString(config.primary_href) ?? "",
   })
   const firstSlide = mediaSlides[0]
 
@@ -673,6 +740,7 @@ function normalizeSlides(form: HeroForm): HeroSlideForm[] {
       media_url: slide.media_url.trim(),
       media_object_position:
         getObjectPosition(slide.media_object_position) ?? "center center",
+      link_url: normalizeOptionalHref(slide.link_url),
     }))
     .filter((slide) => slide.media_url)
 
@@ -688,6 +756,7 @@ function normalizeSlides(form: HeroForm): HeroSlideForm[] {
           media_type: form.media_type,
           media_url: legacyUrl,
           media_object_position: form.media_object_position,
+          link_url: normalizeOptionalHref(form.primary_href),
         },
       ]
     : []
@@ -716,6 +785,9 @@ function getHeroSlides(
           media_url: mediaUrl,
           media_object_position:
             getObjectPosition(slide.media_object_position) ?? "center center",
+          link_url:
+            normalizeOptionalHref(getString(slide.link_url) ?? "") ||
+            normalizeOptionalHref(getString(slide.href) ?? ""),
         }
       })
       .filter((slide): slide is HeroSlideForm => Boolean(slide))
@@ -780,6 +852,10 @@ function normalizeHref(value: string): string {
   }
 
   return `/${trimmed}`
+}
+
+function normalizeOptionalHref(value: string): string {
+  return value.trim() ? normalizeHref(value) : ""
 }
 
 export const config = defineRouteConfig({

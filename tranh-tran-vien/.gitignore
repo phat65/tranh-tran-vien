@@ -26,6 +26,7 @@ coverage
 
 # Misc
 *.pem
+**/public/custom-wall-uploads/
 
 # Debug
 npm-debug.log*
@@ -33,6 +34,8 @@ yarn-debug.log*
 yarn-error.log*
 **/.medusa-dev.*.log
 **/.next-dev.*.log
+**/.next-dev-*.log
+**/.ttv-dev*.log
 
 # Local env files
 **/.env

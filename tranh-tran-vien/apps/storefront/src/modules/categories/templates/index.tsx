@@ -7,7 +7,6 @@ import { SortOptions } from "@modules/store/components/refinement-list/sort-prod
 import PaginatedProducts from "@modules/store/templates/paginated-products"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import { HttpTypes } from "@medusajs/types"
-import { OptionValueIds } from "@lib/util/product-option-filters"
 import CategoryToolbar from "../components/category-toolbar"
 import type { TtvCategoryPageConfig } from "@lib/data/ttv"
 
@@ -18,7 +17,6 @@ export default function CategoryTemplate({
   q,
   collectionId,
   countryCode,
-  optionValueIds,
   collections,
   config,
 }: {
@@ -28,7 +26,6 @@ export default function CategoryTemplate({
   q?: string
   collectionId?: string
   countryCode: string
-  optionValueIds?: OptionValueIds
   collections: HttpTypes.StoreCollection[]
   config: TtvCategoryPageConfig
 }) {
@@ -210,7 +207,6 @@ export default function CategoryTemplate({
             collectionId={collectionId}
             categoryId={category.id}
             countryCode={countryCode}
-            optionValueIds={optionValueIds}
             showCount
           />
         </Suspense>

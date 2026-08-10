@@ -22,6 +22,8 @@
     "db:migrate": "medusa db:migrate",
     "db:sync-links": "medusa db:sync-links",
     "seed": "medusa exec ./src/migration-scripts/initial-data-seed.ts",
+    "seed:hexagon": "medusa exec ./src/migration-scripts/seed-tranh-luc-giac-catalog.ts",
+    "store:rename-vietnam": "medusa exec ./src/migration-scripts/rename-store-vietnam.ts",
     "inventory:import": "medusa exec ./src/migration-scripts/import-inventory-levels.ts",
     "test:integration:http": "TEST_TYPE=integration:http NODE_OPTIONS=--experimental-vm-modules jest --silent=false --runInBand --forceExit",
     "test:integration:modules": "TEST_TYPE=integration:modules NODE_OPTIONS=--experimental-vm-modules jest --silent=false --runInBand --forceExit",
