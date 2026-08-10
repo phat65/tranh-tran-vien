@@ -65,7 +65,7 @@ export default async function initial_data_seed({
     input: {
       api_keys: [
         {
-          title: "Default Publishable API Key",
+          title: "khóa cho shop vietnam",
           type: "publishable",
           created_by: "",
         },
