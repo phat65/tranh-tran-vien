@@ -1,3 +1,5 @@
+// Trang route storefront render màn hình countryCode / (checkout) / checkout.
+
 import { retrieveCart } from "@lib/data/cart"
 import { retrieveCustomer } from "@lib/data/customer"
 import PaymentWrapper from "@modules/checkout/components/payment-wrapper"

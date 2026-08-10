@@ -1,3 +1,5 @@
+// Helper admin chuẩn hóa text và cấu hình hiển thị Tranh Trần Viền.
+
 import { useTranslation } from "react-i18next"
 
 const TTV_ADMIN_NAMESPACE = "ttvAdmin"

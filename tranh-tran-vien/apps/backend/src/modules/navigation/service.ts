@@ -1,3 +1,5 @@
+// Service Medusa chứa nghiệp vụ và thao tác dữ liệu cho module navigation.
+
 import { MedusaService } from "@medusajs/framework/utils"
 
 import NavigationItem from "./models/navigation-item"

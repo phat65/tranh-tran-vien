@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần hero trong storefront.
+
 import { Github } from "@medusajs/icons";
 import { Button, Heading } from "@modules/common/components/ui";
 const Hero = () => {

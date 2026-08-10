@@ -1,5 +1,9 @@
 "use client"
 
+// Template ghép dữ liệu và component để dựng khu vực hexagon.
+
+import { uploadCustomWallImage } from "@lib/client/custom-wall"
+import type { CustomWallCartItemInput } from "@lib/data/custom-wall"
 import { getProductPrice } from "@lib/util/get-product-price"
 import { HttpTypes } from "@medusajs/types"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
@@ -45,7 +49,13 @@ type HexagonCustomTemplateProps = {
   comboRules?: ComboRule[]
   displayDescription?: string
   displayTitle?: string
+  addItemsToCartAction: AddItemsToCartAction
 }
+
+type AddItemsToCartAction = (input: {
+  items: CustomWallCartItemInput[]
+  countryCode: string
+}) => Promise<void>
 
 const HEX_CLIP_PATH =
   "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)"
@@ -58,6 +68,7 @@ const HexagonCustomTemplate = ({
   comboRules = [],
   displayDescription,
   displayTitle,
+  addItemsToCartAction,
 }: HexagonCustomTemplateProps) => {
   const router = useRouter()
   const [images, setImages] = useState<UploadedCustomImage[]>([])
@@ -156,24 +167,7 @@ const HexagonCustomTemplate = ({
     setIsUploading(true)
 
     try {
-      const formData = new FormData()
-      formData.append("file", draft.file)
-
-      const response = await fetch("/api/custom-wall/upload", {
-        method: "POST",
-        body: formData,
-      })
-      const payload = (await response.json().catch(() => null)) as
-        | {
-            url?: string
-            filename?: string
-            message?: string
-          }
-        | null
-
-      if (!response.ok || !payload?.url) {
-        throw new Error(payload?.message ?? "Could not upload custom image")
-      }
+      const payload = await uploadCustomWallImage(draft.file)
 
       const nextImage = {
         id: createImageId(),
@@ -206,36 +200,21 @@ const HexagonCustomTemplate = ({
     setSuccessMessage(null)
     startTransition(async () => {
       try {
-        const response = await fetch("/api/custom-wall/cart", {
-          method: "POST",
-          credentials: "same-origin",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            countryCode,
-            items: images.map((image, index) => ({
-                variantId: selectedVariant.id,
-                quantity: 1,
-                metadata: {
-                  ttv_source: "custom_hexagon_page",
-                  ttv_custom_type: "hexagon_poster",
-                  ttv_custom_display_title: displayTitle ?? product.title,
-                  ttv_price_carrier_product_id: product.id,
-                  ttv_price_carrier_product_title: product.title,
-                  ttv_custom_item_index: index + 1,
-                  ttv_custom_image_url: image.imageUrl,
-                  ttv_custom_original_filename: image.filename,
-                  ttv_crop: image.crop,
-                },
-              })),
-          }),
+        await addItemsToCartAction({
+          countryCode,
+          items: images.map((image, index) => ({
+            source: "custom_hexagon_page",
+            variantId: selectedVariant.id,
+            quantity: 1,
+            displayTitle: displayTitle ?? product.title,
+            productId: product.id,
+            productTitle: product.title,
+            customItemIndex: index + 1,
+            imageUrl: image.imageUrl,
+            originalFilename: image.filename,
+            crop: image.crop,
+          })),
         })
-        const payload = await response.json().catch(() => null)
-
-        if (!response.ok) {
-          throw new Error(payload?.message ?? "Could not add to cart")
-        }
 
         window.dispatchEvent(
           new CustomEvent("ttv-cart-updated", {
@@ -352,7 +331,7 @@ const HexagonCustomTemplate = ({
                   Deal combo
                 </p>
                 <p className="text-sm text-[#687064]">
-                  Tu dong tinh trong gio hang
+                  Tự động tính trong giỏ hàng
                 </p>
               </div>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -370,11 +349,11 @@ const HexagonCustomTemplate = ({
                   >
                     {tier.is_featured && (
                       <span className="absolute right-3 top-2 rounded-full bg-[#52613f] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-white">
-                        Nen chon
+                        Nên chọn
                       </span>
                     )}
                     <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#72806c]">
-                      Tu {tier.minimum_quantity} tranh
+                      Từ {tier.minimum_quantity} tranh
                     </span>
                     <span className="mt-1 pr-12 text-sm font-bold leading-5">
                       {formatComboDealTitle(tier, product)}
@@ -393,15 +372,15 @@ const HexagonCustomTemplate = ({
           <div className="rounded-lg border border-[#d8ddd7] bg-[#f7f8f5] p-4">
             <p className="text-sm font-bold text-[#252a22]">
               {activeImage
-                ? `${itemCount} anh custom da them`
-                : "Upload anh custom"}
+                ? `${itemCount} ảnh custom đã thêm`
+                : "Upload ảnh custom"}
             </p>
             <p className="mt-1 text-sm leading-6 text-[#687064]">
-              Moi anh se thanh mot tranh rieng trong cart, combo se tinh theo
-              tong so tranh custom.
+              Mỗi ảnh sẽ thành một tranh riêng trong cart, combo sẽ tính theo
+              tổng số tranh custom.
             </p>
             <label className="mt-4 grid h-11 cursor-pointer place-items-center rounded-md border border-[#d4dacd] bg-white px-5 text-sm font-bold uppercase text-[#252a22] transition-colors hover:border-[#8edb24] hover:text-[#4f7c13]">
-              Them anh
+              Thêm ảnh
               <input
                 type="file"
                 accept="image/*"
@@ -430,7 +409,7 @@ const HexagonCustomTemplate = ({
 
           <div className="grid gap-3">
             <div className="flex h-11 items-center justify-between rounded-lg border border-ui-border-base bg-[#f7f8f5] px-4 text-sm">
-              <span className="font-medium text-ui-fg-subtle">So tranh custom</span>
+              <span className="font-medium text-ui-fg-subtle">Số tranh custom</span>
               <span className="font-bold text-ui-fg-base">{itemCount}</span>
             </div>
             <Button
@@ -472,8 +451,8 @@ const HexagonCustomTemplate = ({
               <span className="text-xl leading-none">+</span>
             </summary>
             <p className="mt-4 max-w-3xl text-sm leading-6 text-ui-fg-subtle">
-              Upload anh rieng, crop trong khung luc giac, sau do them vao gio
-              hang. Anh custom se duoc gui kem trong metadata cua san pham.
+              Upload ảnh riêng, crop trong khung lục giác, sau đó thêm vào giỏ
+              hàng. Ảnh custom sẽ được gửi kèm trong metadata của sản phẩm.
             </p>
           </details>
         </div>
@@ -591,7 +570,7 @@ function formatComboDealTitle(tier: ComboTier, product: HttpTypes.StoreProduct) 
   }
 
   if (tier.discount_type === "percentage") {
-    return `giam ${tier.discount_value}%`
+    return `giảm ${tier.discount_value}%`
   }
 
   if (tier.discount_type === "fixed_total") {

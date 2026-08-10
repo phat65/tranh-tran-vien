@@ -1,3 +1,5 @@
+// Helper dùng chung cho nhóm API store / tranh tran vien / catalog.
+
 import { MedusaContainer } from "@medusajs/framework/types"
 import { z } from "@medusajs/framework/zod"
 

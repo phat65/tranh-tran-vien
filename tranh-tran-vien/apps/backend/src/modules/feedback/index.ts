@@ -1,3 +1,5 @@
+// Khai báo và export module Medusa feedback.
+
 import { Module } from "@medusajs/framework/utils"
 
 import FeedbackModuleService from "./service"

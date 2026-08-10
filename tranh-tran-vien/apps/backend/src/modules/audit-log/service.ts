@@ -1,3 +1,5 @@
+// Service Medusa chứa nghiệp vụ và thao tác dữ liệu cho module audit log.
+
 import { MedusaService } from "@medusajs/framework/utils"
 
 import AuditLog from "./models/audit-log"

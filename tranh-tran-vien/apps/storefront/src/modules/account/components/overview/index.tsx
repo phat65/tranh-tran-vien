@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần overview trong storefront.
+
 import { Container } from "@modules/common/components/ui"
 
 import ChevronDown from "@modules/common/icons/chevron-down"

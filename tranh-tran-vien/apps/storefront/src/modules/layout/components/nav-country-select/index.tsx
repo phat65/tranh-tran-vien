@@ -1,5 +1,7 @@
 "use client"
 
+// Component giao diện xử lý phần nav country select trong storefront.
+
 import useToggleState from "@lib/hooks/use-toggle-state"
 import { HttpTypes } from "@medusajs/types"
 import CountrySelect from "@modules/layout/components/country-select"

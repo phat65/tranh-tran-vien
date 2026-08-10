@@ -1,3 +1,5 @@
+// Migration tạo hoặc cập nhật schema dữ liệu cho module custom design.
+
 import { Migration } from "@medusajs/framework/mikro-orm/migrations";
 
 export class Migration20260728183000 extends Migration {

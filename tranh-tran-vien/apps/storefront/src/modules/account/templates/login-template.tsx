@@ -1,5 +1,7 @@
 "use client"
 
+// Template ghép dữ liệu và component để dựng khu vực login template.
+
 import { useState } from "react"
 
 import Register from "@modules/account/components/register"

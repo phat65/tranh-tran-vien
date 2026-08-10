@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần ui trong storefront.
+
 import clsx from "clsx"
 import {
   ButtonHTMLAttributes,

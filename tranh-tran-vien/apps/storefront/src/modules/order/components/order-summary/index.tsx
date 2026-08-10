@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần order summary trong storefront.
+
 import { convertToLocale } from "@lib/util/money"
 import { HttpTypes } from "@medusajs/types"
 

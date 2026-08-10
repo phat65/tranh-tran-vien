@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần shipping address trong storefront.
+
 import { HttpTypes } from "@medusajs/types"
 import { Container } from "@modules/common/components/ui"
 import Checkbox from "@modules/common/components/checkbox"

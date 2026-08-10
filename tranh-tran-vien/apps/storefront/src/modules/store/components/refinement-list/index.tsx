@@ -1,5 +1,7 @@
 "use client"
 
+// Component giao diện xử lý phần refinement list trong storefront.
+
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useCallback } from "react"
 

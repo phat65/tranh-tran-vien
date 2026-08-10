@@ -1,5 +1,7 @@
 "use client"
 
+// Component giao diện xử lý phần transfer actions trong storefront.
+
 import { acceptTransferRequest, declineTransferRequest } from "@lib/data/orders"
 import { Button, Text } from "@modules/common/components/ui"
 import { useState } from "react"

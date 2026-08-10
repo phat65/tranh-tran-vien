@@ -1,5 +1,7 @@
 "use client"
 
+// React context chia sẻ trạng thái modal context trong cây component storefront.
+
 import React, { createContext, useContext } from "react"
 
 interface ModalContext {

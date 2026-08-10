@@ -1,3 +1,5 @@
+// Template ghép dữ liệu và component để dựng khu vực storefront.
+
 import { Suspense, type ReactNode } from "react"
 
 import { HttpTypes } from "@medusajs/types"
@@ -43,29 +45,29 @@ const StoreTemplate = ({
               Home
             </LocalizedClientLink>
             <span>/</span>
-            <span className="text-ui-fg-base">Tat ca san pham</span>
+            <span className="text-ui-fg-base">Tất cả sản phẩm</span>
           </div>
           <h1
             className="max-w-[46rem] text-[2.75rem] font-semibold leading-[0.98] tracking-normal text-ui-fg-base small:text-[4rem]"
             data-testid="store-page-title"
           >
-            Tat ca san pham
+            Tất cả sản phẩm
           </h1>
           <p className="mt-6 max-w-[42rem] text-base leading-7 text-ui-fg-subtle">
-            Loc theo dong tranh hoac bo suu tap, sap xep theo thoi gian, gia
-            hoac ten san pham.
+            Lọc theo dòng tranh hoặc bộ sưu tập, sắp xếp theo thời gian, giá
+            hoặc tên sản phẩm.
           </p>
         </div>
       </section>
 
       <section className="content-container py-8">
         {!!rootCategories.length && (
-          <FilterBlock title="Danh muc">
+          <FilterBlock title="Danh mục">
             <FilterChip
               href={buildStoreHref({ q, sortBy: sort, collectionId })}
               active={!categoryId}
             >
-              Tat ca danh muc
+              Tất cả danh mục
             </FilterChip>
             {rootCategories.map((category) => (
               <FilterChip
@@ -85,12 +87,12 @@ const StoreTemplate = ({
         )}
 
         {!!sortedCollections.length && (
-          <FilterBlock title="Bo suu tap">
+          <FilterBlock title="Bộ sưu tập">
             <FilterChip
               href={buildStoreHref({ q, sortBy: sort, categoryId })}
               active={!collectionId}
             >
-              Tat ca bo suu tap
+              Tất cả bộ sưu tập
             </FilterChip>
             {sortedCollections.map((collection) => (
               <FilterChip
@@ -112,7 +114,7 @@ const StoreTemplate = ({
         <CategoryToolbar
           q={q}
           sortBy={sort}
-          searchPlaceholder="Tim ten tranh, chu de hoac ma san pham"
+          searchPlaceholder="Tìm tên tranh, chủ đề hoặc mã sản phẩm"
         />
 
         <Suspense fallback={<SkeletonProductGrid />}>

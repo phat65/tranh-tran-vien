@@ -1,3 +1,5 @@
+// Model Medusa mô tả cấu trúc dữ liệu layout template.
+
 import { model } from "@medusajs/framework/utils"
 
 const LayoutTemplate = model.define("layout_template", {

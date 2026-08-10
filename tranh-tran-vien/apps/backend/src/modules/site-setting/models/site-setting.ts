@@ -1,3 +1,5 @@
+// Model Medusa mô tả cấu trúc dữ liệu site setting.
+
 import { model } from "@medusajs/framework/utils"
 
 const SiteSetting = model.define("site_setting", {

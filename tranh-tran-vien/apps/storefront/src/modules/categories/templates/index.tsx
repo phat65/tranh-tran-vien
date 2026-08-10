@@ -1,3 +1,5 @@
+// Template ghép dữ liệu và component để dựng khu vực categories.
+
 import { notFound } from "next/navigation"
 import { Suspense } from "react"
 import Image from "next/image"
@@ -114,7 +116,7 @@ export default function CategoryTemplate({
             ) : (
               <div className="grid h-full content-end gap-3 p-6">
                 <p className="txt-compact-small-plus text-ui-fg-muted">
-                  Uu dai hien co
+                  Ưu đãi hiện có
                 </p>
                 <h2 className="text-2xl font-semibold leading-tight">
                   {config.promo_title}
@@ -132,14 +134,14 @@ export default function CategoryTemplate({
         {!!childCategories.length && (
           <div className="mb-6">
             <p className="txt-compact-small-plus mb-3 text-ui-fg-subtle">
-              Danh muc con
+              Danh mục con
             </p>
             <div className="flex flex-wrap gap-2">
               <LocalizedClientLink
                 href={`/categories/${category.handle}`}
                 className="border border-ui-border-strong bg-ui-fg-base px-4 py-2 text-small-regular text-ui-bg-base"
               >
-                Tat ca {category.name}
+                Tất cả {category.name}
               </LocalizedClientLink>
               {childCategories.map((child) => (
                 <LocalizedClientLink
@@ -168,7 +170,7 @@ export default function CategoryTemplate({
                     : "border-ui-border-strong bg-ui-fg-base text-ui-bg-base"
                 }`}
               >
-                Tat ca chu de
+                Tất cả chủ đề
               </LocalizedClientLink>
               {sortedCollections.map((collection) => (
                 <LocalizedClientLink

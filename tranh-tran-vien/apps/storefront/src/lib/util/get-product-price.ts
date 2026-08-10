@@ -1,3 +1,5 @@
+// Hàm tiện ích xử lý get product price dùng chung trong storefront.
+
 import { HttpTypes } from "@medusajs/types"
 import { getPercentageDiff } from "./get-percentage-diff"
 import { convertToLocale } from "./money"

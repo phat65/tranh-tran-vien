@@ -1,3 +1,5 @@
+// Trang route storefront render màn hình countryCode / (main) / account / dashboard / profile.
+
 import { Metadata } from "next"
 
 import ProfilePhone from "@modules/account//components/profile-phone"

@@ -1,5 +1,7 @@
 "use client"
 
+// Component giao diện xử lý phần profile name trong storefront.
+
 import React, { useEffect, useActionState } from "react";
 
 import Input from "@modules/common/components/input"

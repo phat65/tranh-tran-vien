@@ -1,5 +1,7 @@
 "use client"
 
+// Component giao diện xử lý phần edit address modal trong storefront.
+
 import {
   deleteCustomerAddress,
   updateCustomerAddress,

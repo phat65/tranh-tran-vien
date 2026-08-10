@@ -1,3 +1,5 @@
+// Script dữ liệu chạy qua Medusa để chuẩn bị hoặc cập nhật rename store vietnam.
+
 import { MedusaContainer } from "@medusajs/framework"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 

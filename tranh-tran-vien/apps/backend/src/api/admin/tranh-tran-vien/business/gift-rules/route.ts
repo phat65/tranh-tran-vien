@@ -1,3 +1,5 @@
+// API admin xử lý dữ liệu quản trị cho tranh tran vien / business / gift rules.
+
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 
 import { giftRuleBodySchema, GiftRuleBody } from "../validators"

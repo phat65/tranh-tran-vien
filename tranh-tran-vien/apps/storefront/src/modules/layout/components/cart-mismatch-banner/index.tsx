@@ -1,5 +1,7 @@
 "use client"
 
+// Component giao diện xử lý phần cart mismatch banner trong storefront.
+
 import { transferCart } from "@lib/data/customer"
 import { ExclamationCircleSolid } from "@medusajs/icons"
 import { StoreCart, StoreCustomer } from "@medusajs/types"

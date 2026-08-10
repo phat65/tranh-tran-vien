@@ -1,3 +1,5 @@
+// Template ghép dữ liệu và component để dựng khu vực checkout form.
+
 import { listCartShippingMethods } from "@lib/data/fulfillment"
 import { listCartPaymentMethods } from "@lib/data/payment"
 import { HttpTypes } from "@medusajs/types"

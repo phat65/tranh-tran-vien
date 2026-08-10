@@ -1,3 +1,5 @@
+// Trang route storefront render màn hình countryCode / (main) / collections / handle.
+
 import { Metadata } from "next"
 import { notFound } from "next/navigation"
 

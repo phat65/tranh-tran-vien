@@ -1,5 +1,7 @@
 "use client"
 
+// Component giao diện xử lý phần register trong storefront.
+
 import { useActionState } from "react"
 import Input from "@modules/common/components/input"
 import { LOGIN_VIEW } from "@modules/account/templates/login-template"

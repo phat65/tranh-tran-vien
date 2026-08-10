@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần skeleton order information trong storefront.
+
 import SkeletonCartTotals from "@modules/skeletons/components/skeleton-cart-totals"
 
 const SkeletonOrderInformation = () => {

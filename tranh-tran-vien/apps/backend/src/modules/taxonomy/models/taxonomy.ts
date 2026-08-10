@@ -1,3 +1,5 @@
+// Model Medusa mô tả cấu trúc dữ liệu taxonomy.
+
 import { model } from "@medusajs/framework/utils"
 
 const Taxonomy = model.define("taxonomy", {

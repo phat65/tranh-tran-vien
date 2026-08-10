@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần feedback list trong storefront.
+
 import { listTtvFeedbacks } from "@lib/data/ttv"
 
 type FeedbackListProps = {

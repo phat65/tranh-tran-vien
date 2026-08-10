@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần order details trong storefront.
+
 import { HttpTypes } from "@medusajs/types"
 import { Text } from "@modules/common/components/ui"
 

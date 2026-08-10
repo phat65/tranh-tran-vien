@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần skeleton code form trong storefront.
+
 const SkeletonCodeForm = () => {
   return (
     <div className="w-full flex flex-col">

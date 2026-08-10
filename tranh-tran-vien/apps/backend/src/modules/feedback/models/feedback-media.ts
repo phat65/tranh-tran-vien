@@ -1,3 +1,5 @@
+// Model Medusa mô tả cấu trúc dữ liệu feedback media.
+
 import { model } from "@medusajs/framework/utils"
 
 const FeedbackMedia = model.define("feedback_media", {

@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần transfer image trong storefront.
+
 import { SVGProps } from "react"
 
 const TransferImage = (_props: SVGProps<SVGSVGElement>) => (

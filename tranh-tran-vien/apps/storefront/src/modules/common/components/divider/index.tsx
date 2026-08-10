@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần divider trong storefront.
+
 import { clx } from "@modules/common/components/ui"
 
 const Divider = ({ className }: { className?: string }) => (

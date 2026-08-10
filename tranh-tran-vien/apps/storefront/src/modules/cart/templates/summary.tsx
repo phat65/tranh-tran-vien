@@ -1,5 +1,7 @@
 "use client"
 
+// Template ghép dữ liệu và component để dựng khu vực summary.
+
 import { Button, Heading } from "@modules/common/components/ui"
 
 import CartTotals from "@modules/common/components/cart-totals"

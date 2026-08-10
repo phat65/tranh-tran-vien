@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần option select trong storefront.
+
 import { HttpTypes } from "@medusajs/types"
 import { clx } from "@modules/common/components/ui"
 import React from "react"

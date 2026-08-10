@@ -1,3 +1,5 @@
+// API storefront cung cấp dữ liệu public cho tranh tran vien / catalog / brands.
+
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 
 import {

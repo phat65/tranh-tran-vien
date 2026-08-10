@@ -1,5 +1,7 @@
 "use client"
 
+// Component giao diện xử lý phần language select trong storefront.
+
 import {
   Listbox,
   ListboxButton,

@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần account info trong storefront.
+
 import { Disclosure } from "@headlessui/react"
 import { Badge, Button, clx } from "@modules/common/components/ui"
 import { useEffect } from "react"

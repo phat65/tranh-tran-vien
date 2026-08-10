@@ -1,3 +1,5 @@
+// Helper backend xử lý env dùng lại giữa API, module và script.
+
 import { z } from "@medusajs/framework/zod"
 
 const backendEnvSchema = z.object({

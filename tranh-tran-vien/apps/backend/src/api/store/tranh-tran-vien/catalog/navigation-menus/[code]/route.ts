@@ -1,3 +1,5 @@
+// API storefront cung cấp dữ liệu public cho tranh tran vien / catalog / navigation menus / code.
+
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 
 import { getNavigationService } from "../../utils"

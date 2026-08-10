@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần modal trong storefront.
+
 import { Dialog, Transition } from "@headlessui/react"
 import { clx } from "@modules/common/components/ui"
 import React, { Fragment } from "react"

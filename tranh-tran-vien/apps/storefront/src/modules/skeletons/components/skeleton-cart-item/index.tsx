@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần skeleton cart item trong storefront.
+
 import { Table } from "@modules/common/components/ui"
 
 const SkeletonCartItem = () => {

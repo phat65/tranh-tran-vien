@@ -1,4 +1,6 @@
-﻿import { MedusaContainer } from "@medusajs/framework"
+﻿// Script dữ liệu chạy qua Medusa để chuẩn bị hoặc cập nhật seed tranh luc giac catalog.
+
+import { MedusaContainer } from "@medusajs/framework"
 import {
   ContainerRegistrationKeys,
   MedusaError,
@@ -21,7 +23,8 @@ import {
 import {
   HEXAGON_PRODUCT_PRICE_VND,
   HEXAGON_PRODUCT_SEEDS,
-} from "./tranh-luc-giac-products"
+} from "../data/tranh-luc-giac-products"
+import { getStaticAssetBaseUrl } from "../lib/static-assets"
 
 type IdRecord = {
   id: string
@@ -137,9 +140,7 @@ export default async function seed_tranh_luc_giac_catalog({
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
   const query = container.resolve(ContainerRegistrationKeys.QUERY)
 
-  const staticAssetBaseUrl = (
-    process.env.MEDUSA_BACKEND_URL ?? "http://localhost:9000/static"
-  ).replace(/\/$/, "")
+  const staticAssetBaseUrl = getStaticAssetBaseUrl()
 
   logger.info("Seeding Tranh luc giac catalog data...")
 
@@ -179,6 +180,7 @@ export default async function seed_tranh_luc_giac_catalog({
             description:
               "Tranh luc giac chu de Dragon Ball cho setup goc lam viec, phong ngu va tuong decor.",
             handle: product.handle,
+            thumbnail: imageUrl,
             weight: 250,
             status: ProductStatus.PUBLISHED,
             shipping_profile_id: shippingProfile.id,
@@ -233,22 +235,42 @@ export default async function seed_tranh_luc_giac_catalog({
     HEXAGON_PRODUCT_SEEDS.map((product) => product.handle)
   )
   const allHexagonProductIds = allHexagonProducts.map((product) => product.id)
+  const hexagonSeedByHandle = new Map(
+    HEXAGON_PRODUCT_SEEDS.map((product) => [product.handle, product])
+  )
 
   if (allHexagonProducts.length) {
     await updateProductsWorkflow(container).run({
       input: {
-        products: allHexagonProducts.map((product) => ({
-          id: product.id,
-          category_ids: [hexagonMetalCategory.id],
-          collection_id: dragonBallCollection.id,
-          sales_channels: [{ id: salesChannel.id }],
-          metadata: {
-            ...(product.metadata ?? {}),
-            product_line: "tranh-luc-giac-hop-kim",
-            collection_tags: ["anime", "dragon-ball"],
-            source_batch: "dot-1",
-          },
-        })),
+        products: allHexagonProducts.map((product) => {
+          const seed = product.handle
+            ? hexagonSeedByHandle.get(product.handle)
+            : undefined
+
+          return {
+            id: product.id,
+            category_ids: [hexagonMetalCategory.id],
+            collection_id: dragonBallCollection.id,
+            sales_channels: [{ id: salesChannel.id }],
+            thumbnail: seed
+              ? `${staticAssetBaseUrl}/${seed.imagePath}`
+              : undefined,
+            images: seed
+              ? [
+                  {
+                    url: `${staticAssetBaseUrl}/${seed.imagePath}`,
+                  },
+                ]
+              : undefined,
+            metadata: {
+              ...(product.metadata ?? {}),
+              product_line: "tranh-luc-giac-hop-kim",
+              collection_tags: ["anime", "dragon-ball"],
+              source_batch: "dot-1",
+              ...(seed ? { source_image_path: seed.imagePath } : {}),
+            },
+          }
+        }),
       },
     })
   }

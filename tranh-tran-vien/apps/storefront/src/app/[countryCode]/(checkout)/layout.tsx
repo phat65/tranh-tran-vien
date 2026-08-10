@@ -1,3 +1,5 @@
+// Layout route storefront bọc giao diện và dữ liệu chung cho countryCode / (checkout).
+
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import ChevronDown from "@modules/common/icons/chevron-down"
 import MedusaCTA from "@modules/layout/components/medusa-cta"

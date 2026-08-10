@@ -1,5 +1,7 @@
 "use client"
 
+// Component giao diện xử lý phần product actions trong storefront.
+
 import { useIntersection } from "@lib/hooks/use-in-view"
 import { convertToLocale } from "@lib/util/money"
 import { HttpTypes } from "@medusajs/types"
@@ -18,7 +20,14 @@ type ProductActionsProps = {
   region: HttpTypes.StoreRegion
   disabled?: boolean
   comboRules?: ComboRule[]
+  addToCartAction?: AddToCartAction
 }
+
+type AddToCartAction = (input: {
+  variantId: string
+  quantity: number
+  countryCode: string
+}) => Promise<void>
 
 type ComboTier = {
   minimum_quantity: number
@@ -50,6 +59,7 @@ export default function ProductActions({
   region,
   disabled,
   comboRules = [],
+  addToCartAction,
 }: ProductActionsProps) {
   const router = useRouter()
   const pathname = usePathname()
@@ -199,29 +209,17 @@ export default function ProductActions({
 
   // add the selected variant to the cart
   const handleAddToCart = async () => {
-    if (!selectedVariant?.id) return null
+    if (!selectedVariant?.id || !addToCartAction) return null
 
     setIsAdding(true)
     setAddToCartError(null)
 
     try {
-      const response = await fetch("/api/cart/add", {
-        method: "POST",
-        credentials: "same-origin",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          variantId: selectedVariant.id,
-          quantity,
-          countryCode,
-        }),
+      await addToCartAction({
+        variantId: selectedVariant.id,
+        quantity,
+        countryCode,
       })
-      const payload = await response.json().catch(() => null)
-
-      if (!response.ok) {
-        throw new Error(payload?.message ?? "Could not add to cart")
-      }
 
       window.dispatchEvent(
         new CustomEvent("ttv-cart-updated", {
@@ -256,7 +254,7 @@ export default function ProductActions({
                 </div>
               ) : (
                 <Text className="text-sm text-[#687064]">
-                  Tu dong tinh trong gio hang
+                  Tự động tính trong giỏ hàng
                 </Text>
               )}
             </div>
@@ -276,11 +274,11 @@ export default function ProductActions({
                 >
                   {tier.is_featured && (
                     <span className="absolute right-3 top-2 rounded-full bg-[#52613f] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-white">
-                      Nen chon
+                      Nên chọn
                     </span>
                   )}
                   <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#72806c]">
-                    Tu {tier.minimum_quantity} tranh
+                    Từ {tier.minimum_quantity} tranh
                   </span>
                   <span className="mt-1 pr-12 text-sm font-bold leading-5">
                     {formatComboDealTitle(tier, region.currency_code)}
@@ -372,6 +370,7 @@ export default function ProductActions({
             disabled={
               !inStock ||
               !selectedVariant ||
+              !addToCartAction ||
               !!disabled ||
               isAdding ||
               !isValidVariant
@@ -447,10 +446,10 @@ function formatComboDealTitle(tier: ComboTier, currencyCode: string): string {
   }
 
   if (tier.discount_type === "percentage") {
-    return `Mua tu ${tier.minimum_quantity} tranh: giam ${tier.discount_value}%`
+    return `Mua từ ${tier.minimum_quantity} tranh: giảm ${tier.discount_value}%`
   }
 
-  return `Mua tu ${tier.minimum_quantity} tranh: giam ${convertToLocale({
+  return `Mua từ ${tier.minimum_quantity} tranh: giảm ${convertToLocale({
     amount: tier.discount_value,
     currency_code: currencyCode,
   })}/tranh`

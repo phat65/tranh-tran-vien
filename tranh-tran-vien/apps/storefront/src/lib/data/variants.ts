@@ -1,5 +1,7 @@
 "use server"
 
+// Lớp truy xuất dữ liệu variants từ Medusa/backend cho storefront.
+
 import { sdk } from "@lib/config"
 import { HttpTypes } from "@medusajs/types"
 

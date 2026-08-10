@@ -1,3 +1,5 @@
+// Helper backend xử lý cart rules dùng lại giữa API, module và script.
+
 import { refetchEntity } from "@medusajs/framework/http"
 import { CartTypes, MedusaContainer } from "@medusajs/framework/types"
 import { MedusaError, Modules } from "@medusajs/framework/utils"

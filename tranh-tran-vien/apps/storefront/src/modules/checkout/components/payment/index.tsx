@@ -1,4 +1,6 @@
 "use client"
+// Component giao diện xử lý phần payment trong storefront.
+
 import { RadioGroup } from "@headlessui/react"
 import { isStripeLike, paymentInfoMap } from "@lib/constants"
 import { initiatePaymentSession } from "@lib/data/cart"

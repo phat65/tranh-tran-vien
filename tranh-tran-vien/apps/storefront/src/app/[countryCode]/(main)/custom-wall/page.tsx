@@ -1,7 +1,10 @@
+// Trang route storefront render màn hình countryCode / (main) / custom wall.
+
 import { Metadata } from "next"
 import { notFound } from "next/navigation"
 
 import { listCollections } from "@lib/data/collections"
+import { addCustomWallItemsToCart } from "@lib/data/custom-wall"
 import { listProducts } from "@lib/data/products"
 import { getRegion } from "@lib/data/regions"
 import CustomWallTemplate from "@modules/custom-wall/templates"
@@ -9,8 +12,8 @@ import CustomWallTemplate from "@modules/custom-wall/templates"
 export const dynamic = "force-dynamic"
 
 export const metadata: Metadata = {
-  title: "Build Wall | Tranh Tran Vien",
-  description: "Xep thu tranh luc giac len tuong va them vao gio hang.",
+  title: "Dựng tường tranh | Tranh Trần Viền",
+  description: "Xếp thử tranh lục giác lên tường và thêm vào giỏ hàng.",
 }
 
 type CustomWallPageProps = {
@@ -48,6 +51,7 @@ export default async function CustomWallPage(props: CustomWallPageProps) {
       collections={collectionsResponse.collections}
       countryCode={params.countryCode}
       currencyCode={region.currency_code}
+      addItemsToCartAction={addCustomWallItemsToCart}
     />
   )
 }

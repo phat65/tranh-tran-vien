@@ -1,5 +1,7 @@
 "use client"
 
+// Component giao diện xử lý phần sort products trong storefront.
+
 import FilterRadioGroup from "@modules/common/components/filter-radio-group"
 
 export type SortOptions =

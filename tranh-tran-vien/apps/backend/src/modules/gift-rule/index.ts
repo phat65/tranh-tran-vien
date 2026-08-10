@@ -1,3 +1,5 @@
+// Khai báo và export module Medusa gift rule.
+
 import { Module } from "@medusajs/framework/utils"
 
 import GiftRuleModuleService from "./service"

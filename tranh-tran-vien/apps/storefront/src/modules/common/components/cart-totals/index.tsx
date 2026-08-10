@@ -1,5 +1,7 @@
 "use client"
 
+// Component giao diện xử lý phần cart totals trong storefront.
+
 import { convertToLocale } from "@lib/util/money"
 import React from "react"
 

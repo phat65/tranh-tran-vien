@@ -1,3 +1,5 @@
+// API admin xử lý dữ liệu quản trị cho tranh tran vien / business.
+
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 
 import { AUDIT_LOG_MODULE } from "../../../../modules/audit-log"

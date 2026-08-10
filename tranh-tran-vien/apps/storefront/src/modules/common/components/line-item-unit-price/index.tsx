@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần line item unit price trong storefront.
+
 import { convertToLocale } from "@lib/util/money"
 import { HttpTypes } from "@medusajs/types"
 import { clx } from "@modules/common/components/ui"

@@ -1,3 +1,5 @@
+// Script dữ liệu chạy qua Medusa để chuẩn bị hoặc cập nhật import inventory levels.
+
 import { existsSync, readFileSync } from "node:fs"
 import path from "node:path"
 
@@ -53,7 +55,12 @@ export default async function import_inventory_levels({
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
   const query = container.resolve(ContainerRegistrationKeys.QUERY)
 
-  const filePath = resolveCsvPath()
+  const filePath = resolveCsvPath(logger)
+
+  if (!filePath) {
+    return
+  }
+
   const rows = parseCsv(readFileSync(filePath, "utf8"))
   const inventoryRows = rows
     .map((row, index) => toInventoryRow(row, index + 2))
@@ -179,14 +186,14 @@ export default async function import_inventory_levels({
   }
 }
 
-function resolveCsvPath(): string {
+function resolveCsvPath(logger: { warn: (message: string) => void }): string | null {
   const rawPath = process.env[fileEnv]
 
   if (!rawPath) {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      `Missing ${fileEnv}. Set it to the CSV file path.`
+    logger.warn(
+      `Skipping inventory import. Set ${fileEnv} to a CSV file path to run it.`
     )
+    return null
   }
 
   const filePath = path.resolve(rawPath)

@@ -1,3 +1,5 @@
+// Trang route storefront render màn hình countryCode / (main) / account / login.
+
 import { Metadata } from "next"
 
 import LoginTemplate from "@modules/account/templates/login-template"

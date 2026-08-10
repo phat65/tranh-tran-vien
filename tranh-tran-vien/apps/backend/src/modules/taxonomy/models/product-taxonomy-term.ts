@@ -1,3 +1,5 @@
+// Model Medusa mô tả cấu trúc dữ liệu product taxonomy term.
+
 import { model } from "@medusajs/framework/utils"
 
 const ProductTaxonomyTerm = model.define("product_taxonomy_term", {

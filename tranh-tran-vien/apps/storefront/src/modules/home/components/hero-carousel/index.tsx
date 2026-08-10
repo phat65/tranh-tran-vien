@@ -1,5 +1,7 @@
 "use client"
 
+// Component giao diện xử lý phần hero carousel trong storefront.
+
 import type { TtvHomeHeroConfig, TtvHomeHeroSlide } from "@lib/data/ttv"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import Image from "next/image"

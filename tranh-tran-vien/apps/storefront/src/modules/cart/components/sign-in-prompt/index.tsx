@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần sign in prompt trong storefront.
+
 import { Button, Heading, Text } from "@modules/common/components/ui"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 

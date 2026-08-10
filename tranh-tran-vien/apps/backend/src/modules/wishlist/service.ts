@@ -1,3 +1,5 @@
+// Service Medusa chứa nghiệp vụ và thao tác dữ liệu cho module wishlist.
+
 import { MedusaService } from "@medusajs/framework/utils"
 
 import Wishlist from "./models/wishlist"

@@ -1,4 +1,6 @@
 "use client"
+// Component giao diện xử lý phần addresses trong storefront.
+
 import { setAddresses } from "@lib/data/cart"
 import useToggleState from "@lib/hooks/use-toggle-state"
 import compareAddresses from "@lib/util/compare-addresses"

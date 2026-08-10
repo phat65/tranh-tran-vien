@@ -1,3 +1,5 @@
+// Helper dùng chung cho nhóm API admin / tranh tran vien / rules.
+
 import { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, MedusaError } from "@medusajs/framework/utils"
 

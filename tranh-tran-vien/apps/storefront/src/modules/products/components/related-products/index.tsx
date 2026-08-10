@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần related products trong storefront.
+
 import { listProducts } from "@lib/data/products"
 import { getRegion } from "@lib/data/regions"
 import { filterTtvVisibleStorefrontProducts } from "@lib/util/product-visibility"

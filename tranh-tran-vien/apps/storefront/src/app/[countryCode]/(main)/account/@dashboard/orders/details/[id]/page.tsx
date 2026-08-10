@@ -1,3 +1,5 @@
+// Trang route storefront render màn hình countryCode / (main) / account / dashboard / orders / details / id.
+
 import { retrieveOrder } from "@lib/data/orders"
 import OrderDetailsTemplate from "@modules/order/templates/order-details-template"
 import { Metadata } from "next"

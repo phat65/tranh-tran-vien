@@ -1,10 +1,16 @@
+// Template ghép dữ liệu và component để dựng khu vực nav.
+
 import { Suspense } from "react"
 
 import { listCategories } from "@lib/data/categories"
 import { listCollections } from "@lib/data/collections"
 import { listRegions } from "@lib/data/regions"
-import { getTtvSiteConfig } from "@lib/data/ttv"
-import { buildTtvShopNavGroups } from "@lib/util/ttv-navigation"
+import { getTtvNavigationMenu, getTtvSiteConfig } from "@lib/data/ttv"
+import {
+  buildTtvShopNavGroups,
+  TtvNavGroup,
+  toTtvNavGroups,
+} from "@lib/util/ttv-navigation"
 import { User } from "@medusajs/icons"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import CartButton from "@modules/layout/components/cart-button"
@@ -12,9 +18,10 @@ import MegaMenu from "@modules/layout/components/mega-menu"
 import NavCountrySelect from "@modules/layout/components/nav-country-select"
 
 export default async function Nav() {
-  const [siteConfig, categories, collectionsResponse, regions] =
+  const [siteConfig, exploreMenu, categories, collectionsResponse, regions] =
     await Promise.all([
       getTtvSiteConfig(),
+      getTtvNavigationMenu("explore"),
       listCategories(
         {
           limit: 200,
@@ -31,10 +38,14 @@ export default async function Nav() {
       })),
       listRegions().catch(() => []),
     ])
-  const navGroups = buildTtvShopNavGroups({
+  const fallbackNavGroups = buildTtvShopNavGroups({
     categories,
     collections: collectionsResponse.collections,
   })
+  const adminExploreGroups = toTtvNavGroups(exploreMenu.navigation_items)
+  const navGroups = adminExploreGroups.length
+    ? fillEmptyExploreGroups(adminExploreGroups, fallbackNavGroups)
+    : fallbackNavGroups
   const customNavGroups = [
     {
       id: "custom",
@@ -42,7 +53,7 @@ export default async function Nav() {
       links: [
         {
           id: "custom-hexagon",
-          label: "Custom tranh luc giac",
+          label: "Custom tranh lục giác",
           href: "/custom/tranh-luc-giac",
         },
         {
@@ -112,4 +123,47 @@ export default async function Nav() {
       </header>
     </div>
   )
+}
+
+function fillEmptyExploreGroups(
+  adminGroups: TtvNavGroup[],
+  fallbackGroups: TtvNavGroup[]
+): TtvNavGroup[] {
+  const categoriesFallback = fallbackGroups.find((group) =>
+    ["categories", "kieu tranh"].includes(normalizeGroupKey(group.id || group.label))
+  )
+  const collectionsFallback = fallbackGroups.find((group) =>
+    ["collections", "chu de"].includes(normalizeGroupKey(group.id || group.label))
+  )
+
+  return adminGroups.map((group) => {
+    if (group.links.length > 0) {
+      return group
+    }
+
+    const key = normalizeGroupKey(group.label)
+
+    if (["shop by shape", "kieu tranh"].includes(key) && categoriesFallback) {
+      return {
+        ...group,
+        links: categoriesFallback.links,
+      }
+    }
+
+    if (["shop by category", "chu de"].includes(key) && collectionsFallback) {
+      return {
+        ...group,
+        links: collectionsFallback.links,
+      }
+    }
+
+    return group
+  })
+}
+
+function normalizeGroupKey(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
 }

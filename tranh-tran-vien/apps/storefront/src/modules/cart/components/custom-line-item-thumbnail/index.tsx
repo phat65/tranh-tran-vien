@@ -1,5 +1,7 @@
 "use client"
 
+// Component giao diện xử lý phần custom line item thumbnail trong storefront.
+
 import { HttpTypes } from "@medusajs/types"
 
 type CustomLineItemThumbnailProps = {

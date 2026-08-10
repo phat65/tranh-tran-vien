@@ -1,3 +1,5 @@
+// Template ghép dữ liệu và component để dựng khu vực skeleton related products.
+
 import repeat from "@lib/util/repeat"
 import SkeletonProductPreview from "@modules/skeletons/components/skeleton-product-preview"
 

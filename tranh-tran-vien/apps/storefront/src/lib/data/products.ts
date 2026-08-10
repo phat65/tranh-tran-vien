@@ -1,5 +1,7 @@
 "use server"
 
+// Lớp truy xuất dữ liệu products từ Medusa/backend cho storefront.
+
 import { sdk } from "@lib/config"
 import { filterTtvVisibleStorefrontProducts } from "@lib/util/product-visibility"
 import { sortProducts } from "@lib/util/sort-products"

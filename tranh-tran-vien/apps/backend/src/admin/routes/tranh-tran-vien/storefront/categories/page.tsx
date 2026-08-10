@@ -1,3 +1,5 @@
+// Trang admin tùy biến render khu vực tranh tran vien / storefront / categories.
+
 import { defineRouteConfig } from "@medusajs/admin-sdk"
 import {
   Button,

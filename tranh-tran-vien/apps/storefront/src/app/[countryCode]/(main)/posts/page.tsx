@@ -1,3 +1,5 @@
+// Trang route storefront render màn hình countryCode / (main) / posts.
+
 import { listTtvPosts } from "@lib/data/ttv"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import { Metadata } from "next"

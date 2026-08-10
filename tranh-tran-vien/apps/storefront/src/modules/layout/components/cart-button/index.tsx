@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần cart button trong storefront.
+
 import { retrieveCart } from "@lib/data/cart"
 import CartDropdown from "../cart-dropdown"
 

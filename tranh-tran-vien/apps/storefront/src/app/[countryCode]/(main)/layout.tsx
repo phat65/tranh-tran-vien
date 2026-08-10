@@ -1,3 +1,5 @@
+// Layout route storefront bọc giao diện và dữ liệu chung cho countryCode / (main).
+
 import { Metadata } from "next"
 
 import { listCartOptions, retrieveCart } from "@lib/data/cart"

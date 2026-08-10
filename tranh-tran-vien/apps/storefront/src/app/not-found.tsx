@@ -1,3 +1,5 @@
+// Trang 404 cho route storefront storefront.
+
 import { ArrowUpRightMini } from "@medusajs/icons"
 import { Text } from "@modules/common/components/ui"
 import { Metadata } from "next"

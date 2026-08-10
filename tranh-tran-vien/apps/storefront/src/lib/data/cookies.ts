@@ -1,3 +1,5 @@
+// Lớp truy xuất dữ liệu cookies từ Medusa/backend cho storefront.
+
 import "server-only"
 import { cookies as nextCookies } from "next/headers"
 

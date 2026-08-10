@@ -1,3 +1,5 @@
+// API storefront cung cấp dữ liệu public cho tranh tran vien / cart rules / cart id / sync.
+
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 
 import { syncCartRules } from "../../../../../../lib/cart-rules"

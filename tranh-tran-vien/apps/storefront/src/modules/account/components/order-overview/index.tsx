@@ -1,5 +1,7 @@
 "use client"
 
+// Component giao diện xử lý phần order overview trong storefront.
+
 import { Button } from "@modules/common/components/ui"
 
 import OrderCard from "../order-card"

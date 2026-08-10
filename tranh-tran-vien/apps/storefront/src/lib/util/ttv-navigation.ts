@@ -1,3 +1,5 @@
+// Hàm tiện ích xử lý ttv navigation dùng chung trong storefront.
+
 import type { TtvNavigationItem } from "@lib/data/ttv"
 import type { HttpTypes } from "@medusajs/types"
 
@@ -5,6 +7,7 @@ export type TtvNavLink = {
   id: string
   label: string
   href: string
+  image_url?: string | null
   parent_id?: string | null
   sort_order?: number
 }
@@ -12,6 +15,7 @@ export type TtvNavLink = {
 export type TtvNavGroup = {
   id: string
   label: string
+  image_url?: string | null
   links: TtvNavLink[]
 }
 
@@ -25,6 +29,7 @@ export function toTtvNavLinks(
       id: item.id,
       label: item.label,
       href: resolveNavigationHref(item),
+      image_url: item.image_url,
       parent_id: item.parent_id,
     }))
 }
@@ -56,15 +61,16 @@ export function toTtvNavGroups(
       return {
         id: parent.id,
         label: parent.label,
+        image_url: parent.image_url,
         links: children.map((child) => ({
           id: child.id,
           label: child.label,
           href: resolveNavigationHref(child),
+          image_url: child.image_url,
           parent_id: child.parent_id,
         })),
       }
     })
-    .filter((group) => group.links.length > 0)
 }
 
 export function buildTtvShopNavGroups({
@@ -95,7 +101,7 @@ export function buildTtvShopNavGroups({
       ? [
           {
             id: "categories",
-            label: "Kieu tranh",
+            label: "Kiểu tranh",
             links: categoryLinks,
           },
         ]
@@ -104,7 +110,7 @@ export function buildTtvShopNavGroups({
       ? [
           {
             id: "collections",
-            label: "Chu de",
+            label: "Chủ đề",
             links: collectionLinks,
           },
         ]

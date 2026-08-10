@@ -1,3 +1,5 @@
+// Migration tạo hoặc cập nhật schema dữ liệu cho module feedback.
+
 import { Migration } from "@medusajs/framework/mikro-orm/migrations";
 
 export class Migration20260728183300 extends Migration {

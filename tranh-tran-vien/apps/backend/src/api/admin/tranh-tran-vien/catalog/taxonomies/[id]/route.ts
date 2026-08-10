@@ -1,3 +1,5 @@
+// API admin xử lý dữ liệu quản trị cho tranh tran vien / catalog / taxonomies / id.
+
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 
 import {

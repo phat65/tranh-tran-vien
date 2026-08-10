@@ -1,5 +1,9 @@
 "use client"
 
+// Template ghép dữ liệu và component để dựng khu vực custom wall.
+
+import { uploadCustomWallImage } from "@lib/client/custom-wall"
+import type { CustomWallCartItemInput } from "@lib/data/custom-wall"
 import { getProductPrice } from "@lib/util/get-product-price"
 import { convertToLocale } from "@lib/util/money"
 import { HttpTypes } from "@medusajs/types"
@@ -121,13 +125,20 @@ type CustomWallTemplateProps = {
   collections: HttpTypes.StoreCollection[]
   countryCode: string
   currencyCode: string
+  addItemsToCartAction: AddItemsToCartAction
 }
+
+type AddItemsToCartAction = (input: {
+  items: CustomWallCartItemInput[]
+  countryCode: string
+}) => Promise<void>
 
 const CustomWallTemplate = ({
   products,
   collections,
   countryCode,
   currencyCode,
+  addItemsToCartAction,
 }: CustomWallTemplateProps) => {
   const router = useRouter()
   const [selectedCollectionId, setSelectedCollectionId] = useState("all")
@@ -451,24 +462,7 @@ const CustomWallTemplate = ({
     setIsUploadingCustom(true)
 
     try {
-      const formData = new FormData()
-      formData.append("file", customDraft.file)
-
-      const response = await fetch("/api/custom-wall/upload", {
-        method: "POST",
-        body: formData,
-      })
-      const payload = (await response.json().catch(() => null)) as
-        | {
-            url?: string
-            filename?: string
-            message?: string
-          }
-        | null
-
-      if (!response.ok || !payload?.url) {
-        throw new Error(payload?.message ?? "Could not upload custom image")
-      }
+      const payload = await uploadCustomWallImage(customDraft.file)
 
       const slot = getNextSlot(wallItems.map((item) => item.slot))
       setLastAnimatedSlot(slot)
@@ -503,45 +497,28 @@ const CustomWallTemplate = ({
     setSuccessMessage(null)
     startTransition(async () => {
       try {
-        const productQuantities = wallItems
-          .filter((item) => item.source === "product")
-          .reduce<Record<string, number>>((acc, item) => {
-            acc[item.variantId] = (acc[item.variantId] ?? 0) + 1
+        await addItemsToCartAction({
+          countryCode,
+          items: wallItems.map((item) => {
+            if (item.source === "product") {
+              return {
+                source: "product",
+                variantId: item.variantId,
+                quantity: 1,
+              }
+            }
 
-            return acc
-          }, {})
-        const customItems = wallItems
-          .filter((item) => item.source === "custom")
-          .map((item) => ({
-            variantId: item.variantId,
-            quantity: 1,
-            metadata: buildCustomLineItemMetadata(item),
-          }))
-
-        const response = await fetch("/api/custom-wall/cart", {
-          method: "POST",
-          credentials: "same-origin",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            countryCode,
-            items: [
-              ...Object.entries(productQuantities).map(
-                ([variantId, quantity]) => ({
-                  variantId,
-                  quantity,
-                })
-              ),
-              ...customItems,
-            ],
+            return {
+              source: "custom_wall",
+              variantId: item.variantId,
+              quantity: 1,
+              imageUrl: item.imageUrl,
+              originalFilename: item.originalFilename,
+              wallSlot: item.slot,
+              crop: item.crop,
+            }
           }),
         })
-        const payload = await response.json().catch(() => null)
-
-        if (!response.ok) {
-          throw new Error(payload?.message ?? "Could not add wall to cart")
-        }
 
         window.dispatchEvent(
           new CustomEvent("ttv-cart-updated", {
@@ -573,8 +550,8 @@ const CustomWallTemplate = ({
                 Build your wall preview
               </h1>
               <p className="mt-4 max-w-[42rem] text-base leading-7 text-[#62695d]">
-                Chon tranh co san de xem bo cuc luc giac truoc khi them vao gio
-                hang. Gia combo se duoc tinh tu dong trong cart.
+                Chọn tranh có sẵn để xem bố cục lục giác trước khi thêm vào giỏ
+                hàng. Giá combo sẽ được tính tự động trong cart.
               </p>
             </div>
             <LocalizedClientLink
@@ -797,7 +774,7 @@ const CustomWallTemplate = ({
             )}
             {!wallItems.length && (
               <p className="mt-5 text-center text-sm text-[#767d70]">
-                Bam + Add tren san pham de dat tranh vao giua canvas.
+                Bấm + Add trên sản phẩm để đặt tranh vào giữa canvas.
               </p>
             )}
           </section>
@@ -1293,22 +1270,6 @@ function isCustomWallProduct(product: ProductOption) {
     handle === "custom-wall-poster" ||
     title.includes("custom hexagon poster")
   )
-}
-
-function buildCustomLineItemMetadata(item: WallItem) {
-  return {
-    ttv_source: "custom_wall",
-    ttv_custom_type: "hexagon_poster",
-    ttv_custom_image_url: item.imageUrl ?? "",
-    ttv_custom_original_filename: item.originalFilename ?? "",
-    ttv_wall_slot: item.slot,
-    ttv_crop: item.crop ?? {
-      offsetX: 0,
-      offsetY: 0,
-      zoom: 1,
-      imageRatio: null,
-    },
-  }
 }
 
 export function buildCropImageStyle(

@@ -1,3 +1,5 @@
+// Model Medusa mô tả cấu trúc dữ liệu design request.
+
 import { model } from "@medusajs/framework/utils"
 
 const DesignRequest = model.define("design_request", {

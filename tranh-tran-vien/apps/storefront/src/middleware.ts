@@ -1,3 +1,5 @@
+// Middleware Next.js xử lý country code, cart id và điều hướng trước khi vào route storefront.
+
 import { HttpTypes } from "@medusajs/types"
 import { NextRequest, NextResponse } from "next/server"
 

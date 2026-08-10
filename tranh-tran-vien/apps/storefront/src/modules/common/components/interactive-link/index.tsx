@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần interactive link trong storefront.
+
 import { ArrowUpRightMini } from "@medusajs/icons"
 import { Text } from "@modules/common/components/ui"
 import LocalizedClientLink from "../localized-client-link"

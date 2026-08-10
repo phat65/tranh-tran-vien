@@ -1,3 +1,5 @@
+// Template ghép dữ liệu và component để dựng khu vực collections.
+
 import { Suspense } from "react"
 
 import CategoryToolbar from "@modules/categories/components/category-toolbar"
@@ -36,7 +38,7 @@ export default function CollectionTemplate({
         <CategoryToolbar
           q={q}
           sortBy={sort}
-          searchPlaceholder="Tim ten tranh trong bo suu tap"
+          searchPlaceholder="Tìm tên tranh trong bộ sưu tập"
         />
         <Suspense
           fallback={

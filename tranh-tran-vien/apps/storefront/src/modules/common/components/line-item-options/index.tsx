@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần line item options trong storefront.
+
 import { HttpTypes } from "@medusajs/types"
 import { Text } from "@modules/common/components/ui"
 

@@ -1,4 +1,6 @@
 "use server"
+// Lớp truy xuất dữ liệu onboarding từ Medusa/backend cho storefront.
+
 import { cookies as nextCookies } from "next/headers"
 import { redirect } from "next/navigation"
 

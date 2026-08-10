@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần items trong storefront.
+
 import repeat from "@lib/util/repeat"
 import { HttpTypes } from "@medusajs/types"
 import { Table } from "@modules/common/components/ui"

@@ -1,3 +1,5 @@
+// Hàm tiện ích xử lý sort products dùng chung trong storefront.
+
 import { HttpTypes } from "@medusajs/types"
 import { SortOptions } from "@modules/store/components/refinement-list/sort-products"
 

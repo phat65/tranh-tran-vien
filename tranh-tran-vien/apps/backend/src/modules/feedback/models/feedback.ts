@@ -1,3 +1,5 @@
+// Model Medusa mô tả cấu trúc dữ liệu feedback.
+
 import { model } from "@medusajs/framework/utils"
 
 const Feedback = model.define("feedback", {

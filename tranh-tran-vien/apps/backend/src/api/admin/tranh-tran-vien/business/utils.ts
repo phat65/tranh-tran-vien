@@ -1,3 +1,5 @@
+// Helper dùng chung cho nhóm API admin / tranh tran vien / business.
+
 import { MedusaContainer } from "@medusajs/framework/types"
 import { MedusaError } from "@medusajs/framework/utils"
 

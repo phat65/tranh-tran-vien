@@ -1,3 +1,5 @@
+// Service Medusa chứa nghiệp vụ và thao tác dữ liệu cho module shipping rule.
+
 import { MedusaService } from "@medusajs/framework/utils"
 
 import ShippingRule from "./models/shipping-rule"

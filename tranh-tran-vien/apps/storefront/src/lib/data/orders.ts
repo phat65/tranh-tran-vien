@@ -1,5 +1,7 @@
 "use server"
 
+// Lớp truy xuất dữ liệu orders từ Medusa/backend cho storefront.
+
 import { sdk } from "@lib/config"
 import medusaError from "@lib/util/medusa-error"
 import { getAuthHeaders, getCacheOptions } from "./cookies"

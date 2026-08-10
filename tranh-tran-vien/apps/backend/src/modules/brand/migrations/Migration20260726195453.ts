@@ -1,3 +1,5 @@
+// Migration tạo hoặc cập nhật schema dữ liệu cho module brand.
+
 import { Migration } from "@medusajs/framework/mikro-orm/migrations";
 
 export class Migration20260726195453 extends Migration {

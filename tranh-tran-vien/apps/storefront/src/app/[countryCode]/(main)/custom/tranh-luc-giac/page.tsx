@@ -1,7 +1,10 @@
+// Trang route storefront render màn hình countryCode / (main) / custom / tranh luc giac.
+
 import { Metadata } from "next"
 import { notFound } from "next/navigation"
 
 import { listCategories } from "@lib/data/categories"
+import { addCustomWallItemsToCart } from "@lib/data/custom-wall"
 import { listProducts } from "@lib/data/products"
 import { getRegion } from "@lib/data/regions"
 import { listTtvComboRules } from "@lib/data/ttv"
@@ -11,8 +14,8 @@ import HexagonCustomTemplate from "@modules/custom/templates/hexagon"
 export const dynamic = "force-dynamic"
 
 export const metadata: Metadata = {
-  title: "Custom tranh luc giac | Tranh Tran Vien",
-  description: "Tai anh rieng va crop preview cho tranh luc giac custom.",
+  title: "Custom tranh lục giác | Tranh Trần Viền",
+  description: "Tải ảnh riêng và crop preview cho tranh lục giác custom.",
 }
 
 type CustomHexagonPageProps = {
@@ -44,8 +47,9 @@ export default async function CustomHexagonPage(props: CustomHexagonPageProps) {
       product={product}
       countryCode={params.countryCode}
       comboRules={comboRules}
-      displayDescription="Tai anh rieng va tao tranh luc giac custom. Gia va combo duoc tinh theo dong tranh luc giac."
+      displayDescription="Tải ảnh riêng và tạo tranh lục giác custom. Giá và combo được tính theo dòng tranh lục giác."
       displayTitle="Custom Hexagon Poster"
+      addItemsToCartAction={addCustomWallItemsToCart}
     />
   )
 }

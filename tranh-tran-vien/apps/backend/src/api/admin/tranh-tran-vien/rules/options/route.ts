@@ -1,3 +1,5 @@
+// API admin xử lý dữ liệu quản trị cho tranh tran vien / rules / options.
+
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaContainer } from "@medusajs/framework/types"
 

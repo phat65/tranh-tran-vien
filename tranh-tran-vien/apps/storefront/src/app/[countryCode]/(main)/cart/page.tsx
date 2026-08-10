@@ -1,3 +1,5 @@
+// Trang route storefront render màn hình countryCode / (main) / cart.
+
 import { retrieveCart } from "@lib/data/cart"
 import { retrieveCustomer } from "@lib/data/customer"
 import CartTemplate from "@modules/cart/templates"

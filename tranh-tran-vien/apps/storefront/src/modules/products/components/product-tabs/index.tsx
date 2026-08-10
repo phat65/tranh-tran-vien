@@ -1,5 +1,7 @@
 "use client"
 
+// Component giao diện xử lý phần product tabs trong storefront.
+
 import Back from "@modules/common/icons/back"
 import FastDelivery from "@modules/common/icons/fast-delivery"
 import Refresh from "@modules/common/icons/refresh"

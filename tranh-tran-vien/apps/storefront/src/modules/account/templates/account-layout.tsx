@@ -1,3 +1,5 @@
+// Template ghép dữ liệu và component để dựng khu vực account layout.
+
 import React from "react"
 
 import UnderlineLink from "@modules/common/components/interactive-link"

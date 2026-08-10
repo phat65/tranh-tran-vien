@@ -1,3 +1,5 @@
+// Service Medusa chứa nghiệp vụ và thao tác dữ liệu cho module gift rule.
+
 import { MedusaService } from "@medusajs/framework/utils"
 
 import GiftRule from "./models/gift-rule"

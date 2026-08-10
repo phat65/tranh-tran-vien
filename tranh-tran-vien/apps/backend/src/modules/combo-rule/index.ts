@@ -1,3 +1,5 @@
+// Khai báo và export module Medusa combo rule.
+
 import { Module } from "@medusajs/framework/utils"
 
 import ComboRuleModuleService from "./service"

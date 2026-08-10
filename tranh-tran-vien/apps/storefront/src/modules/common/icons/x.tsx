@@ -1,3 +1,5 @@
+// Icon SVG x dùng trong giao diện storefront.
+
 import React from "react"
 
 import { IconProps } from "types/icon"

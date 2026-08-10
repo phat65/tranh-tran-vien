@@ -1,3 +1,5 @@
+// Khai báo và export module Medusa site setting.
+
 import { Module } from "@medusajs/framework/utils"
 
 import SiteSettingModuleService from "./service"

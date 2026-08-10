@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần medusa cta trong storefront.
+
 import { Text } from "@modules/common/components/ui"
 
 import Medusa from "../../../common/icons/medusa"

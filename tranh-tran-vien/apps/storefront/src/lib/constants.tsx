@@ -1,3 +1,5 @@
+// Tập hợp hằng số dùng chung trong storefront.
+
 import { CreditCard } from "@medusajs/icons"
 import Bancontact from "@modules/common/icons/bancontact"
 import Ideal from "@modules/common/icons/ideal"

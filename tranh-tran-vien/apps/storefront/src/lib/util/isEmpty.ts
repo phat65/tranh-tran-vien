@@ -1,3 +1,5 @@
+// Hàm tiện ích xử lý isEmpty dùng chung trong storefront.
+
 export const isObject = (input: unknown) => input instanceof Object
 export const isArray = (input: unknown) => Array.isArray(input)
 export const isEmpty = (input: unknown) => {

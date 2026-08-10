@@ -1,3 +1,5 @@
+// Layout route storefront bọc giao diện và dữ liệu chung cho countryCode / (main) / account.
+
 import { retrieveCustomer } from "@lib/data/customer"
 // TODO: Re-add Toaster component when needed
 import AccountLayout from "@modules/account/templates/account-layout"

@@ -1,3 +1,5 @@
+// Model Medusa mô tả cấu trúc dữ liệu navigation item.
+
 import { model } from "@medusajs/framework/utils"
 
 const NavigationItem = model.define("navigation_item", {

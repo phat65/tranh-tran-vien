@@ -1,3 +1,5 @@
+// Khai báo và export module Medusa audit log.
+
 import { Module } from "@medusajs/framework/utils"
 
 import AuditLogModuleService from "./service"

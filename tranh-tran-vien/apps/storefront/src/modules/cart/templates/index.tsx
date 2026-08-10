@@ -1,3 +1,5 @@
+// Template ghép dữ liệu và component để dựng khu vực cart.
+
 import ItemsTemplate from "./items"
 import Summary from "./summary"
 import EmptyCartMessage from "../components/empty-cart-message"

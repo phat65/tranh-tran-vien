@@ -1,5 +1,7 @@
 "use client"
 
+// Component giao diện xử lý phần profile password trong storefront.
+
 import React from "react"
 import Input from "@modules/common/components/input"
 import AccountInfo from "../account-info"

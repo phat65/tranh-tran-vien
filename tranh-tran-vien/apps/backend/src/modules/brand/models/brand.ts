@@ -1,3 +1,5 @@
+// Model Medusa mô tả cấu trúc dữ liệu brand.
+
 import { model } from "@medusajs/framework/utils"
 
 const Brand = model.define("brand", {

@@ -1,5 +1,7 @@
 "use server"
 
+// Lớp truy xuất dữ liệu customer từ Medusa/backend cho storefront.
+
 import { sdk } from "@lib/config"
 import medusaError from "@lib/util/medusa-error"
 import { HttpTypes } from "@medusajs/types"

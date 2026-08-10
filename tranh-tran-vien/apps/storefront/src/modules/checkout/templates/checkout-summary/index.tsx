@@ -1,3 +1,5 @@
+// Template ghép dữ liệu và component để dựng khu vực checkout summary.
+
 import { Heading } from "@modules/common/components/ui"
 
 import ItemsPreviewTemplate from "@modules/cart/templates/preview"

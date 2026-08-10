@@ -1,3 +1,5 @@
+// Hàm tiện ích xử lý medusa error dùng chung trong storefront.
+
 type MedusaError = {
   response?: {
     data: { message?: string } | string

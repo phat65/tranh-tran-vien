@@ -1,3 +1,5 @@
+// Template ghép dữ liệu và component để dựng khu vực paginated products.
+
 import { listProductsWithSort } from "@lib/data/products"
 import { getRegion } from "@lib/data/regions"
 import ProductPreview from "@modules/products/components/product-preview"

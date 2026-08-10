@@ -1,3 +1,5 @@
+// Cấu hình Tailwind CSS của storefront, mở rộng theme và vùng quét class.
+
 const path = require("path")
 
 module.exports = {

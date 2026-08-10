@@ -1,3 +1,5 @@
+// Model Medusa mô tả cấu trúc dữ liệu combo rule.
+
 import { model } from "@medusajs/framework/utils"
 
 const ComboRule = model.define("combo_rule", {

@@ -1,3 +1,5 @@
+// Service Medusa chứa nghiệp vụ và thao tác dữ liệu cho module custom design.
+
 import { MedusaService } from "@medusajs/framework/utils"
 import { MedusaError } from "@medusajs/framework/utils"
 

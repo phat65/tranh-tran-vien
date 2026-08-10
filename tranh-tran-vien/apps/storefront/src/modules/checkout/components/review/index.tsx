@@ -1,5 +1,7 @@
 "use client"
 
+// Component giao diện xử lý phần review trong storefront.
+
 import { Heading, Text, clx } from "@modules/common/components/ui"
 
 import PaymentButton from "../payment-button"

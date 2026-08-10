@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần content json trong storefront.
+
 type ContentJsonProps = {
   value: unknown
 }

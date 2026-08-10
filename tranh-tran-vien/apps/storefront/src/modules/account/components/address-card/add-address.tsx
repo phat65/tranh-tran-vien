@@ -1,5 +1,7 @@
 "use client"
 
+// Component giao diện xử lý phần add address trong storefront.
+
 import { Plus } from "@medusajs/icons"
 import { Button, Heading } from "@modules/common/components/ui"
 import { useActionState, useEffect, useState } from "react"

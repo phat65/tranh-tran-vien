@@ -1,3 +1,5 @@
+// Model Medusa mô tả cấu trúc dữ liệu gift rule.
+
 import { model } from "@medusajs/framework/utils"
 
 const GiftRule = model.define("gift_rule", {

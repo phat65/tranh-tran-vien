@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần order card trong storefront.
+
 import { Button } from "@modules/common/components/ui"
 import { useMemo } from "react"
 

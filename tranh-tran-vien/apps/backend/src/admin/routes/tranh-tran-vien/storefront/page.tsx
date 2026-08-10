@@ -1,3 +1,5 @@
+// Trang admin tùy biến render khu vực tranh tran vien / storefront.
+
 import { defineRouteConfig } from "@medusajs/admin-sdk"
 import {
   Button,
@@ -379,6 +381,12 @@ const TtvStorefrontPage = () => {
             className="rounded-rounded border border-ui-border-base px-3 py-2 text-small-regular text-ui-fg-subtle transition-colors hover:border-ui-border-strong hover:text-ui-fg-base"
           >
             Category pages
+          </a>
+          <a
+            href="/app/tranh-tran-vien/storefront/menus"
+            className="rounded-rounded border border-ui-border-base px-3 py-2 text-small-regular text-ui-fg-subtle transition-colors hover:border-ui-border-strong hover:text-ui-fg-base"
+          >
+            Explore menu
           </a>
           <Button
             type="button"

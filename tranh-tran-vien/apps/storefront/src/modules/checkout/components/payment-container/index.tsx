@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần payment container trong storefront.
+
 import { Radio as RadioGroupOption } from "@headlessui/react"
 import { Text, clx } from "@modules/common/components/ui"
 import React, { useContext, useMemo, type JSX } from "react"

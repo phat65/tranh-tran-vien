@@ -1,4 +1,6 @@
 "use client"
+// Component giao diện xử lý phần shipping trong storefront.
+
 import { Radio, RadioGroup } from "@headlessui/react"
 import { setShippingMethod } from "@lib/data/cart"
 import { calculatePriceForShippingOption } from "@lib/data/fulfillment"

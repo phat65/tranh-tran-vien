@@ -1,3 +1,5 @@
+// Template ghép dữ liệu và component để dựng khu vực footer.
+
 import { listCategories } from "@lib/data/categories";
 import { listCollections } from "@lib/data/collections";
 import {

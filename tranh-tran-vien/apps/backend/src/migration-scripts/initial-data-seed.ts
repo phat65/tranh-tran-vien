@@ -1,4 +1,6 @@
-﻿import { MedusaContainer } from "@medusajs/framework";
+﻿// Script dữ liệu chạy qua Medusa để chuẩn bị hoặc cập nhật initial data seed.
+
+import { MedusaContainer } from "@medusajs/framework";
 import {
   ContainerRegistrationKeys,
   ModuleRegistrationName,
@@ -25,7 +27,8 @@ import {
 import {
   HEXAGON_PRODUCT_PRICE_VND,
   HEXAGON_PRODUCT_SEEDS,
-} from "./tranh-luc-giac-products";
+} from "../data/tranh-luc-giac-products";
+import { getStaticAssetBaseUrl } from "../lib/static-assets";
 
 export default async function initial_data_seed({
   container,
@@ -41,9 +44,7 @@ export default async function initial_data_seed({
 
   const europeanCountries = ["gb", "de", "dk", "se", "fr", "es", "it"];
   const storefrontCountries = [...europeanCountries, "vn"];
-  const staticAssetBaseUrl = (
-    process.env.MEDUSA_BACKEND_URL ?? "http://localhost:9000/static"
-  ).replace(/\/$/, "");
+  const staticAssetBaseUrl = getStaticAssetBaseUrl();
 
   logger.info("Seeding store data...");
   const {

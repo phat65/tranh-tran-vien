@@ -1,3 +1,5 @@
+// Trang route storefront render màn hình countryCode / (main) / account / dashboard.
+
 import { Metadata } from "next"
 
 import Overview from "@modules/account/components/overview"

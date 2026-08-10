@@ -1,3 +1,5 @@
+// Helper backend xử lý project status dùng lại giữa API, module và script.
+
 export const PROJECT_NAME = "Tranh Tran Vien"
 export const BACKEND_SERVICE_NAME = "commerce"
 

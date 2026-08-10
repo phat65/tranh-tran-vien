@@ -1,5 +1,7 @@
 "use client"
 
+// Template ghép dữ liệu và component để dựng khu vực order details template.
+
 import { XMark } from "@medusajs/icons"
 import { HttpTypes } from "@medusajs/types"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"

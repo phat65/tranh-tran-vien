@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần address book trong storefront.
+
 import React from "react"
 
 import AddAddress from "../address-card/add-address"

@@ -1,3 +1,5 @@
+// Model Medusa mô tả cấu trúc dữ liệu design revision.
+
 import { model } from "@medusajs/framework/utils"
 
 const DesignRevision = model.define("design_revision", {

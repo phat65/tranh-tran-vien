@@ -1,3 +1,5 @@
+// Layout route storefront bọc giao diện và dữ liệu chung cho storefront.
+
 import { getBaseURL } from "@lib/util/env"
 import { Metadata } from "next"
 import "styles/globals.css"

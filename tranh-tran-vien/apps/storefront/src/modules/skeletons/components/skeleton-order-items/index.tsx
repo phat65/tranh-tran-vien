@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần skeleton order items trong storefront.
+
 const SkeletonOrderItems = () => {
   return (
     <div className="flex flex-col gap-y-4 py-10 border-y border-gray-200">

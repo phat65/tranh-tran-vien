@@ -1,3 +1,5 @@
+// Template ghép dữ liệu và component để dựng khu vực skeleton cart page.
+
 import { Table } from "@modules/common/components/ui"
 
 import repeat from "@lib/util/repeat"

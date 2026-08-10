@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần skeleton order summary trong storefront.
+
 import SkeletonButton from "@modules/skeletons/components/skeleton-button"
 import SkeletonCartTotals from "@modules/skeletons/components/skeleton-cart-totals"
 

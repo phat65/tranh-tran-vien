@@ -1,5 +1,7 @@
 "use client"
 
+// Component giao diện xử lý phần submit button trong storefront.
+
 import { Button } from "@modules/common/components/ui"
 import React from "react"
 import { useFormStatus } from "react-dom"

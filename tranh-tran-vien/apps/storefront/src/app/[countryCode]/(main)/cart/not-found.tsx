@@ -1,3 +1,5 @@
+// Trang 404 cho route storefront countryCode / (main) / cart.
+
 import { Metadata } from "next"
 
 import InteractiveLink from "@modules/common/components/interactive-link"

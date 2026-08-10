@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần thumbnail trong storefront.
+
 import { Container, clx } from "@modules/common/components/ui"
 import Image from "next/image"
 import React from "react"

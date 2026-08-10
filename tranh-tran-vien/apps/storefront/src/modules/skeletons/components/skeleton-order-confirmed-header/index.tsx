@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần skeleton order confirmed header trong storefront.
+
 const SkeletonOrderConfirmedHeader = () => {
   return (
     <div className="flex flex-col gap-y-2 pb-10 animate-pulse">

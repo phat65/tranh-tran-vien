@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần product price trong storefront.
+
 import { clx } from "@modules/common/components/ui"
 
 import { getProductPrice } from "@lib/util/get-product-price"

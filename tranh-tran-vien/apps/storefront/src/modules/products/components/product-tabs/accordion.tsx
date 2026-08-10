@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần accordion trong storefront.
+
 import { Text, clx } from "@modules/common/components/ui"
 import * as AccordionPrimitive from "@radix-ui/react-accordion"
 import React from "react"

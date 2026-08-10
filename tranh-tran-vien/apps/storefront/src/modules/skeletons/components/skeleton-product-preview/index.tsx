@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần skeleton product preview trong storefront.
+
 import { Container } from "@modules/common/components/ui"
 
 const SkeletonProductPreview = () => {

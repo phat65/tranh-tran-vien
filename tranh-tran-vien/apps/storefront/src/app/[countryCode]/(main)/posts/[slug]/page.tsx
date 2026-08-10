@@ -1,3 +1,5 @@
+// Trang route storefront render màn hình countryCode / (main) / posts / slug.
+
 import { retrieveTtvPost } from "@lib/data/ttv"
 import ContentJson from "@modules/ttv/components/content-json"
 import { Metadata } from "next"

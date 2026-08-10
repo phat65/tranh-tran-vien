@@ -1,5 +1,7 @@
 "use client"
 
+// Component giao diện xử lý phần verify account trong storefront.
+
 import { useEffect, useRef, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@modules/common/components/ui"

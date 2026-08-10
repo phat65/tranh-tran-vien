@@ -1,3 +1,5 @@
+// Icon SVG paypal dùng trong giao diện storefront.
+
 const PayPal = () => {
   return (
     <svg

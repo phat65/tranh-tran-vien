@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần delete button trong storefront.
+
 import { deleteLineItem } from "@lib/data/cart"
 import { Spinner, Trash } from "@medusajs/icons"
 import { clx } from "@modules/common/components/ui"

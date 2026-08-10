@@ -1,4 +1,6 @@
 "use client"
+// Component giao diện xử lý phần transfer request form trong storefront.
+
 import { createTransferRequest } from "@lib/data/orders"
 import { CheckCircleMiniSolid, XCircleSolid } from "@medusajs/icons"
 import { Heading, IconButton, Input, Text } from "@modules/common/components/ui"

@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần skeleton cart totals trong storefront.
+
 const SkeletonCartTotals = ({ header = true }) => {
   return (
     <div className="flex flex-col">

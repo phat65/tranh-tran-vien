@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần radio trong storefront.
+
 const Radio = ({ checked, 'data-testid': dataTestId }: { checked: boolean, 'data-testid'?: string }) => {
   return (
     <>

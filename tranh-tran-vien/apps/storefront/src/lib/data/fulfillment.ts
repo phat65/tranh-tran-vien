@@ -1,5 +1,7 @@
 "use server"
 
+// Lớp truy xuất dữ liệu fulfillment từ Medusa/backend cho storefront.
+
 import { sdk } from "@lib/config"
 import { HttpTypes } from "@medusajs/types"
 import { getAuthHeaders, getCacheOptions } from "./cookies"

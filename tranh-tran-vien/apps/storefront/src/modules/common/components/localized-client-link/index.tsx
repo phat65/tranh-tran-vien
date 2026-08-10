@@ -1,5 +1,7 @@
 "use client"
 
+// Component giao diện xử lý phần localized client link trong storefront.
+
 import Link from "next/link"
 import { useParams } from "next/navigation"
 import React from "react"

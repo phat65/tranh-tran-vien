@@ -1,5 +1,7 @@
 "use client"
 
+// Component giao diện xử lý phần free shipping price nudge trong storefront.
+
 import { convertToLocale } from "@lib/util/money"
 import { CheckCircleSolid, XMark } from "@medusajs/icons"
 import {

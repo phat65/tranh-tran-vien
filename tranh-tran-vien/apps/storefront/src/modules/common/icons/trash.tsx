@@ -1,3 +1,5 @@
+// Icon SVG trash dùng trong giao diện storefront.
+
 import React from "react"
 
 import { IconProps } from "types/icon"

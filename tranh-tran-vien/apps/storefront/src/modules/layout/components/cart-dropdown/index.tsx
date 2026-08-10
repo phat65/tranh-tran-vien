@@ -1,5 +1,7 @@
 "use client"
 
+// Component giao diện xử lý phần cart dropdown trong storefront.
+
 import {
   Popover,
   PopoverButton,

@@ -1,3 +1,5 @@
+// Khai báo và export module Medusa shipping rule.
+
 import { Module } from "@medusajs/framework/utils"
 
 import ShippingRuleModuleService from "./service"

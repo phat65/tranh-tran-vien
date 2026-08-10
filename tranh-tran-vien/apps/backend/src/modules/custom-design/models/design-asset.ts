@@ -1,3 +1,5 @@
+// Model Medusa mô tả cấu trúc dữ liệu design asset.
+
 import { model } from "@medusajs/framework/utils"
 
 const DesignAsset = model.define("design_asset", {

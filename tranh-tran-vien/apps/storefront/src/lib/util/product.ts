@@ -1,3 +1,5 @@
+// Hàm tiện ích xử lý product dùng chung trong storefront.
+
 import { HttpTypes } from "@medusajs/types";
 
 export const isSimpleProduct = (product: HttpTypes.StoreProduct): boolean => {

@@ -1,3 +1,5 @@
+// Template ghép dữ liệu và component để dựng khu vực products.
+
 import React, { Suspense } from "react"
 
 import ImageGallery from "@modules/products/components/image-gallery"

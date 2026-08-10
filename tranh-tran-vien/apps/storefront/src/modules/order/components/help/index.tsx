@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần help trong storefront.
+
 import { Heading } from "@modules/common/components/ui"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import React from "react"

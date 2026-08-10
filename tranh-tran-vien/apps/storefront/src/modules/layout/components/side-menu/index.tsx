@@ -1,5 +1,7 @@
 "use client"
 
+// Component giao diện xử lý phần side menu trong storefront.
+
 import { Popover, PopoverPanel, Transition } from "@headlessui/react"
 import type { Locale } from "@lib/data/locales"
 import type { TtvNavGroup, TtvNavLink } from "@lib/util/ttv-navigation"
@@ -15,7 +17,7 @@ import LanguageSelect from "../language-select"
 
 const SideMenuItems = {
   Home: "/",
-  "Custom tranh luc giac": "/custom/tranh-luc-giac",
+  "Custom tranh lục giác": "/custom/tranh-luc-giac",
   "Build Wall": "/custom-wall",
   Account: "/account",
   Cart: "/cart",

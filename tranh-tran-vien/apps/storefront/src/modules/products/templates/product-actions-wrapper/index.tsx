@@ -1,3 +1,6 @@
+// Template ghép dữ liệu và component để dựng khu vực product actions wrapper.
+
+import { addToCart } from "@lib/data/cart"
 import { listProducts } from "@lib/data/products"
 import { listTtvComboRules } from "@lib/data/ttv"
 import { HttpTypes } from "@medusajs/types"
@@ -31,7 +34,12 @@ export default async function ProductActionsWrapper({
   )
 
   return (
-    <ProductActions product={product} region={region} comboRules={comboRules} />
+    <ProductActions
+      product={product}
+      region={region}
+      comboRules={comboRules}
+      addToCartAction={addToCart}
+    />
   )
 }
 

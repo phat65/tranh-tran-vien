@@ -1,3 +1,5 @@
+// Trang route storefront render màn hình countryCode / (main).
+
 import { Metadata } from "next"
 
 import { listCategories } from "@lib/data/categories"
@@ -16,8 +18,8 @@ import ProductPreview from "@modules/products/components/product-preview"
 import Image from "next/image"
 
 export const metadata: Metadata = {
-  title: "Tranh Tran Vien",
-  description: "Tranh decor, khung Pokemon va combo san pham cho collectors.",
+  title: "Tranh Trần Viền",
+  description: "Tranh decor, khung Pokemon và combo sản phẩm cho collectors.",
 }
 
 export default async function Home(props: {
@@ -107,10 +109,10 @@ export default async function Home(props: {
             <div className="mb-8 flex items-end justify-between gap-6">
               <div>
                 <h2 className="text-3xl font-semibold leading-tight">
-                  San pham moi dang.
+                  Sản phẩm mới đăng.
                 </h2>
                 <p className="mt-3 text-base text-ui-fg-subtle">
-                  Cac mau moi nhat duoc lay truc tiep tu san pham Medusa.
+                  Các mẫu mới nhất được lấy trực tiếp từ sản phẩm Medusa.
                 </p>
               </div>
             </div>
@@ -126,7 +128,7 @@ export default async function Home(props: {
                 href="/store?sortBy=created_at"
                 className="border border-ui-border-strong bg-ui-fg-base px-6 py-3 text-small-regular text-ui-bg-base transition-colors hover:bg-ui-fg-subtle"
               >
-                Xem them
+                Xem thêm
               </LocalizedClientLink>
             </div>
           </div>
@@ -159,7 +161,7 @@ function LineCard({
   const text =
     config?.intro ||
     category.description ||
-    `Xem cac mau ${category.name.toLowerCase()} dang co san.`
+    `Xem các mẫu ${category.name.toLowerCase()} đang có sẵn.`
 
   return (
     <LocalizedClientLink
@@ -199,7 +201,7 @@ function LineCard({
           {text}
         </p>
         <span className="mt-8 text-small-regular text-ui-fg-interactive group-hover:text-ui-fg-base">
-          Xem san pham
+          Xem sản phẩm
         </span>
       </div>
     </LocalizedClientLink>

@@ -1,5 +1,7 @@
 "use server"
 
+// Lớp truy xuất dữ liệu ttv từ Medusa/backend cho storefront.
+
 import { sdk } from "@lib/config"
 
 export type TtvNavigationMenu = {
@@ -24,6 +26,7 @@ export type TtvNavigationItem = {
     | "post"
   entity_id?: string | null
   url?: string | null
+  image_url?: string | null
   sort_order: number
   visibility: "visible" | "hidden"
 }
@@ -149,7 +152,7 @@ const defaultHomeHeroConfig: TtvHomeHeroConfig = {
   media_object_position: "center center",
   media_slides: [],
   slide_interval_seconds: 5,
-  primary_label: "Xem san pham",
+  primary_label: "Xem sản phẩm",
   primary_href: "/store",
   secondary_label: "Browse all",
   secondary_href: "/store",
@@ -164,11 +167,11 @@ const defaultCategoryPageConfig: TtvCategoryPageConfig = {
   media_url: null,
   media_aspect_ratio: "16 / 9",
   banner_image_url: null,
-  promo_title: "Combo duoc tu dong tinh trong gio hang.",
+  promo_title: "Combo được tự động tính trong giỏ hàng.",
   promo_body:
-    "Chon nhieu mau trong cung mot dong san pham, uu dai se duoc ap dung khi du dieu kien.",
-  search_placeholder: "Tim ten tranh, chu de hoac ma san pham",
-  topic_label: "Chu de",
+    "Chọn nhiều mẫu trong cùng một dòng sản phẩm, ưu đãi sẽ được áp dụng khi đủ điều kiện.",
+  search_placeholder: "Tìm tên tranh, chủ đề hoặc mã sản phẩm",
+  topic_label: "Chủ đề",
 }
 
 export async function getTtvNavigationMenu(code: string) {

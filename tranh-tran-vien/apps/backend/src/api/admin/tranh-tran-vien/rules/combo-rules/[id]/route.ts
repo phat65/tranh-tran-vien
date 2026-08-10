@@ -1,3 +1,5 @@
+// API admin xử lý dữ liệu quản trị cho tranh tran vien / rules / combo rules / id.
+
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 
 import { ComboRuleUpdateBody, comboRuleUpdateBodySchema } from "../../validators"

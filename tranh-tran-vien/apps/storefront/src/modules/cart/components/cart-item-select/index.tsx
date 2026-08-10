@@ -1,5 +1,7 @@
 "use client"
 
+// Component giao diện xử lý phần cart item select trong storefront.
+
 import { IconBadge, clx } from "@modules/common/components/ui"
 import {
   SelectHTMLAttributes,

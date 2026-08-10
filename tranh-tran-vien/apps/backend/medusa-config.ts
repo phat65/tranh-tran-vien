@@ -1,6 +1,9 @@
+// Cấu hình Medusa backend: database, CORS, module, plugin và file provider.
+
 import { loadEnv, defineConfig } from "@medusajs/framework/utils"
 
 import { parseBackendEnv } from "./src/lib/env"
+import { getStaticAssetBaseUrl } from "./src/lib/static-assets"
 
 loadEnv(process.env.NODE_ENV || "development", process.cwd())
 
@@ -39,8 +42,7 @@ module.exports = defineConfig({
             id: "local",
             options: {
               upload_dir: "static",
-              backend_url:
-                process.env.MEDUSA_BACKEND_URL ?? "http://localhost:9000/static",
+              backend_url: getStaticAssetBaseUrl(),
             },
           },
         ],

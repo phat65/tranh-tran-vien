@@ -1,3 +1,5 @@
+// Model Medusa mô tả cấu trúc dữ liệu wishlist.
+
 import { model } from "@medusajs/framework/utils"
 
 const Wishlist = model.define("wishlist", {

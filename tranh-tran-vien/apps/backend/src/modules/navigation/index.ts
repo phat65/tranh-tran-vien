@@ -1,3 +1,5 @@
+// Khai báo và export module Medusa navigation.
+
 import { Module } from "@medusajs/framework/utils"
 
 import NavigationModuleService from "./service"

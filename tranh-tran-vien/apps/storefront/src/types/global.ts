@@ -1,3 +1,5 @@
+// Khai báo type TypeScript dùng chung cho global.
+
 import { StorePrice } from "@medusajs/types"
 
 export type FeaturedProduct = {

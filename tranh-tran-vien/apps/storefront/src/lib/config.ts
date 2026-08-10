@@ -1,3 +1,5 @@
+// Cấu hình SDK và biến môi trường để storefront gọi Medusa backend.
+
 import { getLocaleHeader } from "@lib/util/get-locale-header"
 import Medusa, { FetchArgs, FetchInput } from "@medusajs/js-sdk"
 

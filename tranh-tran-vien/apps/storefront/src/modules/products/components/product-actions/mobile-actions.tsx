@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần mobile actions trong storefront.
+
 import { Dialog, Transition } from "@headlessui/react"
 import { Button, clx } from "@modules/common/components/ui"
 import React, { Fragment, useMemo } from "react"

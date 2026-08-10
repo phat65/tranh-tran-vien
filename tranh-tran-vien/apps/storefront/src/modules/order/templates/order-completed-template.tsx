@@ -1,3 +1,5 @@
+// Template ghép dữ liệu và component để dựng khu vực order completed template.
+
 import { Heading } from "@modules/common/components/ui"
 import { cookies as nextCookies } from "next/headers"
 

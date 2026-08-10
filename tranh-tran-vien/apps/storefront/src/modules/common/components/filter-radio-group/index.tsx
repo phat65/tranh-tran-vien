@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần filter radio group trong storefront.
+
 import { EllipseMiniSolid } from "@medusajs/icons"
 import { Label, RadioGroup, Text, clx } from "@modules/common/components/ui"
 type FilterRadioGroupProps = {

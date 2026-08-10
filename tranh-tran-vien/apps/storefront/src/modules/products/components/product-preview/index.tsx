@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần product preview trong storefront.
+
 import { Text } from "@modules/common/components/ui"
 import { getProductPrice } from "@lib/util/get-product-price"
 import { HttpTypes } from "@medusajs/types"

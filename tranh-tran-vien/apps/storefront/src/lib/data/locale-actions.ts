@@ -1,5 +1,7 @@
 "use server"
 
+// Lớp truy xuất dữ liệu locale actions từ Medusa/backend cho storefront.
+
 import { sdk } from "@lib/config"
 import { revalidateTag } from "next/cache"
 import { cookies as nextCookies } from "next/headers"

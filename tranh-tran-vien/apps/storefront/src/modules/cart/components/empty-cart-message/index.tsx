@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần empty cart message trong storefront.
+
 import { Heading, Text } from "@modules/common/components/ui"
 
 import InteractiveLink from "@modules/common/components/interactive-link"

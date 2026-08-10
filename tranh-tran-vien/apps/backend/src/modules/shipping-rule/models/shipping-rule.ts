@@ -1,3 +1,5 @@
+// Model Medusa mô tả cấu trúc dữ liệu shipping rule.
+
 import { model } from "@medusajs/framework/utils"
 
 const ShippingRule = model.define("shipping_rule", {

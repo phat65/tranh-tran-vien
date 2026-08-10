@@ -1,3 +1,5 @@
+// API storefront cung cấp dữ liệu public cho tranh tran vien / rules / combo rules.
+
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 
 import { COMBO_RULE_MODULE } from "../../../../../modules/combo-rule"

@@ -1,3 +1,5 @@
+// Model Medusa mô tả cấu trúc dữ liệu post.
+
 import { model } from "@medusajs/framework/utils"
 
 const Post = model.define("post", {

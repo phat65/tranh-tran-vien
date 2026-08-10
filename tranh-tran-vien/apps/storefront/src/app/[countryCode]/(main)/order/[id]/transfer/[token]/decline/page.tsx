@@ -1,3 +1,5 @@
+// Trang route storefront render màn hình countryCode / (main) / order / id / transfer / token / decline.
+
 import { declineTransferRequest } from "@lib/data/orders"
 import { Heading, Text } from "@modules/common/components/ui"
 import TransferImage from "@modules/order/components/transfer-image"

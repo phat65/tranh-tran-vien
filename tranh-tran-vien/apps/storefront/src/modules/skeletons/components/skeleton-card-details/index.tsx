@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần skeleton card details trong storefront.
+
 const SkeletonCardDetails = () => {
   return (
     <div className="flex flex-col gap-1 my-4 transition-all duration-150 ease-in-out">

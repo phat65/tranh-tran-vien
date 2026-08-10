@@ -1,3 +1,5 @@
+// Model Medusa mô tả cấu trúc dữ liệu content.
+
 import { model } from "@medusajs/framework/utils"
 
 const Page = model.define("page", {

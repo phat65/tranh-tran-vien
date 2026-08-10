@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần product onboarding cta trong storefront.
+
 import { Button, Container, Text } from "@modules/common/components/ui"
 import { cookies as nextCookies } from "next/headers"
 

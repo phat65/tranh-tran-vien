@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần shipping details trong storefront.
+
 import { convertToLocale } from "@lib/util/money"
 import { HttpTypes } from "@medusajs/types"
 import { Heading, Text } from "@modules/common/components/ui"

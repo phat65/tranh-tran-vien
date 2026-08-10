@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần payment details trong storefront.
+
 import { Container, Heading, Text } from "@modules/common/components/ui"
 
 import { isStripeLike, paymentInfoMap } from "@lib/constants"

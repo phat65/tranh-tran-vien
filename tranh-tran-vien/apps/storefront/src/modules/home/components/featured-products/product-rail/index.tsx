@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần product rail trong storefront.
+
 import { listProducts } from "@lib/data/products"
 import { filterTtvVisibleStorefrontProducts } from "@lib/util/product-visibility"
 import { HttpTypes } from "@medusajs/types"

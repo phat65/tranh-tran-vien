@@ -1,3 +1,5 @@
+// Model Medusa mô tả cấu trúc dữ liệu design canvas item.
+
 import { model } from "@medusajs/framework/utils"
 
 const DesignCanvasItem = model.define("design_canvas_item", {

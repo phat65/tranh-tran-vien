@@ -1,3 +1,5 @@
+// Hàm tiện ích xử lý compare addresses dùng chung trong storefront.
+
 import { isEqual, pick } from "lodash"
 
 export default function compareAddresses(address1: object, address2: object) {

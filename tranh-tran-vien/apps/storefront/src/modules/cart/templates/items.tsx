@@ -1,3 +1,5 @@
+// Template ghép dữ liệu và component để dựng khu vực items.
+
 import repeat from "@lib/util/repeat"
 import { HttpTypes } from "@medusajs/types"
 import { Heading, Table } from "@modules/common/components/ui"

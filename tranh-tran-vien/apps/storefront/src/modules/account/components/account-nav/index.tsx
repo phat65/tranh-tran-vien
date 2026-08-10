@@ -1,5 +1,7 @@
 "use client"
 
+// Component giao diện xử lý phần account nav trong storefront.
+
 import { ArrowRightOnRectangle } from "@medusajs/icons"
 import { clx } from "@modules/common/components/ui"
 import { useParams, usePathname } from "next/navigation"

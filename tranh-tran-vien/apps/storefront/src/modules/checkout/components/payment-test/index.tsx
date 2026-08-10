@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần payment test trong storefront.
+
 import { Badge } from "@modules/common/components/ui"
 
 const PaymentTest = ({ className }: { className?: string }) => {

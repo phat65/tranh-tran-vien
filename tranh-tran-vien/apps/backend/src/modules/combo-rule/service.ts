@@ -1,3 +1,5 @@
+// Service Medusa chứa nghiệp vụ và thao tác dữ liệu cho module combo rule.
+
 import { MedusaService } from "@medusajs/framework/utils"
 
 import ComboRule from "./models/combo-rule"

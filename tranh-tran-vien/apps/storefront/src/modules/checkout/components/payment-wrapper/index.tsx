@@ -1,5 +1,7 @@
 "use client"
 
+// Component giao diện xử lý phần payment wrapper trong storefront.
+
 import { loadStripe } from "@stripe/stripe-js"
 import React from "react"
 import StripeWrapper from "./stripe-wrapper"

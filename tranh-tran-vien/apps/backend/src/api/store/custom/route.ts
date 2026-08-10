@@ -1,3 +1,5 @@
+// API storefront cung cấp dữ liệu public cho custom.
+
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 
 import { getBackendStatus } from "../../../lib/project-status"

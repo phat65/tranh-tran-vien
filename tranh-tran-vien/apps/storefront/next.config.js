@@ -1,3 +1,5 @@
+// Cấu hình Next.js của storefront, gồm compiler, image domain và option build/runtime.
+
 const checkEnvVariables = require("./check-env-variables")
 
 checkEnvVariables()

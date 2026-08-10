@@ -1,3 +1,5 @@
+// Migration tạo hoặc cập nhật schema dữ liệu cho module combo rule.
+
 import { Migration } from "@medusajs/framework/mikro-orm/migrations"
 
 export class Migration20260731090000 extends Migration {

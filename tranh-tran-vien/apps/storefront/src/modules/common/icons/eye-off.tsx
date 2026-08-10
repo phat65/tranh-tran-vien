@@ -1,3 +1,5 @@
+// Icon SVG eye off dùng trong giao diện storefront.
+
 import React from "react"
 
 import { IconProps } from "types/icon"

@@ -1,3 +1,5 @@
+// Trạng thái loading cho route storefront countryCode / (main) / account.
+
 import Spinner from "@modules/common/icons/spinner"
 
 export default function Loading() {

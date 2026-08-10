@@ -1,3 +1,5 @@
+// API admin xử lý dữ liệu quản trị cho custom.
+
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 
 import { getBackendStatus } from "../../../lib/project-status"

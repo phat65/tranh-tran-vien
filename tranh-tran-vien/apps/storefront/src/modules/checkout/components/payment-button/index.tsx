@@ -1,5 +1,7 @@
 "use client"
 
+// Component giao diện xử lý phần payment button trong storefront.
+
 import { isManual, isStripeLike } from "@lib/constants"
 import { placeOrder } from "@lib/data/cart"
 import { HttpTypes } from "@medusajs/types"

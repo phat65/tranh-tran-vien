@@ -1,5 +1,7 @@
 "use client"
 
+// Component giao diện xử lý phần image gallery trong storefront.
+
 import { HttpTypes } from "@medusajs/types"
 import { clx } from "@modules/common/components/ui"
 import Image from "next/image"

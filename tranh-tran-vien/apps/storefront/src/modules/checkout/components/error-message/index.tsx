@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần error message trong storefront.
+
 const ErrorMessage = ({ error, 'data-testid': dataTestid }: { error?: string | null, 'data-testid'?: string }) => {
   if (!error) {
     return null

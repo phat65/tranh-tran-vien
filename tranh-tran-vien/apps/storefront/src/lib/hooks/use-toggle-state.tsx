@@ -1,3 +1,5 @@
+// React hook đóng gói logic use toggle state để tái sử dụng trong component.
+
 import { useState } from "react"
 
 export type StateType = [boolean, () => void, () => void, () => void] & {

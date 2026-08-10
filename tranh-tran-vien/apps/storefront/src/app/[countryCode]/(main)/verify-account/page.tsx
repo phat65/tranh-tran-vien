@@ -1,3 +1,5 @@
+// Trang route storefront render màn hình countryCode / (main) / verify account.
+
 import { Metadata } from "next"
 import { Suspense } from "react"
 

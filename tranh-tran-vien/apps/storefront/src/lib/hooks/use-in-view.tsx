@@ -1,3 +1,5 @@
+// React hook đóng gói logic use in view để tái sử dụng trong component.
+
 import { RefObject, useEffect, useState } from "react"
 
 export const useIntersection = (

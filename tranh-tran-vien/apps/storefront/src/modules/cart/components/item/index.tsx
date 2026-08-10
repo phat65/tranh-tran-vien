@@ -1,5 +1,7 @@
 "use client"
 
+// Component giao diện xử lý phần item trong storefront.
+
 import { Table, Text, clx } from "@modules/common/components/ui"
 import { updateLineItem } from "@lib/data/cart"
 import { HttpTypes } from "@medusajs/types"

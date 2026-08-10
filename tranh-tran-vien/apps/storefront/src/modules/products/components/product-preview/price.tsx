@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần price trong storefront.
+
 import { Text, clx } from "@modules/common/components/ui"
 import { VariantPrice } from "types/global"
 

@@ -1,3 +1,5 @@
+// Validator kiểm tra input request cho nhóm API admin / tranh tran vien / rules.
+
 import { z } from "@medusajs/framework/zod"
 
 const metadataSchema = z.record(z.string(), z.unknown()).nullable().optional()

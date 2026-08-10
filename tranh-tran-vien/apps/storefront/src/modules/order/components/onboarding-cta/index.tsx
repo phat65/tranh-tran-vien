@@ -1,5 +1,7 @@
 "use client"
 
+// Component giao diện xử lý phần onboarding cta trong storefront.
+
 import { resetOnboardingState } from "@lib/data/onboarding"
 import { Button, Container, Text } from "@modules/common/components/ui"
 

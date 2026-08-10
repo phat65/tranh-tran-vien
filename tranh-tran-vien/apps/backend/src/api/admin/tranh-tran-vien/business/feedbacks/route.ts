@@ -1,3 +1,5 @@
+// API admin xử lý dữ liệu quản trị cho tranh tran vien / business / feedbacks.
+
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 
 import { feedbackBodySchema, FeedbackBody } from "../validators"

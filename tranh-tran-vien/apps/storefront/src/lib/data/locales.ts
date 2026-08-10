@@ -1,5 +1,7 @@
 "use server"
 
+// Lớp truy xuất dữ liệu locales từ Medusa/backend cho storefront.
+
 import { sdk } from "@lib/config"
 import { getCacheOptions } from "./cookies"
 

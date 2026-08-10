@@ -1,5 +1,7 @@
 "use client"
 
+// Component giao diện xử lý phần profile billing address trong storefront.
+
 import React, { useActionState, useEffect, useMemo } from "react"
 
 import Input from "@modules/common/components/input"

@@ -1,3 +1,5 @@
+// Hàm tiện ích xử lý money dùng chung trong storefront.
+
 import { isEmpty } from "./isEmpty"
 
 type ConvertToLocaleParams = {

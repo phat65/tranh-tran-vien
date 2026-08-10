@@ -1,5 +1,7 @@
 "use client"
 
+// Component giao diện xử lý phần pagination trong storefront.
+
 import ChevronDown from "@modules/common/icons/chevron-down"
 import { clx } from "@modules/common/components/ui"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"

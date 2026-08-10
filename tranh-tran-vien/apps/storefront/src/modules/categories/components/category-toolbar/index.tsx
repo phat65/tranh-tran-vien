@@ -1,5 +1,7 @@
 "use client"
 
+// Component giao diện xử lý phần category toolbar trong storefront.
+
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { FormEvent, useState } from "react"
 
@@ -12,11 +14,11 @@ type CategoryToolbarProps = {
 }
 
 const sortOptions: { value: SortOptions; label: string }[] = [
-  { value: "created_at", label: "Moi nhat" },
+  { value: "created_at", label: "Mới nhất" },
   { value: "title_asc", label: "A-Z" },
   { value: "title_desc", label: "Z-A" },
-  { value: "price_asc", label: "Gia tang dan" },
-  { value: "price_desc", label: "Gia giam dan" },
+  { value: "price_asc", label: "Giá tăng dần" },
+  { value: "price_desc", label: "Giá giảm dần" },
 ]
 
 export default function CategoryToolbar({

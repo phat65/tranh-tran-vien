@@ -1,3 +1,5 @@
+// Hàm tiện ích xử lý product visibility dùng chung trong storefront.
+
 import type { HttpTypes } from "@medusajs/types"
 
 export function isTtvHiddenStorefrontProduct(

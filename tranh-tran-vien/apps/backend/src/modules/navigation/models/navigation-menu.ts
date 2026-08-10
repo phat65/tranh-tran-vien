@@ -1,3 +1,5 @@
+// Model Medusa mô tả cấu trúc dữ liệu navigation menu.
+
 import { model } from "@medusajs/framework/utils"
 
 const NavigationMenu = model.define("navigation_menu", {

@@ -1,3 +1,5 @@
+// Trang route storefront render màn hình countryCode / (main) / store.
+
 import { Metadata } from "next"
 
 import { listCategories } from "@lib/data/categories"
@@ -6,8 +8,8 @@ import { SortOptions } from "@modules/store/components/refinement-list/sort-prod
 import StoreTemplate from "@modules/store/templates"
 
 export const metadata: Metadata = {
-  title: "Tat ca san pham",
-  description: "Xem tat ca tranh va khung decor dang co.",
+  title: "Tất cả sản phẩm",
+  description: "Xem tất cả tranh và khung decor đang có.",
 }
 
 type StorePageSearchParams = Record<string, string | string[] | undefined> & {

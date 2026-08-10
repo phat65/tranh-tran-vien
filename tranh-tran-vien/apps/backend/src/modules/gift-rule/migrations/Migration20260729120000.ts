@@ -1,3 +1,5 @@
+// Migration tạo hoặc cập nhật schema dữ liệu cho module gift rule.
+
 import { Migration } from "@medusajs/framework/mikro-orm/migrations";
 
 export class Migration20260729120000 extends Migration {

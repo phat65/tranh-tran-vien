@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần item trong storefront.
+
 import { HttpTypes } from "@medusajs/types"
 import { Table, Text } from "@modules/common/components/ui"
 

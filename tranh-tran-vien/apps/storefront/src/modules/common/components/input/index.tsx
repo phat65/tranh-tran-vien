@@ -1,3 +1,5 @@
+// Component giao diện xử lý phần input trong storefront.
+
 import { Label } from "@modules/common/components/ui"
 import React, { useEffect, useImperativeHandle, useState } from "react"
 

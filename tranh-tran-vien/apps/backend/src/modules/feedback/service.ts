@@ -1,3 +1,5 @@
+// Service Medusa chứa nghiệp vụ và thao tác dữ liệu cho module feedback.
+
 import { MedusaService } from "@medusajs/framework/utils"
 
 import Feedback from "./models/feedback"

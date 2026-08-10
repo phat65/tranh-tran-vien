@@ -1,5 +1,7 @@
 "use client"
 
+// Component giao diện xử lý phần stripe wrapper trong storefront.
+
 import { Stripe, StripeElementsOptions } from "@stripe/stripe-js"
 import { Elements } from "@stripe/react-stripe-js"
 import { HttpTypes } from "@medusajs/types"

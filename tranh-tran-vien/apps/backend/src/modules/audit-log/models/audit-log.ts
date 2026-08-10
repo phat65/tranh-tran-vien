@@ -1,3 +1,5 @@
+// Model Medusa mô tả cấu trúc dữ liệu audit log.
+
 import { model } from "@medusajs/framework/utils"
 
 const AuditLog = model.define("audit_log", {

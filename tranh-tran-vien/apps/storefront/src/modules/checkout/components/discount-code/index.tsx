@@ -1,5 +1,7 @@
 "use client"
 
+// Component giao diện xử lý phần discount code trong storefront.
+
 import { Badge, Heading, Input, Label, Text } from "@modules/common/components/ui"
 import React from "react"
 

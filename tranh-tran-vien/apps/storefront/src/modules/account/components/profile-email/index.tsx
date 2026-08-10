@@ -1,5 +1,7 @@
 "use client"
 
+// Component giao diện xử lý phần profile email trong storefront.
+
 import React, { useEffect, useActionState } from "react";
 
 import Input from "@modules/common/components/input"
