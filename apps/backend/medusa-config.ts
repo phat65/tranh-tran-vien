@@ -1,0 +1,129 @@
+// Cấu hình Medusa backend: database, CORS, module, plugin và file provider.
+
+import { loadEnv, defineConfig } from "@medusajs/framework/utils"
+
+import { parseBackendEnv } from "./src/lib/env"
+import { getStaticAssetBaseUrl } from "./src/lib/static-assets"
+
+loadEnv(process.env.NODE_ENV || "development", process.cwd())
+
+const backendEnv = parseBackendEnv(process.env)
+const defaultAdminMaxUploadFileSize = 50 * 1024 * 1024
+const configuredAdminMaxUploadFileSize = Number.parseInt(
+  process.env.MEDUSA_ADMIN_MAX_UPLOAD_FILE_SIZE ?? "",
+  10
+)
+const adminMaxUploadFileSize = Number.isFinite(configuredAdminMaxUploadFileSize)
+  ? configuredAdminMaxUploadFileSize
+  : defaultAdminMaxUploadFileSize
+const s3FileUrl = backendEnv.S3_FILE_URL ?? backendEnv.S3_PUBLIC_BASE_URL
+const useS3FileProvider = Boolean(
+  s3FileUrl &&
+    backendEnv.S3_ENDPOINT &&
+    backendEnv.S3_BUCKET &&
+    backendEnv.S3_ACCESS_KEY_ID &&
+    backendEnv.S3_SECRET_ACCESS_KEY
+)
+const s3FileProviderOptions: Record<string, unknown> = {
+  file_url: s3FileUrl,
+  access_key_id: backendEnv.S3_ACCESS_KEY_ID,
+  secret_access_key: backendEnv.S3_SECRET_ACCESS_KEY,
+  region: backendEnv.S3_REGION ?? "auto",
+  bucket: backendEnv.S3_BUCKET,
+  endpoint: backendEnv.S3_ENDPOINT,
+}
+
+if (backendEnv.S3_PREFIX) {
+  s3FileProviderOptions.prefix = backendEnv.S3_PREFIX
+}
+
+if (backendEnv.S3_CACHE_CONTROL) {
+  s3FileProviderOptions.cache_control = backendEnv.S3_CACHE_CONTROL
+}
+
+if (backendEnv.S3_DOWNLOAD_FILE_DURATION) {
+  s3FileProviderOptions.download_file_duration =
+    backendEnv.S3_DOWNLOAD_FILE_DURATION
+}
+
+if (backendEnv.S3_FORCE_PATH_STYLE === "true") {
+  s3FileProviderOptions.additional_client_config = {
+    forcePathStyle: true,
+  }
+}
+
+const fileProvider = useS3FileProvider
+  ? {
+      resolve: "@medusajs/medusa/file-s3",
+      id: "s3",
+      options: s3FileProviderOptions,
+    }
+  : {
+      resolve: "@medusajs/medusa/file-local",
+      id: "local",
+      options: {
+        upload_dir: "static",
+        backend_url: getStaticAssetBaseUrl(),
+      },
+    }
+
+module.exports = defineConfig({
+  admin: {
+    maxUploadFileSize: adminMaxUploadFileSize,
+  },
+  projectConfig: {
+    databaseUrl: backendEnv.DATABASE_URL,
+    redisUrl: backendEnv.REDIS_URL,
+    http: {
+      storeCors: backendEnv.STORE_CORS,
+      adminCors: backendEnv.ADMIN_CORS,
+      authCors: backendEnv.AUTH_CORS,
+      jwtSecret: backendEnv.JWT_SECRET,
+      cookieSecret: backendEnv.COOKIE_SECRET,
+    },
+  },
+  modules: [
+    {
+      resolve: "@medusajs/medusa/file",
+      options: {
+        providers: [fileProvider],
+      },
+    },
+    {
+      resolve: "./src/modules/brand",
+    },
+    {
+      resolve: "./src/modules/taxonomy",
+    },
+    {
+      resolve: "./src/modules/navigation",
+    },
+    {
+      resolve: "./src/modules/site-setting",
+    },
+    {
+      resolve: "./src/modules/custom-design",
+    },
+    {
+      resolve: "./src/modules/gift-rule",
+    },
+    {
+      resolve: "./src/modules/shipping-rule",
+    },
+    {
+      resolve: "./src/modules/combo-rule",
+    },
+    {
+      resolve: "./src/modules/feedback",
+    },
+    {
+      resolve: "./src/modules/content",
+    },
+    {
+      resolve: "./src/modules/audit-log",
+    },
+    {
+      resolve: "./src/modules/wishlist",
+    },
+  ],
+})
