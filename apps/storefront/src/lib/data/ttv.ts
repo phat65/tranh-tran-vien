@@ -90,11 +90,8 @@ export type TtvComboRule = {
   id: string
   name: string
   description?: string | null
-  scope_type: "all" | "product" | "category" | "collection" | "option"
-  product_id?: string | null
-  category_id?: string | null
-  collection_id?: string | null
-  option_value_id?: string | null
+  scope_type: "taxonomy"
+  taxonomy_term_id?: string | null
   sales_channel_id?: string | null
   region_id?: string | null
   tiers: TtvComboTier[]
@@ -103,6 +100,20 @@ export type TtvComboRule = {
   starts_at?: string | null
   ends_at?: string | null
   status: "draft" | "active" | "archived"
+}
+
+export type TtvProductCatalogLinks = {
+  product_id: string
+  product_taxonomy_terms: {
+    product_id: string
+    term_id: string
+  }[]
+  taxonomy_terms: {
+    id: string
+    name: string
+    slug: string
+    taxonomy_id: string
+  }[]
 }
 
 export type TtvHomeHeroConfig = {
@@ -398,6 +409,23 @@ export async function listTtvComboRules({
       Array.isArray(combo_rules) ? combo_rules : []
     )
     .catch(() => [])
+}
+
+export async function retrieveTtvProductCatalogLinks(
+  productId: string
+): Promise<TtvProductCatalogLinks> {
+  return sdk.client
+    .fetch<TtvProductCatalogLinks>(
+      `/store/tranh-tran-vien/catalog/product-links/${productId}`,
+      {
+        cache: "no-store",
+      }
+    )
+    .catch(() => ({
+      product_id: productId,
+      product_taxonomy_terms: [],
+      taxonomy_terms: [],
+    }))
 }
 
 function getSettingString(

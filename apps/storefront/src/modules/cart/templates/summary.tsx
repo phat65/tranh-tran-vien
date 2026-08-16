@@ -28,11 +28,8 @@ type ComboTier = {
 type ComboRule = {
   id: string
   name: string
-  scope_type: "all" | "product" | "category" | "collection" | "option"
-  product_id?: string | null
-  category_id?: string | null
-  collection_id?: string | null
-  option_value_id?: string | null
+  scope_type: "taxonomy"
+  taxonomy_term_id?: string | null
   tiers: ComboTier[]
 }
 
@@ -171,66 +168,23 @@ function getNextComboTier(cart: HttpTypes.StoreCart, rules: ComboRule[]) {
 }
 
 function getMatchingQuantity(cart: HttpTypes.StoreCart, rule: ComboRule) {
-  return (cart.items ?? []).reduce((sum, item) => {
-    if (!matchesRule(item, rule)) {
-      return sum
-    }
-
-    return sum + Number(item.quantity)
-  }, 0)
+  return getComboProgress(cart).find((item) => item.rule_id === rule.id)
+    ?.matching_quantity ?? 0
 }
 
-function matchesRule(item: HttpTypes.StoreCartLineItem, rule: ComboRule) {
-  if (rule.scope_type === "all") {
-    return true
-  }
+function getComboProgress(cart: HttpTypes.StoreCart) {
+  const metadata = cart.metadata as
+    | {
+        ttv_cart_rules?: {
+          combo_progress?: {
+            rule_id: string
+            matching_quantity: number
+          }[]
+        }
+      }
+    | undefined
 
-  if (rule.scope_type === "product") {
-    return rule.product_id === item.product_id
-  }
-
-  if (rule.scope_type === "collection") {
-    return Boolean(
-      rule.collection_id && rule.collection_id === getLineItemCollectionId(item)
-    )
-  }
-
-  if (rule.scope_type === "category") {
-    const categories = (
-      item.product as { categories?: { id?: string }[] } | undefined
-    )?.categories
-
-    return Boolean(
-      rule.category_id &&
-        categories?.some((category) => category.id === rule.category_id)
-    )
-  }
-
-  const variantOptionIds =
-    item.variant?.options?.map((option) => option.id).filter(Boolean) ?? []
-
-  return Boolean(
-    rule.option_value_id && variantOptionIds.includes(rule.option_value_id)
-  )
-}
-
-function getLineItemCollectionId(
-  item: HttpTypes.StoreCartLineItem
-): string | null {
-  const extendedItem = item as {
-    product_collection_id?: string | null
-    product?: {
-      collection_id?: string | null
-      collection?: { id?: string | null } | null
-    }
-  }
-
-  return (
-    extendedItem.product_collection_id ??
-    extendedItem.product?.collection_id ??
-    extendedItem.product?.collection?.id ??
-    null
-  )
+  return metadata?.ttv_cart_rules?.combo_progress ?? []
 }
 
 function formatAppliedDiscount(

@@ -17,6 +17,13 @@ Medusa là source of truth cho:
 
 Không rebuild các bảng này nếu framework đã quản lý.
 
+### PayOS Integration State
+
+PayOS does not create a separate Payment or Order table. The
+`payos_payment_attempt` table only maps a PayOS `order_code` to a Medusa
+`payment_session_id` for idempotent webhook processing. Medusa remains the
+source of truth for payment and order state.
+
 ## Product Extensions
 
 Các metadata/custom relation có thể gồm:

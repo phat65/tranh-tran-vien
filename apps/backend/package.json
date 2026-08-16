@@ -29,6 +29,7 @@
     "inventory:disable": "medusa exec ./src/scripts/maintenance/disable-product-inventory.ts",
     "inventory:clear": "medusa exec ./src/scripts/maintenance/clear-inventory.ts",
     "images:bulk-upload": "medusa exec ./src/scripts/maintenance/bulk-upload-product-images.ts",
+    "payos:setup": "medusa exec ./src/scripts/maintenance/setup-payos.ts",
     "test:integration:http": "TEST_TYPE=integration:http NODE_OPTIONS=--experimental-vm-modules jest --silent=false --runInBand --forceExit",
     "test:integration:modules": "TEST_TYPE=integration:modules NODE_OPTIONS=--experimental-vm-modules jest --silent=false --runInBand --forceExit",
     "test:unit": "TEST_TYPE=unit NODE_OPTIONS=--experimental-vm-modules jest --silent --runInBand --forceExit"

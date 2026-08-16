@@ -2,8 +2,9 @@
 
 // Component giao diện xử lý phần payment button trong storefront.
 
-import { isManual, isStripeLike } from "@lib/constants"
+import { isManual, isPayOS, isStripeLike } from "@lib/constants"
 import { placeOrder } from "@lib/data/cart"
+import { getPayOSCheckoutUrl } from "@lib/util/payos"
 import { HttpTypes } from "@medusajs/types"
 import { Button } from "@modules/common/components/ui"
 import { useElements, useStripe } from "@stripe/react-stripe-js"
@@ -26,7 +27,10 @@ const PaymentButton: React.FC<PaymentButtonProps> = ({
     !cart.email ||
     (cart.shipping_methods?.length ?? 0) < 1
 
-  const paymentSession = cart.payment_collection?.payment_sessions?.[0]
+  const paymentSession =
+    cart.payment_collection?.payment_sessions?.find(
+      (session) => session.status === "pending"
+    ) ?? cart.payment_collection?.payment_sessions?.[0]
 
   switch (true) {
     case isStripeLike(paymentSession?.provider_id):
@@ -41,9 +45,63 @@ const PaymentButton: React.FC<PaymentButtonProps> = ({
       return (
         <ManualTestPaymentButton notReady={notReady} data-testid={dataTestId} />
       )
+    case isPayOS(paymentSession?.provider_id):
+      return (
+        <PayOSPaymentButton
+          notReady={notReady}
+          checkoutUrl={paymentSession?.data?.checkout_url}
+          data-testid={dataTestId}
+        />
+      )
     default:
       return <Button disabled>Select a payment method</Button>
   }
+}
+
+const PayOSPaymentButton = ({
+  checkoutUrl,
+  notReady,
+  "data-testid": dataTestId,
+}: {
+  checkoutUrl: unknown
+  notReady: boolean
+  "data-testid"?: string
+}) => {
+  const [submitting, setSubmitting] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const validCheckoutUrl = getPayOSCheckoutUrl(checkoutUrl)
+
+  const handlePayment = () => {
+    setErrorMessage(null)
+
+    if (!validCheckoutUrl) {
+      setErrorMessage(
+        "Không tạo được liên kết PayOS. Vui lòng chọn lại phương thức thanh toán."
+      )
+      return
+    }
+
+    setSubmitting(true)
+    window.location.assign(validCheckoutUrl)
+  }
+
+  return (
+    <>
+      <Button
+        disabled={notReady || !validCheckoutUrl}
+        isLoading={submitting}
+        onClick={handlePayment}
+        size="large"
+        data-testid={dataTestId}
+      >
+        Thanh toán qua PayOS
+      </Button>
+      <ErrorMessage
+        error={errorMessage}
+        data-testid="payos-payment-error-message"
+      />
+    </>
+  )
 }
 
 const StripePaymentButton = ({

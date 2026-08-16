@@ -2,9 +2,11 @@
 
 import { MedusaService } from "@medusajs/framework/utils"
 
+import {
+  ComboRuleScope,
+  matchesComboRuleScope,
+} from "../../lib/combo-rule-matching"
 import ComboRule from "./models/combo-rule"
-
-type ComboScope = "all" | "product" | "category" | "collection" | "option"
 
 type ComboTier = {
   minimum_quantity: number
@@ -20,6 +22,7 @@ type ComboRuleCandidate = {
   category_ids?: string[]
   collection_id?: string | null
   option_value_ids?: string[]
+  taxonomy_term_ids?: string[]
   sales_channel_id?: string | null
   region_id?: string | null
   quantity: number
@@ -39,7 +42,11 @@ class ComboRuleModuleService extends MedusaService({
       const startsAt = rule.starts_at ? new Date(rule.starts_at) : null
       const endsAt = rule.ends_at ? new Date(rule.ends_at) : null
 
-      return (!startsAt || startsAt <= now) && (!endsAt || endsAt >= now)
+      return (
+        rule.scope_type === "taxonomy" &&
+        (!startsAt || startsAt <= now) &&
+        (!endsAt || endsAt >= now)
+      )
     })
   }
 
@@ -50,7 +57,13 @@ class ComboRuleModuleService extends MedusaService({
       .filter((rule) => {
         return (
           matchesChannel(rule, candidate) &&
-          matchesScope(rule.scope_type as ComboScope, rule, candidate) &&
+          matchesComboRuleScope(
+            {
+              ...rule,
+              scope_type: rule.scope_type as ComboRuleScope,
+            },
+            candidate
+          ) &&
           Boolean(getBestTier(rule.tiers, candidate.quantity))
         )
       })
@@ -85,42 +98,6 @@ function matchesChannel(
   }
 
   return true
-}
-
-function matchesScope(
-  scopeType: ComboScope,
-  rule: {
-    product_id?: string | null
-    category_id?: string | null
-    collection_id?: string | null
-    option_value_id?: string | null
-  },
-  candidate: ComboRuleCandidate
-): boolean {
-  if (scopeType === "all") {
-    return true
-  }
-
-  if (scopeType === "product") {
-    return Boolean(rule.product_id && rule.product_id === candidate.product_id)
-  }
-
-  if (scopeType === "category") {
-    return Boolean(
-      rule.category_id && candidate.category_ids?.includes(rule.category_id)
-    )
-  }
-
-  if (scopeType === "collection") {
-    return Boolean(
-      rule.collection_id && rule.collection_id === candidate.collection_id
-    )
-  }
-
-  return Boolean(
-    rule.option_value_id &&
-      candidate.option_value_ids?.includes(rule.option_value_id)
-  )
 }
 
 function getBestTier(tiers: unknown, quantity: number): ComboTier | null {

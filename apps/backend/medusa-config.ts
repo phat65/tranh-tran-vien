@@ -24,6 +24,13 @@ const useS3FileProvider = Boolean(
     backendEnv.S3_ACCESS_KEY_ID &&
     backendEnv.S3_SECRET_ACCESS_KEY
 )
+const usePayOSPaymentProvider = Boolean(
+  backendEnv.PAYOS_CLIENT_ID &&
+    backendEnv.PAYOS_API_KEY &&
+    backendEnv.PAYOS_CHECKSUM_KEY &&
+    backendEnv.PAYOS_RETURN_URL &&
+    backendEnv.PAYOS_CANCEL_URL
+)
 const s3FileProviderOptions: Record<string, unknown> = {
   file_url: s3FileUrl,
   access_key_id: backendEnv.S3_ACCESS_KEY_ID,
@@ -113,6 +120,34 @@ module.exports = defineConfig({
     {
       resolve: "./src/modules/combo-rule",
     },
+    {
+      resolve: "./src/modules/payos",
+    },
+    ...(usePayOSPaymentProvider
+      ? [
+          {
+            resolve: "@medusajs/medusa/payment",
+            dependencies: ["payos"],
+            options: {
+              providers: [
+                {
+                  resolve: "./src/modules/payos-payment",
+                  id: "payos",
+                  options: {
+                    clientId: backendEnv.PAYOS_CLIENT_ID,
+                    apiKey: backendEnv.PAYOS_API_KEY,
+                    checksumKey: backendEnv.PAYOS_CHECKSUM_KEY,
+                    returnUrl: backendEnv.PAYOS_RETURN_URL,
+                    cancelUrl: backendEnv.PAYOS_CANCEL_URL,
+                    apiUrl: backendEnv.PAYOS_API_URL,
+                    partnerCode: backendEnv.PAYOS_PARTNER_CODE,
+                  },
+                },
+              ],
+            },
+          },
+        ]
+      : []),
     {
       resolve: "./src/modules/feedback",
     },

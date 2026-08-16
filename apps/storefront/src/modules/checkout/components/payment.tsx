@@ -2,8 +2,9 @@
 // Component giao diện xử lý phần payment trong storefront.
 
 import { RadioGroup } from "@headlessui/react"
-import { isStripeLike, paymentInfoMap } from "@lib/constants"
+import { isPayOS, isStripeLike, paymentInfoMap } from "@lib/constants"
 import { initiatePaymentSession } from "@lib/data/cart"
+import { getPayOSCheckoutUrl } from "@lib/util/payos"
 import { CheckCircleSolid, CreditCard } from "@medusajs/icons"
 import ErrorMessage from "@modules/checkout/components/error-message"
 import PaymentContainer, {
@@ -88,10 +89,31 @@ const Payment = ({
       const checkActiveSession =
         activeSession?.provider_id === selectedPaymentMethod
 
+      let paymentSession = activeSession
+
       if (!checkActiveSession) {
-        await initiatePaymentSession(cart, {
+        const { payment_collection } = await initiatePaymentSession(cart, {
           provider_id: selectedPaymentMethod,
         })
+
+        paymentSession = payment_collection.payment_sessions?.find(
+          (session) => session.provider_id === selectedPaymentMethod
+        )
+      }
+
+      if (isPayOS(selectedPaymentMethod)) {
+        const checkoutUrl = getPayOSCheckoutUrl(
+          paymentSession?.data?.checkout_url
+        )
+
+        if (!checkoutUrl) {
+          throw new Error(
+            "Không tạo được liên kết PayOS. Vui lòng thử lại."
+          )
+        }
+
+        window.location.assign(checkoutUrl)
+        return
       }
 
       if (!shouldInputCard) {
@@ -205,6 +227,8 @@ const Payment = ({
           >
             {!activeSession && isStripeLike(selectedPaymentMethod)
               ? " Enter card details"
+              : isPayOS(selectedPaymentMethod)
+              ? "Thanh toán qua PayOS"
               : "Continue to review"}
           </Button>
         </div>
@@ -240,6 +264,8 @@ const Payment = ({
                   <Text>
                     {isStripeLike(selectedPaymentMethod) && cardBrand
                       ? cardBrand
+                      : isPayOS(activeSession.provider_id)
+                      ? "Quét mã QR hoặc chuyển khoản trên PayOS"
                       : "Another step will appear"}
                   </Text>
                 </div>

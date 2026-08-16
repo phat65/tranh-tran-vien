@@ -7,12 +7,20 @@ const ComboRule = model.define("combo_rule", {
   name: model.text().searchable(),
   description: model.text().nullable(),
   scope_type: model
-    .enum(["all", "product", "category", "collection", "option"])
-    .default("collection"),
+    .enum([
+      "all",
+      "product",
+      "category",
+      "collection",
+      "option",
+      "taxonomy",
+    ])
+    .default("taxonomy"),
   product_id: model.text().index().nullable(),
   category_id: model.text().index().nullable(),
   collection_id: model.text().index().nullable(),
   option_value_id: model.text().index().nullable(),
+  taxonomy_term_id: model.text().index().nullable(),
   sales_channel_id: model.text().index().nullable(),
   region_id: model.text().index().nullable(),
   tiers: model.json(),

@@ -17,7 +17,13 @@ import { FormEvent, useEffect, useMemo, useState } from "react"
 import type { Dispatch, ReactNode, SetStateAction } from "react"
 
 type Status = "draft" | "active" | "archived"
-type ScopeType = "all" | "product" | "category" | "collection" | "option"
+type ScopeType =
+  | "all"
+  | "product"
+  | "category"
+  | "collection"
+  | "option"
+  | "taxonomy"
 type DiscountType = "percentage" | "fixed" | "fixed_total"
 
 type RuleOption = {
@@ -27,10 +33,7 @@ type RuleOption = {
 }
 
 type RuleOptions = {
-  products: RuleOption[]
-  categories: RuleOption[]
-  collections: RuleOption[]
-  option_values: RuleOption[]
+  explore_items: RuleOption[]
   sales_channels: RuleOption[]
   regions: RuleOption[]
 }
@@ -62,6 +65,7 @@ type ComboRule = {
   category_id?: string | null
   collection_id?: string | null
   option_value_id?: string | null
+  taxonomy_term_id?: string | null
   sales_channel_id?: string | null
   region_id?: string | null
   tiers: ComboTier[]
@@ -75,11 +79,7 @@ type ComboRule = {
 type ComboRuleForm = {
   name: string
   description: string
-  scope_type: ScopeType
-  product_id: string
-  category_id: string
-  collection_id: string
-  option_value_id: string
+  taxonomy_term_id: string
   sales_channel_id: string
   region_id: string
   tiers: ComboTierForm[]
@@ -93,10 +93,7 @@ type ComboRuleForm = {
 const RULES_API = "/admin/tranh-tran-vien/rules"
 
 const emptyOptions: RuleOptions = {
-  products: [],
-  categories: [],
-  collections: [],
-  option_values: [],
+  explore_items: [],
   sales_channels: [],
   regions: [],
 }
@@ -113,11 +110,7 @@ const emptyTier: ComboTierForm = {
 const emptyForm: ComboRuleForm = {
   name: "",
   description: "",
-  scope_type: "collection",
-  product_id: "",
-  category_id: "",
-  collection_id: "",
-  option_value_id: "",
+  taxonomy_term_id: "",
   sales_channel_id: "",
   region_id: "",
   tiers: [emptyTier],
@@ -144,16 +137,11 @@ const TtvRulesPage = () => {
 
   const optionLabels = useMemo(() => {
     return {
-      products: toLabelMap(options.products),
-      categories: toLabelMap(options.categories),
-      collections: toLabelMap(options.collections),
-      option_values: toLabelMap(options.option_values),
+      explore_items: toLabelMap(options.explore_items),
       sales_channels: toLabelMap(options.sales_channels),
       regions: toLabelMap(options.regions),
     }
   }, [options])
-
-  const scopeOptions = getScopeOptions(options, form.scope_type)
 
   const loadData = async () => {
     setIsLoading(true)
@@ -192,8 +180,8 @@ const TtvRulesPage = () => {
       return
     }
 
-    if (form.scope_type !== "all" && !getSelectedScopeId(form)) {
-      toast.error("Select a product domain for this combo")
+    if (!form.taxonomy_term_id) {
+      toast.error("Select an Explore Item for this combo")
       return
     }
 
@@ -280,7 +268,8 @@ const TtvRulesPage = () => {
         <div>
           <Heading level="h1">TTV Rules</Heading>
           <Text className="text-ui-fg-subtle" size="small">
-            Set simple combo prices and quantity discounts for storefront carts.
+            Set combo prices and quantity discounts for products in an Explore
+            Item.
           </Text>
         </div>
         <Button
@@ -342,62 +331,36 @@ const TtvRulesPage = () => {
           </Field>
 
           <Field
-            label="Applies to"
-            description="Choose the product group this combo counts in the cart."
+            label="Explore Item"
+            description="Only products assigned to this Explore Item count toward the combo quantity."
           >
             <Select
-              value={form.scope_type}
+              value={form.taxonomy_term_id}
               onValueChange={(value) =>
                 setForm((current) => ({
                   ...current,
-                  scope_type: value as ScopeType,
-                  product_id: "",
-                  category_id: "",
-                  collection_id: "",
-                  option_value_id: "",
+                  taxonomy_term_id: value,
                 }))
               }
             >
               <Select.Trigger>
-                <Select.Value />
+                <Select.Value placeholder="Select an Explore Item" />
               </Select.Trigger>
               <Select.Content>
-                <Select.Item value="product">One product</Select.Item>
-                <Select.Item value="collection">Collection</Select.Item>
-                <Select.Item value="category">Category</Select.Item>
-                <Select.Item value="option">Product option</Select.Item>
-                <Select.Item value="all">All products</Select.Item>
+                {options.explore_items.length ? (
+                  options.explore_items.map((option) => (
+                    <Select.Item key={option.id} value={option.id}>
+                      {formatOption(option)}
+                    </Select.Item>
+                  ))
+                ) : (
+                  <Select.Item value="none" disabled>
+                    No visible Explore Items found
+                  </Select.Item>
+                )}
               </Select.Content>
             </Select>
           </Field>
-
-          {form.scope_type !== "all" && (
-            <Field label="Select product group">
-              <Select
-                value={getSelectedScopeId(form)}
-                onValueChange={(value) =>
-                  setForm((current) => setSelectedScopeId(current, value))
-                }
-              >
-                <Select.Trigger>
-                  <Select.Value placeholder="Select value" />
-                </Select.Trigger>
-                <Select.Content>
-                  {scopeOptions.length ? (
-                    scopeOptions.map((option) => (
-                      <Select.Item key={option.id} value={option.id}>
-                        {formatOption(option)}
-                      </Select.Item>
-                    ))
-                  ) : (
-                    <Select.Item value="none" disabled>
-                      No values found
-                    </Select.Item>
-                  )}
-                </Select.Content>
-              </Select>
-            </Field>
-          )}
 
           <Field
             label="Sales channel"
@@ -816,11 +779,7 @@ function ruleToForm(rule: ComboRule): ComboRuleForm {
   return {
     name: rule.name ?? "",
     description: rule.description ?? "",
-    scope_type: rule.scope_type ?? "collection",
-    product_id: rule.product_id ?? "",
-    category_id: rule.category_id ?? "",
-    collection_id: rule.collection_id ?? "",
-    option_value_id: rule.option_value_id ?? "",
+    taxonomy_term_id: rule.taxonomy_term_id ?? "",
     sales_channel_id: rule.sales_channel_id ?? "",
     region_id: rule.region_id ?? "",
     tiers: Array.isArray(rule.tiers) && rule.tiers.length
@@ -858,31 +817,15 @@ function toDateTimeLocal(value?: string | null): string {
 }
 
 function buildPayload(form: ComboRuleForm) {
-  const scopeValues: Record<
-    "product_id" | "category_id" | "collection_id" | "option_value_id",
-    string | null
-  > = {
+  return {
+    name: form.name.trim(),
+    description: optionalString(form.description),
+    scope_type: "taxonomy" as const,
     product_id: null,
     category_id: null,
     collection_id: null,
     option_value_id: null,
-  }
-  const selectedScopeId = getSelectedScopeId(form)
-
-  if (form.scope_type !== "all" && selectedScopeId) {
-    const scopeKey =
-      form.scope_type === "option"
-        ? "option_value_id"
-        : (`${form.scope_type}_id` as keyof typeof scopeValues)
-
-    scopeValues[scopeKey] = selectedScopeId
-  }
-
-  return {
-    name: form.name.trim(),
-    description: optionalString(form.description),
-    scope_type: form.scope_type,
-    ...scopeValues,
+    taxonomy_term_id: optionalString(form.taxonomy_term_id),
     sales_channel_id: optionalString(form.sales_channel_id),
     region_id: optionalString(form.region_id),
     tiers: form.tiers
@@ -914,59 +857,6 @@ function buildPayload(form: ComboRuleForm) {
   }
 }
 
-function getSelectedScopeId(form: ComboRuleForm): string {
-  if (form.scope_type === "product") {
-    return form.product_id
-  }
-
-  if (form.scope_type === "category") {
-    return form.category_id
-  }
-
-  if (form.scope_type === "collection") {
-    return form.collection_id
-  }
-
-  if (form.scope_type === "option") {
-    return form.option_value_id
-  }
-
-  return ""
-}
-
-function setSelectedScopeId(form: ComboRuleForm, value: string): ComboRuleForm {
-  return {
-    ...form,
-    product_id: form.scope_type === "product" ? value : "",
-    category_id: form.scope_type === "category" ? value : "",
-    collection_id: form.scope_type === "collection" ? value : "",
-    option_value_id: form.scope_type === "option" ? value : "",
-  }
-}
-
-function getScopeOptions(
-  options: RuleOptions,
-  scopeType: ScopeType
-): RuleOption[] {
-  if (scopeType === "product") {
-    return options.products
-  }
-
-  if (scopeType === "category") {
-    return options.categories
-  }
-
-  if (scopeType === "collection") {
-    return options.collections
-  }
-
-  if (scopeType === "option") {
-    return options.option_values
-  }
-
-  return []
-}
-
 function toLabelMap(options: RuleOption[]): Map<string, string> {
   return new Map(options.map((option) => [option.id, option.label]))
 }
@@ -991,31 +881,20 @@ function formatScope(
     | "category_id"
     | "collection_id"
     | "option_value_id"
+    | "taxonomy_term_id"
   >,
   labels: {
-    products: Map<string, string>
-    categories: Map<string, string>
-    collections: Map<string, string>
-    option_values: Map<string, string>
+    explore_items: Map<string, string>
   }
 ): string {
-  if (rule.scope_type === "product") {
-    return `Product: ${getLabel(labels.products, rule.product_id)}`
+  if (rule.scope_type === "taxonomy") {
+    return `Explore: ${getLabel(
+      labels.explore_items,
+      rule.taxonomy_term_id
+    )}`
   }
 
-  if (rule.scope_type === "category") {
-    return `Category: ${getLabel(labels.categories, rule.category_id)}`
-  }
-
-  if (rule.scope_type === "collection") {
-    return `Collection: ${getLabel(labels.collections, rule.collection_id)}`
-  }
-
-  if (rule.scope_type === "option") {
-    return `Option: ${getLabel(labels.option_values, rule.option_value_id)}`
-  }
-
-  return "All products"
+  return `Legacy scope: ${rule.scope_type}`
 }
 
 function formatTiers(tiers: ComboTier[]): string {

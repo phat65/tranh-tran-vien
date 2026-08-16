@@ -9,6 +9,11 @@ import {
   refreshPaymentCollectionForCartWorkflow,
 } from "@medusajs/medusa/core-flows"
 
+import {
+  ComboRuleScope,
+  getComboRuleMatchingQuantity,
+  matchesComboRuleScope as matchesComboScopeSignals,
+} from "./combo-rule-matching"
 import { BRAND_MODULE } from "../modules/brand"
 import BrandModuleService from "../modules/brand/service"
 import { COMBO_RULE_MODULE } from "../modules/combo-rule"
@@ -26,7 +31,6 @@ const CART_RULES_METADATA_KEY = "ttv_cart_rules"
 const COMBO_ADJUSTMENT_CODE_PREFIX = "TTV-COMBO-"
 
 type RuleScope = "all" | "product" | "category" | "collection" | "brand" | "taxonomy"
-type ComboScope = "all" | "product" | "category" | "collection" | "option"
 
 type CartService = {
   retrieveCart: (
@@ -121,11 +125,12 @@ type ComboTier = {
 type ComboRule = {
   id: string
   name: string
-  scope_type: ComboScope
+  scope_type: ComboRuleScope
   product_id?: string | null
   category_id?: string | null
   collection_id?: string | null
   option_value_id?: string | null
+  taxonomy_term_id?: string | null
   sales_channel_id?: string | null
   region_id?: string | null
   tiers: ComboTier[] | unknown
@@ -147,6 +152,10 @@ export type CartRuleSyncResult = {
     discount_type: ComboTier["discount_type"]
     discount_value: number
     is_free_shipping: boolean
+  }[]
+  combo_progress: {
+    rule_id: string
+    matching_quantity: number
   }[]
   gifts: {
     rule_id: string
@@ -179,6 +188,11 @@ export async function syncCartRules(
 
   const activeComboRules =
     (await comboRuleService.listActiveComboRules()) as ComboRule[]
+  const comboProgress = getComboRuleProgress(
+    activeComboRules,
+    enrichedItems,
+    cart
+  )
   const appliedComboRules = selectComboRules(activeComboRules, enrichedItems, cart)
   const comboMutated = await syncComboAdjustments(
     cartService,
@@ -234,6 +248,7 @@ export async function syncCartRules(
       discount_value: tier.discount_value,
       is_free_shipping: tier.is_free_shipping === true,
     })),
+    combo_progress: comboProgress,
     gifts: appliedGiftRules.map((rule) => ({
       rule_id: rule.id,
       name: rule.name,
@@ -273,6 +288,7 @@ export async function syncCartRules(
   return {
     cart: syncedCart,
     combo_discounts: metadata.combo_discounts,
+    combo_progress: metadata.combo_progress,
     gifts: metadata.gifts,
     shipping_rule: metadata.shipping_rule,
   }
@@ -521,6 +537,30 @@ function selectComboRules(
   return firstNonStackable ? [firstNonStackable] : applicable
 }
 
+function getComboRuleProgress(
+  rules: ComboRule[],
+  items: EnrichedCartItem[],
+  cart: CartTypes.CartDTO
+) {
+  return rules
+    .filter((rule) => matchesComboCartContext(rule, cart))
+    .map((rule) => ({
+      rule_id: rule.id,
+      matching_quantity: getComboMatchingQuantity(rule, items),
+    }))
+}
+
+function matchesComboCartContext(
+  rule: ComboRule,
+  cart: CartTypes.CartDTO
+) {
+  return !(
+    (rule.sales_channel_id &&
+      rule.sales_channel_id !== cart.sales_channel_id) ||
+    (rule.region_id && rule.region_id !== cart.region_id)
+  )
+}
+
 function selectComboShippingRule(
   appliedRules: AppliedComboRule[]
 ): ShippingAdjustmentRule | null {
@@ -652,13 +692,7 @@ function getComboMatchingQuantity(
   rule: ComboRule,
   items: EnrichedCartItem[]
 ): number {
-  return items.reduce((sum, item) => {
-    if (matchesComboRuleScope(rule, item)) {
-      return sum + toNumber(item.quantity)
-    }
-
-    return sum
-  }, 0)
+  return getComboRuleMatchingQuantity(rule, items)
 }
 
 function matchesComboRuleScope(
@@ -672,29 +706,7 @@ function matchesComboRuleScope(
   >,
   item: EnrichedCartItem
 ): boolean {
-  if (rule.scope_type === "all") {
-    return true
-  }
-
-  if (rule.scope_type === "product") {
-    return Boolean(rule.product_id && rule.product_id === item.product_id)
-  }
-
-  if (rule.scope_type === "category") {
-    return Boolean(
-      rule.category_id && item.category_ids.includes(rule.category_id)
-    )
-  }
-
-  if (rule.scope_type === "collection") {
-    return Boolean(
-      rule.collection_id && item.collection_ids.includes(rule.collection_id)
-    )
-  }
-
-  return Boolean(
-    rule.option_value_id && item.option_value_ids.includes(rule.option_value_id)
-  )
+  return matchesComboScopeSignals(rule, item)
 }
 
 function getBestComboTier(

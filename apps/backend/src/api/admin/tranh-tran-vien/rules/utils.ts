@@ -5,6 +5,9 @@ import { ContainerRegistrationKeys, MedusaError } from "@medusajs/framework/util
 
 import { COMBO_RULE_MODULE } from "../../../../modules/combo-rule"
 import ComboRuleModuleService from "../../../../modules/combo-rule/service"
+import { TAXONOMY_MODULE } from "../../../../modules/taxonomy"
+import TaxonomyModuleService from "../../../../modules/taxonomy/service"
+import { EXPLORE_GROUP_DEFINITIONS } from "../../../../lib/explore-navigation"
 import { RulesListQuery, rulesListQuerySchema } from "./validators"
 
 type QueryGraph = {
@@ -43,6 +46,7 @@ export function addComboRuleFilters(
     "category_id",
     "collection_id",
     "option_value_id",
+    "taxonomy_term_id",
     "sales_channel_id",
     "region_id",
   ] as const
@@ -56,6 +60,31 @@ export function addComboRuleFilters(
 
 export function getComboRuleService(scope: MedusaContainer) {
   return scope.resolve<ComboRuleModuleService>(COMBO_RULE_MODULE)
+}
+
+export async function assertActiveExploreTerm(
+  scope: MedusaContainer,
+  termId: string
+) {
+  const service = scope.resolve<TaxonomyModuleService>(TAXONOMY_MODULE)
+  const term = await service.retrieveTaxonomyTerm(termId)
+  const taxonomy = await service.retrieveTaxonomy(term.taxonomy_id)
+  const exploreCodes = new Set<string>(
+    EXPLORE_GROUP_DEFINITIONS.map((group) => group.code)
+  )
+
+  if (
+    term.status !== "active" ||
+    taxonomy.status !== "active" ||
+    !exploreCodes.has(taxonomy.code)
+  ) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Combo rules can only use a visible Explore Item."
+    )
+  }
+
+  return { taxonomy, term }
 }
 
 export function assertFound<T>(record: T | null | undefined, message: string): T {

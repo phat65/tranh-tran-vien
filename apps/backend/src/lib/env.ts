@@ -14,6 +14,10 @@ const optionalBooleanString = z.preprocess(
   (value) => (value === "" ? undefined : value),
   z.enum(["true", "false"]).optional()
 )
+const optionalUrl = z.preprocess(
+  (value) => (value === "" ? undefined : value),
+  z.string().url().optional()
+)
 
 const backendEnvSchema = z.object({
   NODE_ENV: z
@@ -37,6 +41,14 @@ const backendEnvSchema = z.object({
   S3_CACHE_CONTROL: optionalString,
   S3_DOWNLOAD_FILE_DURATION: optionalPositiveNumber,
   S3_FORCE_PATH_STYLE: optionalBooleanString,
+  PAYOS_CLIENT_ID: optionalString,
+  PAYOS_API_KEY: optionalString,
+  PAYOS_CHECKSUM_KEY: optionalString,
+  PAYOS_RETURN_URL: optionalUrl,
+  PAYOS_CANCEL_URL: optionalUrl,
+  PAYOS_WEBHOOK_URL: optionalUrl,
+  PAYOS_API_URL: optionalUrl,
+  PAYOS_PARTNER_CODE: optionalString,
 }).superRefine((env, ctx) => {
   const hasS3Value = [
     env.S3_ENDPOINT,
@@ -47,34 +59,58 @@ const backendEnvSchema = z.object({
     env.S3_PUBLIC_BASE_URL,
   ].some(Boolean)
 
-  if (!hasS3Value) {
-    return
-  }
+  if (hasS3Value) {
+    const requiredFields = [
+      "S3_ENDPOINT",
+      "S3_BUCKET",
+      "S3_ACCESS_KEY_ID",
+      "S3_SECRET_ACCESS_KEY",
+    ] as const
 
-  const requiredFields = [
-    "S3_ENDPOINT",
-    "S3_BUCKET",
-    "S3_ACCESS_KEY_ID",
-    "S3_SECRET_ACCESS_KEY",
-  ] as const
+    for (const field of requiredFields) {
+      if (!env[field]) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [field],
+          message: `${field} is required when S3/R2 storage is configured`,
+        })
+      }
+    }
 
-  for (const field of requiredFields) {
-    if (!env[field]) {
+    if (!env.S3_FILE_URL && !env.S3_PUBLIC_BASE_URL) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        path: [field],
-        message: `${field} is required when S3/R2 storage is configured`,
+        path: ["S3_FILE_URL"],
+        message:
+          "S3_FILE_URL or S3_PUBLIC_BASE_URL is required when S3/R2 storage is configured",
       })
     }
   }
 
-  if (!env.S3_FILE_URL && !env.S3_PUBLIC_BASE_URL) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["S3_FILE_URL"],
-      message:
-        "S3_FILE_URL or S3_PUBLIC_BASE_URL is required when S3/R2 storage is configured",
-    })
+  const hasPayOSCredential = [
+    env.PAYOS_CLIENT_ID,
+    env.PAYOS_API_KEY,
+    env.PAYOS_CHECKSUM_KEY,
+  ].some(Boolean)
+
+  if (hasPayOSCredential) {
+    const requiredFields = [
+      "PAYOS_CLIENT_ID",
+      "PAYOS_API_KEY",
+      "PAYOS_CHECKSUM_KEY",
+      "PAYOS_RETURN_URL",
+      "PAYOS_CANCEL_URL",
+    ] as const
+
+    for (const field of requiredFields) {
+      if (!env[field]) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [field],
+          message: `${field} is required when PayOS is configured`,
+        })
+      }
+    }
   }
 })
 

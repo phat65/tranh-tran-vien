@@ -27,6 +27,7 @@ export const rulesListQuerySchema = z.object({
   category_id: z.string().trim().optional(),
   collection_id: z.string().trim().optional(),
   option_value_id: z.string().trim().optional(),
+  taxonomy_term_id: z.string().trim().optional(),
   sales_channel_id: z.string().trim().optional(),
   region_id: z.string().trim().optional(),
 })
@@ -36,12 +37,20 @@ export const comboRuleBodySchema = z
     name: z.string().trim().min(1),
     description: nullableString,
     scope_type: z
-      .enum(["all", "product", "category", "collection", "option"])
-      .default("collection"),
+      .enum([
+        "all",
+        "product",
+        "category",
+        "collection",
+        "option",
+        "taxonomy",
+      ])
+      .default("taxonomy"),
     product_id: nullableString,
     category_id: nullableString,
     collection_id: nullableString,
     option_value_id: nullableString,
+    taxonomy_term_id: nullableString,
     sales_channel_id: nullableString,
     region_id: nullableString,
     tiers: z.array(comboTierSchema).min(1),

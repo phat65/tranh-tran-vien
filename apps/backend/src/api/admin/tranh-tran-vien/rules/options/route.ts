@@ -3,6 +3,11 @@
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaContainer } from "@medusajs/framework/types"
 
+import {
+  EXPLORE_GROUP_DEFINITIONS,
+  getPublicExploreTermSlug,
+} from "../../../../../lib/explore-navigation"
+import { getTaxonomyService } from "../../catalog/utils"
 import { safeGraph } from "../utils"
 
 type Option = {
@@ -12,35 +17,20 @@ type Option = {
   image_url?: string | null
 }
 
-type ProductRecord = {
-  id?: string
-  title?: string
-  handle?: string
-  status?: string
-  thumbnail?: string | null
+type TaxonomyRecord = {
+  id: string
+  code: string
+  status: "draft" | "active" | "archived"
 }
 
-type CategoryRecord = {
-  id?: string
-  name?: string
-  handle?: string
-}
-
-type CollectionRecord = {
-  id?: string
-  title?: string
-  handle?: string
-}
-
-type ProductOptionRecord = {
-  id?: string
-  title?: string
-  values?: ProductOptionValueRecord[]
-}
-
-type ProductOptionValueRecord = {
-  id?: string
-  value?: string
+type TaxonomyTermRecord = {
+  id: string
+  taxonomy_id: string
+  name: string
+  slug: string
+  status: "draft" | "active" | "archived"
+  sort_order: number
+  metadata?: Record<string, unknown> | null
 }
 
 type SalesChannelRecord = {
@@ -59,94 +49,54 @@ export async function GET(
   req: MedusaRequest,
   res: MedusaResponse
 ): Promise<void> {
-  const [
-    products,
-    categories,
-    collections,
-    optionValues,
-    salesChannels,
-    regions,
-  ] =
-    await Promise.all([
-      getProductOptions(req.scope),
-      getCategoryOptions(req.scope),
-      getCollectionOptions(req.scope),
-      getProductOptionValueOptions(req.scope),
-      getSalesChannelOptions(req.scope),
-      getRegionOptions(req.scope),
-    ])
+  const [exploreItems, salesChannels, regions] = await Promise.all([
+    getExploreItemOptions(req.scope),
+    getSalesChannelOptions(req.scope),
+    getRegionOptions(req.scope),
+  ])
 
   res.status(200).json({
-    products,
-    categories,
-    collections,
-    option_values: optionValues,
+    explore_items: exploreItems,
     sales_channels: salesChannels,
     regions,
   })
 }
 
-async function getProductOptions(scope: MedusaContainer): Promise<Option[]> {
-  const products = await safeGraph<ProductRecord>(scope, "product", [
-    "id",
-    "title",
-    "handle",
-    "status",
-    "thumbnail",
-  ])
-
-  return products.map((product) => ({
-    id: product.id ?? "",
-    label: product.title ?? product.handle ?? product.id ?? "",
-    subtitle: [product.handle, product.status].filter(Boolean).join(" / "),
-    image_url: product.thumbnail ?? null,
-  }))
-}
-
-async function getCategoryOptions(scope: MedusaContainer): Promise<Option[]> {
-  const categories = await safeGraph<CategoryRecord>(scope, "product_category", [
-    "id",
-    "name",
-    "handle",
-  ])
-
-  return categories.map((category) => ({
-    id: category.id ?? "",
-    label: category.name ?? category.handle ?? category.id ?? "",
-    subtitle: category.handle,
-  }))
-}
-
-async function getCollectionOptions(scope: MedusaContainer): Promise<Option[]> {
-  const collections = await safeGraph<CollectionRecord>(
-    scope,
-    "product_collection",
-    ["id", "title", "handle"]
-  )
-
-  return collections.map((collection) => ({
-    id: collection.id ?? "",
-    label: collection.title ?? collection.handle ?? collection.id ?? "",
-    subtitle: collection.handle,
-  }))
-}
-
-async function getProductOptionValueOptions(
+async function getExploreItemOptions(
   scope: MedusaContainer
 ): Promise<Option[]> {
-  const productOptions = await safeGraph<ProductOptionRecord>(
-    scope,
-    "product_option",
-    ["id", "title", "values.id", "values.value"]
+  const service = getTaxonomyService(scope)
+  const taxonomies = (await service.listTaxonomies(
+    { status: "active" },
+    { take: 500 }
+  )) as TaxonomyRecord[]
+  const taxonomyByCode = new Map(
+    taxonomies.map((taxonomy) => [taxonomy.code, taxonomy])
   )
+  const options: Option[] = []
 
-  return productOptions.flatMap((option) => {
-    return (option.values ?? []).map((value) => ({
-      id: value.id ?? "",
-      label: value.value ?? value.id ?? "",
-      subtitle: option.title,
-    }))
-  })
+  for (const group of EXPLORE_GROUP_DEFINITIONS) {
+    const taxonomy = taxonomyByCode.get(group.code)
+
+    if (!taxonomy) {
+      continue
+    }
+
+    const terms = (await service.listTaxonomyTerms(
+      { taxonomy_id: taxonomy.id, status: "active" },
+      { take: 500, order: { sort_order: "ASC", created_at: "ASC" } }
+    )) as TaxonomyTermRecord[]
+
+    options.push(
+      ...terms.map((term) => ({
+        id: term.id,
+        label: term.name,
+        subtitle: `${group.label} / ${getPublicExploreTermSlug(term)}`,
+      }))
+    )
+  }
+
+  return options
 }
 
 async function getSalesChannelOptions(

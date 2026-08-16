@@ -48,6 +48,10 @@ export default async function initial_data_seed({
   const europeanCountries = ["gb", "de", "dk", "se", "fr", "es", "it"];
   const storefrontCountries = [...europeanCountries, "vn"];
   const staticAssetBaseUrl = getStaticAssetBaseUrl();
+  const vietnamPaymentProviders = [
+    "pp_system_default",
+    ...(isPayOSConfigured() ? ["pp_payos_payos"] : []),
+  ];
 
   logger.info("Seeding store data...");
   const {
@@ -125,7 +129,7 @@ export default async function initial_data_seed({
           name: "Vietnam",
           currency_code: "vnd",
           countries: ["vn"],
-          payment_providers: ["pp_system_default"],
+          payment_providers: vietnamPaymentProviders,
         },
       ],
     },
@@ -394,4 +398,14 @@ export default async function initial_data_seed({
     DRAGON_BALL_HEXAGON_EXPLORE_NAVIGATION_SEEDS
   );
   logger.info("Finished seeding product data.");
+}
+
+function isPayOSConfigured() {
+  return Boolean(
+    process.env.PAYOS_CLIENT_ID &&
+      process.env.PAYOS_API_KEY &&
+      process.env.PAYOS_CHECKSUM_KEY &&
+      process.env.PAYOS_RETURN_URL &&
+      process.env.PAYOS_CANCEL_URL
+  );
 }

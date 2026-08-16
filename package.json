@@ -23,6 +23,7 @@
     "backend:seed:hexagon": "pnpm run backend:seed:catalog:hexagon",
     "backend:store:rename-vietnam": "pnpm -C apps/backend store:rename-vietnam",
     "backend:images:bulk-upload": "pnpm -C apps/backend images:bulk-upload",
+    "backend:payos:setup": "pnpm -C apps/backend payos:setup",
     "backend:dev": "turbo dev --filter=@dtc/backend",
     "storefront:dev": "turbo dev --filter=@dtc/storefront"
   },

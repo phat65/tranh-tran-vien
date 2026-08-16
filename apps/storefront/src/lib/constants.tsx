@@ -35,6 +35,10 @@ export const paymentInfoMap: Record<
     title: "Manual Payment",
     icon: <CreditCard />,
   },
+  pp_payos_payos: {
+    title: "Chuyển khoản ngân hàng (PayOS)",
+    icon: <CreditCard />,
+  },
   // Add more payment providers here
 }
 
@@ -50,6 +54,9 @@ export const isPaypal = (providerId?: string) => {
 }
 export const isManual = (providerId?: string) => {
   return providerId?.startsWith("pp_system_default")
+}
+export const isPayOS = (providerId?: string) => {
+  return providerId === "pp_payos_payos"
 }
 
 // Add currencies that don't need to be divided by 100

@@ -153,6 +153,34 @@ Storage:
 - webhook verified.
 - backups enabled.
 
+## PayOS
+
+Backend variables:
+
+```txt
+PAYOS_CLIENT_ID
+PAYOS_API_KEY
+PAYOS_CHECKSUM_KEY
+PAYOS_RETURN_URL
+PAYOS_CANCEL_URL
+PAYOS_WEBHOOK_URL
+PAYOS_API_URL
+PAYOS_PARTNER_CODE
+```
+
+PayOS is enabled only when `PAYOS_CLIENT_ID`, `PAYOS_API_KEY`,
+`PAYOS_CHECKSUM_KEY`, `PAYOS_RETURN_URL`, and `PAYOS_CANCEL_URL` are all set.
+`PAYOS_WEBHOOK_URL` must be a public HTTPS URL ending in
+`/hooks/payment/payos_payos`; PayOS cannot call localhost.
+
+After migrations, enable PayOS for the VND region and confirm the webhook:
+
+```txt
+pnpm backend:payos:setup
+```
+
+Never expose PayOS secrets in storefront code or `NEXT_PUBLIC_*` variables.
+
 ## Cloudflare R2 / Admin Uploads
 
 Project uses Medusa file provider for image uploads. In production and shared environments, configure Cloudflare R2 with the `S3_*` variables in `apps/backend/.env` and expose the same public asset base to storefront through `NEXT_PUBLIC_STORAGE_PUBLIC_URL`.
