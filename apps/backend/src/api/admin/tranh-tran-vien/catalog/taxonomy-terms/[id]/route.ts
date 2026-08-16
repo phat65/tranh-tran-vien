@@ -1,7 +1,12 @@
 // API admin xử lý dữ liệu quản trị cho tranh tran vien / catalog / taxonomy terms / id.
 
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import { MedusaError } from "@medusajs/framework/utils"
 
+import {
+  EXPLORE_GROUP_DEFINITIONS,
+  readStoredExploreNavigation,
+} from "../../../../../../lib/explore-navigation"
 import {
   taxonomyTermUpdateBodySchema,
   TaxonomyTermUpdateBody,
@@ -46,6 +51,39 @@ export async function DELETE(
   res: MedusaResponse
 ): Promise<void> {
   const service = getTaxonomyService(req.scope)
+  const exploreCodes = new Set<string>(
+    EXPLORE_GROUP_DEFINITIONS.map((group) => group.code)
+  )
+  const taxonomies = (await service.listTaxonomies(
+    {},
+    { take: 500 }
+  )) as Array<{
+    code: string
+    name: string
+    metadata?: Record<string, unknown> | null
+  }>
+  const references = taxonomies.filter((taxonomy) => {
+    if (!exploreCodes.has(taxonomy.code)) {
+      return false
+    }
+
+    const navigation = readStoredExploreNavigation(taxonomy.metadata)
+
+    return (
+      navigation.mode === "filter_tabs" &&
+      navigation.target_term_id === req.params.id
+    )
+  })
+
+  if (references.length) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `This Explore item is used as a destination by ${references
+        .map((taxonomy) => taxonomy.name)
+        .join(", ")}. Change those heading settings before deleting it.`
+    )
+  }
+
   await service.deleteTaxonomyTerms(req.params.id)
 
   res.status(200).json({

@@ -9,8 +9,6 @@ import {
 } from "@medusajs/framework/utils";
 import {
   createApiKeysWorkflow,
-  createCollectionsWorkflow,
-  createProductCategoriesWorkflow,
   createProductOptionsWorkflow,
   createProductsWorkflow,
   createRegionsWorkflow,
@@ -24,10 +22,16 @@ import {
   linkSalesChannelsToStockLocationWorkflow,
 } from "@medusajs/medusa/core-flows";
 import {
-  HEXAGON_PRODUCT_PRICE_VND,
-  HEXAGON_PRODUCT_SEEDS,
-} from "../../data/tranh-luc-giac-products";
+  DRAGON_BALL_HEXAGON_EXPLORE_SEEDS,
+  DRAGON_BALL_HEXAGON_EXPLORE_NAVIGATION_SEEDS,
+  DRAGON_BALL_HEXAGON_PRODUCT_PRICE_VND,
+  DRAGON_BALL_HEXAGON_PRODUCT_SEEDS,
+} from "../../data/dragon-ball-hexagon-products";
 import { getStaticAssetBaseUrl } from "../../lib/static-assets";
+import {
+  seedExploreNavigation,
+  seedProductExploreAssignments,
+} from "./explore-seed";
 
 export default async function initial_data_seed({
   container,
@@ -298,47 +302,6 @@ export default async function initial_data_seed({
 
   logger.info("Seeding product data...");
 
-  const { result: categoryResult } = await createProductCategoriesWorkflow(
-    container
-  ).run({
-    input: {
-      product_categories: [
-        {
-          name: "Tranh l\u1ee5c gi\u00e1c h\u1ee3p kim",
-          handle: "tranh-luc-giac-hop-kim",
-          is_active: true,
-        },
-        {
-          name: "POKE Framium \u2013 Khung Pok\u00e9mon l\u1ee5c gi\u00e1c",
-          handle: "poke-framium-khung-pokemon-luc-giac",
-          is_active: true,
-        },
-        {
-          name: "POKE Framium \u2013 Khung Pok\u00e9mon acrylic",
-          handle: "poke-framium-khung-pokemon-acrylic",
-          is_active: true,
-        },
-      ],
-    },
-  });
-
-  const { result: collectionResult } = await createCollectionsWorkflow(
-    container
-  ).run({
-    input: {
-      collections: [
-        {
-          title: "Anime",
-          handle: "anime",
-        },
-        {
-          title: "Dragon Ball",
-          handle: "dragon-ball",
-        },
-      ],
-    },
-  });
-
   const { result: productOptionsResult } = await createProductOptionsWorkflow(
     container
   ).run({
@@ -354,22 +317,13 @@ export default async function initial_data_seed({
   const hexagonSizeOption = productOptionsResult.find(
     (o) => o.title === "Kich thuoc"
   )!;
-  const hexagonMetalCategory = categoryResult.find(
-    (cat) => cat.handle === "tranh-luc-giac-hop-kim"
-  )!;
-  const dragonBallCollection = collectionResult.find(
-    (collection) => collection.handle === "dragon-ball"
-  )!;
-
   await createProductsWorkflow(container).run({
     input: {
-      products: HEXAGON_PRODUCT_SEEDS.map((product) => {
+      products: DRAGON_BALL_HEXAGON_PRODUCT_SEEDS.map((product) => {
         const imageUrl = `${staticAssetBaseUrl}/${product.imagePath}`;
 
         return {
           title: product.title,
-          category_ids: [hexagonMetalCategory.id],
-          collection_id: dragonBallCollection.id,
           description:
             "Tranh luc giac chu de Dragon Ball cho setup goc lam viec, phong ngu va tuong decor.",
           handle: product.handle,
@@ -393,7 +347,7 @@ export default async function initial_data_seed({
               },
               prices: [
                 {
-                  amount: HEXAGON_PRODUCT_PRICE_VND,
+                  amount: DRAGON_BALL_HEXAGON_PRODUCT_PRICE_VND,
                   currency_code: "vnd",
                 },
                 {
@@ -414,7 +368,6 @@ export default async function initial_data_seed({
           ],
           metadata: {
             product_line: "tranh-luc-giac-hop-kim",
-            collection_tags: ["anime", "dragon-ball"],
             source_batch: "dot-1",
             source_image_path: product.imagePath,
           },
@@ -422,5 +375,23 @@ export default async function initial_data_seed({
       }),
     },
   });
+  const { data: seededProducts } = await query.graph({
+    entity: "product",
+    fields: ["id", "handle"],
+    filters: {
+      handle: DRAGON_BALL_HEXAGON_PRODUCT_SEEDS.map(
+        (product) => product.handle
+      ),
+    },
+  });
+  await seedProductExploreAssignments(
+    container,
+    DRAGON_BALL_HEXAGON_EXPLORE_SEEDS,
+    seededProducts as { id: string; handle?: string | null }[]
+  );
+  await seedExploreNavigation(
+    container,
+    DRAGON_BALL_HEXAGON_EXPLORE_NAVIGATION_SEEDS
+  );
   logger.info("Finished seeding product data.");
 }

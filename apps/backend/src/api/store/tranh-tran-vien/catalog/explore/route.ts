@@ -2,40 +2,14 @@
 
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 
+import {
+  EXPLORE_GROUP_DEFINITIONS,
+  getPublicExploreTermSlug,
+  resolveExploreNavigations,
+} from "../../../../../lib/explore-navigation"
 import { getTaxonomyService } from "../utils"
 
-const exploreGroups = [
-  {
-    code: "explore_shop_by_shape",
-    label: "Shop by Shape",
-    slug: "shop-by-shape",
-    sort_order: 10,
-  },
-  {
-    code: "explore_shop_by_category",
-    label: "Shop by Category",
-    slug: "shop-by-category",
-    sort_order: 20,
-  },
-  {
-    code: "explore_popular_anime",
-    label: "Popular Anime",
-    slug: "popular-anime",
-    sort_order: 30,
-  },
-  {
-    code: "explore_popular_games",
-    label: "Popular Games",
-    slug: "popular-games",
-    sort_order: 40,
-  },
-  {
-    code: "explore_shop_extras",
-    label: "Shop Extras",
-    slug: "shop-extras",
-    sort_order: 50,
-  },
-]
+const exploreGroups = EXPLORE_GROUP_DEFINITIONS
 
 type TaxonomyRecord = {
   id: string
@@ -81,7 +55,9 @@ export async function GET(
 
   if (headingSlug && itemSlug) {
     const group = groups.find((entry) => entry.slug === headingSlug)
-    const item = group?.terms.find((term) => getPublicTermSlug(term) === itemSlug)
+    const item = group?.terms.find(
+      (term) => getPublicExploreTermSlug(term) === itemSlug
+    )
 
     if (!group || !item) {
       res.status(200).json({
@@ -133,7 +109,7 @@ async function getExploreGroups(taxonomyService: any) {
     termsByTaxonomyId.set(taxonomy.id, terms)
   }
 
-  return exploreGroups.map((group) => {
+  const groups = exploreGroups.map((group) => {
     const taxonomy = byCode.get(group.code)
 
     return {
@@ -142,15 +118,10 @@ async function getExploreGroups(taxonomyService: any) {
       slug: group.slug,
       sort_order: group.sort_order,
       taxonomy_id: taxonomy?.id ?? null,
+      metadata: taxonomy?.metadata ?? null,
       terms: taxonomy ? termsByTaxonomyId.get(taxonomy.id) ?? [] : [],
     }
   })
-}
 
-function getPublicTermSlug(term: TaxonomyTermRecord) {
-  const metadataSlug = term.metadata?.slug
-
-  return typeof metadataSlug === "string" && metadataSlug.trim()
-    ? metadataSlug.trim()
-    : term.slug
+  return resolveExploreNavigations(groups)
 }

@@ -1,48 +1,32 @@
 // API admin cho Explore: 5 group cố định, item con là taxonomy term, product được gán trực tiếp vào term.
 
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { MedusaError } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+} from "@medusajs/framework/utils"
 import { z } from "@medusajs/framework/zod"
 import { randomUUID } from "crypto"
 
+import {
+  EXPLORE_GROUP_DEFINITIONS,
+  expandExploreTermIdsWithAutoAssignments,
+  resolveExploreNavigations,
+} from "../../../../../lib/explore-navigation"
 import {
   assertProductExists,
   getTaxonomyService,
   unique,
 } from "../utils"
+import {
+  planBulkExploreAssignment,
+} from "./bulk-assignment"
+import {
+  BULK_EXPLORE_ACTIONS,
+  MAX_BULK_EXPLORE_PRODUCTS,
+} from "../../../../../lib/explore-bulk-assignment"
 
-const exploreGroups = [
-  {
-    code: "explore_shop_by_shape",
-    label: "Shop by Shape",
-    slug: "shop-by-shape",
-    sort_order: 10,
-  },
-  {
-    code: "explore_shop_by_category",
-    label: "Shop by Category",
-    slug: "shop-by-category",
-    sort_order: 20,
-  },
-  {
-    code: "explore_popular_anime",
-    label: "Popular Anime",
-    slug: "popular-anime",
-    sort_order: 30,
-  },
-  {
-    code: "explore_popular_games",
-    label: "Popular Games",
-    slug: "popular-games",
-    sort_order: 40,
-  },
-  {
-    code: "explore_shop_extras",
-    label: "Shop Extras",
-    slug: "shop-extras",
-    sort_order: 50,
-  },
-]
+const exploreGroups = EXPLORE_GROUP_DEFINITIONS
 
 const assignmentBodySchema = z
   .object({
@@ -51,6 +35,38 @@ const assignmentBodySchema = z
     term_ids: z.array(z.string().trim().min(1)).optional(),
   })
   .strict()
+
+const bulkAssignmentBodySchema = z
+  .object({
+    product_ids: z
+      .array(z.string().trim().min(1))
+      .min(1)
+      .max(MAX_BULK_EXPLORE_PRODUCTS),
+    action: z.enum(BULK_EXPLORE_ACTIONS),
+    term_id: z.string().trim().min(1),
+    source_term_id: z.string().trim().min(1).optional(),
+  })
+  .strict()
+  .superRefine((input, context) => {
+    if (input.action === "move" && !input.source_term_id) {
+      context.addIssue({
+        code: "custom",
+        path: ["source_term_id"],
+        message: "Move requires a source Explore item.",
+      })
+    }
+
+    if (
+      input.action === "move" &&
+      input.source_term_id === input.term_id
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["term_id"],
+        message: "Source and destination Explore items must be different.",
+      })
+    }
+  })
 
 const galleryImageInputSchema = z
   .object({
@@ -262,6 +278,102 @@ export async function PATCH(
   })
 }
 
+export async function PUT(
+  req: MedusaRequest,
+  res: MedusaResponse
+): Promise<void> {
+  const input = bulkAssignmentBodySchema.parse(req.body)
+  const productIds = unique(input.product_ids)
+  const taxonomyService = getTaxonomyService(req.scope)
+  const groups = await getExploreGroups(taxonomyService)
+  const target = findExploreTerm(groups, input.term_id)
+
+  if (!target) {
+    throw new MedusaError(
+      MedusaError.Types.NOT_FOUND,
+      `Explore item not found: ${input.term_id}`
+    )
+  }
+
+  const source = input.source_term_id
+    ? findExploreTerm(groups, input.source_term_id)
+    : null
+
+  if (input.action === "move" && !source) {
+    throw new MedusaError(
+      MedusaError.Types.NOT_FOUND,
+      `Source Explore item not found: ${input.source_term_id}`
+    )
+  }
+
+  await assertProductsExist(req, productIds)
+
+  const automaticallyAssignedTermIds =
+    input.action === "remove"
+      ? []
+      : expandExploreTermIdsWithAutoAssignments(
+          [input.term_id],
+          groups
+        ).filter((termId) => termId !== input.term_id)
+  const relevantTermIds = unique([
+    input.term_id,
+    ...(input.source_term_id ? [input.source_term_id] : []),
+    ...automaticallyAssignedTermIds,
+  ])
+  const existingLinks = await listAllProductTaxonomyTerms(taxonomyService, {
+    product_id: productIds,
+    term_id: relevantTermIds,
+  })
+  const plan = planBulkExploreAssignment({
+    action: input.action,
+    productIds,
+    termId: input.term_id,
+    sourceTermId: input.source_term_id,
+    additionalTermIdsToAdd: automaticallyAssignedTermIds,
+    existingLinks,
+  })
+
+  if (plan.linksToCreate.length) {
+    await taxonomyService.createProductTaxonomyTerms(
+      plan.linksToCreate.map((link) => ({
+        ...link,
+        sort_order: 0,
+        metadata: {
+          source: "explore-bulk",
+          action: input.action,
+        },
+      }))
+    )
+  }
+
+  if (plan.linkIdsToDelete.length) {
+    await taxonomyService.deleteProductTaxonomyTerms(plan.linkIdsToDelete)
+  }
+
+  res.status(200).json({
+    action: input.action,
+    requested_count: productIds.length,
+    updated_count: plan.updatedProductIds.length,
+    unchanged_count: plan.unchangedProductIds.length,
+    updated_product_ids: plan.updatedProductIds,
+    automatically_assigned_term_ids: automaticallyAssignedTermIds,
+    target: {
+      heading_code: target.group.code,
+      heading_label: target.group.label,
+      term_id: target.term.id,
+      term_name: target.term.name,
+    },
+    source: source
+      ? {
+          heading_code: source.group.code,
+          heading_label: source.group.label,
+          term_id: source.term.id,
+          term_name: source.term.name,
+        }
+      : null,
+  })
+}
+
 export async function POST(
   req: MedusaRequest,
   res: MedusaResponse
@@ -275,12 +387,14 @@ export async function POST(
   const exploreTermIds = new Set(
     groups.flatMap((group) => group.terms.map((term) => term.id))
   )
-  const termIds = unique([
+  const requestedTermIds = unique([
     ...(input.term_ids ?? []),
     ...(input.term_id ? [input.term_id] : []),
   ])
 
-  const invalidTermIds = termIds.filter((termId) => !exploreTermIds.has(termId))
+  const invalidTermIds = requestedTermIds.filter(
+    (termId) => !exploreTermIds.has(termId)
+  )
 
   if (invalidTermIds.length) {
     throw new MedusaError(
@@ -288,6 +402,11 @@ export async function POST(
       `Explore item not found: ${invalidTermIds.join(", ")}`
     )
   }
+
+  const termIds = expandExploreTermIdsWithAutoAssignments(
+    requestedTermIds,
+    groups
+  )
 
   const existingLinks = (await taxonomyService.listProductTaxonomyTerms({
     product_id: input.product_id,
@@ -318,6 +437,83 @@ export async function POST(
     selected_term_id: termIds[0] ?? null,
     selected_term_ids: termIds,
   })
+}
+
+function findExploreTerm(
+  groups: Awaited<ReturnType<typeof getExploreGroups>>,
+  termId: string
+) {
+  for (const group of groups) {
+    const term = group.terms.find((candidate) => candidate.id === termId)
+
+    if (term) {
+      return { group, term }
+    }
+  }
+
+  return null
+}
+
+async function assertProductsExist(
+  req: MedusaRequest,
+  productIds: string[]
+) {
+  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
+  const { data } = await query.graph({
+    entity: "product",
+    fields: ["id"],
+    filters: {
+      id: productIds,
+    },
+    pagination: {
+      take: productIds.length,
+    },
+  })
+  const foundProductIds = new Set(
+    (data as { id: string }[]).map((product) => product.id)
+  )
+  const missingProductIds = productIds.filter(
+    (productId) => !foundProductIds.has(productId)
+  )
+
+  if (missingProductIds.length) {
+    const preview = missingProductIds.slice(0, 10).join(", ")
+    const remainder = missingProductIds.length > 10 ? ", ..." : ""
+
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `Products not found (${missingProductIds.length}): ${preview}${remainder}`
+    )
+  }
+}
+
+async function listAllProductTaxonomyTerms(
+  taxonomyService: ReturnType<typeof getTaxonomyService>,
+  filters: {
+    product_id: string[]
+    term_id: string[]
+  }
+) {
+  const links: ProductTaxonomyTermRecord[] = []
+  const take = 500
+  let skip = 0
+
+  while (true) {
+    const page = (await taxonomyService.listProductTaxonomyTerms(filters, {
+      skip,
+      take,
+    })) as ProductTaxonomyTermRecord[]
+
+    links.push(...page)
+
+    if (page.length < take) {
+      break
+    }
+
+    skip += take
+  }
+
+  return links
 }
 
 async function getExploreGroups(taxonomyService: any) {
@@ -387,7 +583,7 @@ async function getExploreGroups(taxonomyService: any) {
     termsByTaxonomyId.set(taxonomy.id, terms)
   }
 
-  return exploreGroups.map((group) => {
+  const groups = exploreGroups.map((group) => {
     const taxonomy = byCode.get(group.code)
 
     return {
@@ -396,9 +592,12 @@ async function getExploreGroups(taxonomyService: any) {
       slug: group.slug,
       sort_order: group.sort_order,
       taxonomy_id: taxonomy?.id ?? null,
+      metadata: taxonomy?.metadata ?? null,
       terms: taxonomy ? termsByTaxonomyId.get(taxonomy.id) ?? [] : [],
     }
   })
+
+  return resolveExploreNavigations(groups)
 }
 
 async function getSelectedExploreTermIds(

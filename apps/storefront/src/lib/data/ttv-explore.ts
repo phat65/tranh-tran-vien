@@ -47,7 +47,27 @@ export type TtvExploreGroup = {
   slug: string
   sort_order: number
   taxonomy_id?: string | null
+  navigation: TtvExploreNavigation
   terms: TtvExploreTerm[]
+}
+
+export type TtvExploreNavigation = {
+  mode: "standalone" | "filter_tabs"
+  auto_assign_target: boolean
+  target: {
+    heading_code: string
+    heading_label: string
+    heading_slug: string
+    term_id: string
+    term_name: string
+    term_slug: string
+  } | null
+}
+
+const standaloneNavigation: TtvExploreNavigation = {
+  mode: "standalone",
+  auto_assign_target: false,
+  target: null,
 }
 
 export type TtvExploreItemResponse = {
@@ -64,6 +84,7 @@ const defaultExploreGroups: TtvExploreGroup[] = [
     slug: "shop-by-shape",
     sort_order: 10,
     taxonomy_id: null,
+    navigation: standaloneNavigation,
     terms: [],
   },
   {
@@ -72,6 +93,7 @@ const defaultExploreGroups: TtvExploreGroup[] = [
     slug: "shop-by-category",
     sort_order: 20,
     taxonomy_id: null,
+    navigation: standaloneNavigation,
     terms: [],
   },
   {
@@ -80,6 +102,7 @@ const defaultExploreGroups: TtvExploreGroup[] = [
     slug: "popular-anime",
     sort_order: 30,
     taxonomy_id: null,
+    navigation: standaloneNavigation,
     terms: [],
   },
   {
@@ -88,6 +111,7 @@ const defaultExploreGroups: TtvExploreGroup[] = [
     slug: "popular-games",
     sort_order: 40,
     taxonomy_id: null,
+    navigation: standaloneNavigation,
     terms: [],
   },
   {
@@ -96,6 +120,7 @@ const defaultExploreGroups: TtvExploreGroup[] = [
     slug: "shop-extras",
     sort_order: 50,
     taxonomy_id: null,
+    navigation: standaloneNavigation,
     terms: [],
   },
 ]

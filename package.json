@@ -19,8 +19,10 @@
     "backend:db:migrate": "pnpm -C apps/backend db:migrate",
     "backend:db:sync-links": "pnpm -C apps/backend db:sync-links",
     "backend:seed": "pnpm -C apps/backend seed",
-    "backend:seed:hexagon": "pnpm -C apps/backend seed:hexagon",
+    "backend:seed:catalog:hexagon": "pnpm -C apps/backend seed:catalog:hexagon",
+    "backend:seed:hexagon": "pnpm run backend:seed:catalog:hexagon",
     "backend:store:rename-vietnam": "pnpm -C apps/backend store:rename-vietnam",
+    "backend:images:bulk-upload": "pnpm -C apps/backend images:bulk-upload",
     "backend:dev": "turbo dev --filter=@dtc/backend",
     "storefront:dev": "turbo dev --filter=@dtc/storefront"
   },

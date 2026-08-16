@@ -10,24 +10,14 @@ import {
 } from "@medusajs/ui"
 import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react"
 
-type ExploreTerm = {
-  id: string
-  taxonomy_id: string
-  name: string
-  slug: string
-  status: "draft" | "active" | "archived"
-  sort_order: number
-  metadata?: Record<string, unknown> | null
-}
+import {
+  ExploreNavigationSettings,
+  type ExploreNavigationAdminGroup,
+  type ExploreNavigationAdminTerm,
+} from "../../../../components/explore-navigation-settings"
 
-type ExploreGroup = {
-  code: string
-  label: string
-  slug: string
-  sort_order: number
-  taxonomy_id?: string | null
-  terms: ExploreTerm[]
-}
+type ExploreTerm = ExploreNavigationAdminTerm
+type ExploreGroup = ExploreNavigationAdminGroup
 
 type ExploreResponse = {
   groups: ExploreGroup[]
@@ -190,6 +180,10 @@ const ExploreItemsPage = () => {
       </div>
 
       <div className="grid gap-6 p-6">
+        <ExploreNavigationSettings groups={groups} onSaved={loadExplore} />
+
+        <div className="border-t border-ui-border-base" />
+
         <div className="overflow-hidden rounded-rounded border border-ui-border-base">
           <div className="grid grid-cols-[minmax(220px,1fr)_minmax(360px,2fr)] border-b border-ui-border-base px-4 py-3">
             <Text size="small" weight="plus">
@@ -276,6 +270,7 @@ const ExploreItemsPage = () => {
           <Field label="Heading">
             <Select
               value={form.group_code || groups[0]?.code}
+              disabled={Boolean(editingTermId)}
               onValueChange={(value) =>
                 setForm((current) => ({ ...current, group_code: value }))
               }

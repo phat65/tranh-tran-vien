@@ -2,6 +2,7 @@ import { defineWidgetConfig } from "@medusajs/admin-sdk"
 import {
   Badge,
   Button,
+  Checkbox,
   Container,
   Heading,
   Input,
@@ -19,9 +20,14 @@ import {
 } from "react"
 import { Link, useSearchParams } from "react-router-dom"
 
+import { MAX_BULK_EXPLORE_PRODUCTS } from "../../lib/explore-bulk-assignment"
+import { ProductBulkExploreDrawer } from "../components/product-bulk-explore-drawer"
+import type { BulkExploreGroup } from "../lib/explore-bulk-assignment"
+
 const PAGE_SIZE = 20
+const PRODUCT_ID_PAGE_SIZE = 50
 const PRODUCT_FIELDS =
-  "id,title,thumbnail,status,*collection,*sales_channels,*variants"
+  "id,title,thumbnail,status,*sales_channels,*variants"
 const EXPLORE_API = "/admin/tranh-tran-vien/catalog/explore"
 const PRODUCT_IMAGE_UPLOAD_API =
   "/admin/tranh-tran-vien/catalog/explore/product-images"
@@ -31,10 +37,6 @@ type ProductRecord = {
   title: string
   thumbnail?: string | null
   status?: "draft" | "proposed" | "published" | "rejected" | string
-  collection?: {
-    id: string
-    title: string
-  } | null
   sales_channels?: Array<{
     id: string
     name: string
@@ -49,16 +51,12 @@ type ProductListResponse = {
   count: number
 }
 
-type ExploreTerm = {
-  id: string
-  name: string
+type ProductIdListResponse = {
+  products: Array<{ id: string }>
+  count: number
 }
 
-type ExploreGroup = {
-  code: string
-  label: string
-  terms: ExploreTerm[]
-}
+type ExploreGroup = BulkExploreGroup
 
 type ExploreResponse = {
   groups: ExploreGroup[]
@@ -100,11 +98,19 @@ const TtvProductListColumnsWidget = () => {
   const [searchValue, setSearchValue] = useState(query)
   const [isLoading, setIsLoading] = useState(false)
   const [isUploadingImages, setIsUploadingImages] = useState(false)
+  const [isSelectingAll, setIsSelectingAll] = useState(false)
+  const [isBulkDrawerOpen, setIsBulkDrawerOpen] = useState(false)
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([])
   const [refreshToken, setRefreshToken] = useState(0)
 
   useEffect(() => {
     setSearchValue(query)
   }, [query])
+
+  useEffect(() => {
+    setSelectedProductIds([])
+    setIsBulkDrawerOpen(false)
+  }, [exploreHeading, exploreItem, order, query])
 
   useEffect(() => {
     let isCurrent = true
@@ -206,6 +212,22 @@ const TtvProductListColumnsWidget = () => {
   const selectedExploreGroup = groups.find(
     (group) => group.code === exploreHeading
   )
+  const selectedProductIdSet = useMemo(
+    () => new Set(selectedProductIds),
+    [selectedProductIds]
+  )
+  const currentPageProductIds = products.map((product) => product.id)
+  const selectedCurrentPageCount = currentPageProductIds.filter((productId) =>
+    selectedProductIdSet.has(productId)
+  ).length
+  const allCurrentPageSelected =
+    currentPageProductIds.length > 0 &&
+    selectedCurrentPageCount === currentPageProductIds.length
+  const currentPageSelectionState = allCurrentPageSelected
+    ? true
+    : selectedCurrentPageCount
+      ? "indeterminate"
+      : false
 
   const updateParams = (updates: Record<string, string | null>) => {
     const next = new URLSearchParams(searchParams)
@@ -236,6 +258,95 @@ const TtvProductListColumnsWidget = () => {
     }
 
     uploadInputRef.current?.click()
+  }
+
+  const toggleProductSelection = (productId: string, checked: boolean) => {
+    if (
+      checked &&
+      !selectedProductIdSet.has(productId) &&
+      selectedProductIds.length >= MAX_BULK_EXPLORE_PRODUCTS
+    ) {
+      toast.error(
+        `You can update up to ${MAX_BULK_EXPLORE_PRODUCTS} products at once.`
+      )
+      return
+    }
+
+    setSelectedProductIds((current) => {
+      const next = new Set(current)
+
+      if (checked) {
+        next.add(productId)
+      } else {
+        next.delete(productId)
+      }
+
+      return Array.from(next)
+    })
+  }
+
+  const toggleCurrentPageSelection = (checked: boolean) => {
+    const availableSlots =
+      MAX_BULK_EXPLORE_PRODUCTS - selectedProductIds.length
+    const pageIdsToAdd = currentPageProductIds.filter(
+      (productId) => !selectedProductIdSet.has(productId)
+    )
+
+    if (checked && pageIdsToAdd.length > availableSlots) {
+      toast.error(
+        `You can update up to ${MAX_BULK_EXPLORE_PRODUCTS} products at once.`
+      )
+    }
+
+    setSelectedProductIds((current) => {
+      const next = new Set(current)
+
+      if (checked) {
+        pageIdsToAdd.slice(0, Math.max(availableSlots, 0)).forEach((productId) => {
+          next.add(productId)
+        })
+      } else {
+        currentPageProductIds.forEach((productId) => next.delete(productId))
+      }
+
+      return Array.from(next)
+    })
+  }
+
+  const selectAllMatchingProducts = async () => {
+    setIsSelectingAll(true)
+
+    try {
+      const productIds = await loadMatchingProductIds({
+        count,
+        exploreHeading,
+        exploreItem,
+        groups,
+        order,
+        query,
+      })
+
+      setSelectedProductIds(productIds)
+
+      if (count > MAX_BULK_EXPLORE_PRODUCTS) {
+        toast.success(
+          `Selected the first ${MAX_BULK_EXPLORE_PRODUCTS} matching products.`
+        )
+      }
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Could not select matching products"
+      )
+    } finally {
+      setIsSelectingAll(false)
+    }
+  }
+
+  const handleBulkComplete = () => {
+    setSelectedProductIds([])
+    setRefreshToken((current) => current + 1)
   }
 
   const uploadProductImages = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -427,14 +538,62 @@ const TtvProductListColumnsWidget = () => {
           </Button>
         </div>
 
+        {selectedProductIds.length ? (
+          <div className="flex flex-col gap-3 bg-ui-bg-subtle px-6 py-3 md:flex-row md:items-center md:justify-between">
+            <Text className="text-ui-fg-base" size="small" weight="plus">
+              {selectedProductIds.length} products selected
+            </Text>
+            <div className="flex flex-wrap items-center gap-2">
+              {selectedProductIds.length <
+              Math.min(count, MAX_BULK_EXPLORE_PRODUCTS) ? (
+                <Button
+                  type="button"
+                  size="small"
+                  variant="secondary"
+                  isLoading={isSelectingAll}
+                  onClick={selectAllMatchingProducts}
+                >
+                  Select {Math.min(count, MAX_BULK_EXPLORE_PRODUCTS)} matching
+                </Button>
+              ) : null}
+              <Button
+                type="button"
+                size="small"
+                variant="secondary"
+                disabled={isSelectingAll}
+                onClick={() => setSelectedProductIds([])}
+              >
+                Clear
+              </Button>
+              <Button
+                type="button"
+                size="small"
+                disabled={isSelectingAll}
+                onClick={() => setIsBulkDrawerOpen(true)}
+              >
+                Manage Explore
+              </Button>
+            </div>
+          </div>
+        ) : null}
+
         <div className="overflow-x-auto">
-          <Table className="min-w-[1080px]">
+          <Table className="min-w-[1000px]">
             <Table.Header>
               <Table.Row>
+                <Table.HeaderCell className="w-12">
+                  <Checkbox
+                    aria-label="Select products on this page"
+                    checked={currentPageSelectionState}
+                    disabled={!products.length || isLoading}
+                    onCheckedChange={(checked) =>
+                      toggleCurrentPageSelection(checked === true)
+                    }
+                  />
+                </Table.HeaderCell>
                 <Table.HeaderCell>Product</Table.HeaderCell>
                 <Table.HeaderCell>Explore Heading</Table.HeaderCell>
                 <Table.HeaderCell>Explore Item</Table.HeaderCell>
-                <Table.HeaderCell>Collection</Table.HeaderCell>
                 <Table.HeaderCell>Sales Channels</Table.HeaderCell>
                 <Table.HeaderCell>Variants</Table.HeaderCell>
                 <Table.HeaderCell>Status</Table.HeaderCell>
@@ -443,6 +602,15 @@ const TtvProductListColumnsWidget = () => {
             <Table.Body>
               {rows.map(({ product, explore }) => (
                 <Table.Row key={product.id}>
+                  <Table.Cell>
+                    <Checkbox
+                      aria-label={`Select ${product.title}`}
+                      checked={selectedProductIdSet.has(product.id)}
+                      onCheckedChange={(checked) =>
+                        toggleProductSelection(product.id, checked === true)
+                      }
+                    />
+                  </Table.Cell>
                   <Table.Cell>
                     <Link
                       className="flex max-w-[260px] items-center gap-3 overflow-hidden"
@@ -459,11 +627,6 @@ const TtvProductListColumnsWidget = () => {
                   </Table.Cell>
                   <Table.Cell>
                     <StackedValues values={explore.items} />
-                  </Table.Cell>
-                  <Table.Cell>
-                    <span className="text-small-regular text-ui-fg-subtle">
-                      {product.collection?.title ?? "-"}
-                    </span>
                   </Table.Cell>
                   <Table.Cell>
                     <StackedValues
@@ -485,6 +648,7 @@ const TtvProductListColumnsWidget = () => {
 
               {!isLoading && !rows.length ? (
                 <Table.Row>
+                  <Table.Cell />
                   <Table.Cell>
                     <Text className="text-ui-fg-muted" size="small">
                       No products found
@@ -495,18 +659,17 @@ const TtvProductListColumnsWidget = () => {
                   <Table.Cell />
                   <Table.Cell />
                   <Table.Cell />
-                  <Table.Cell />
                 </Table.Row>
               ) : null}
 
               {isLoading ? (
                 <Table.Row>
+                  <Table.Cell />
                   <Table.Cell>
                     <Text className="text-ui-fg-muted" size="small">
                       Loading products...
                     </Text>
                   </Table.Cell>
-                  <Table.Cell />
                   <Table.Cell />
                   <Table.Cell />
                   <Table.Cell />
@@ -542,6 +705,13 @@ const TtvProductListColumnsWidget = () => {
           </div>
         </div>
       </Container>
+      <ProductBulkExploreDrawer
+        open={isBulkDrawerOpen}
+        onOpenChange={setIsBulkDrawerOpen}
+        productIds={selectedProductIds}
+        groups={groups}
+        onComplete={handleBulkComplete}
+      />
     </div>
   )
 }
@@ -660,6 +830,82 @@ async function loadProductIdsForExploreTerms(termIds: string[]) {
   const response = await adminFetch<ExploreResponse>(exploreUrl.toString())
 
   return response.filtered_product_ids ?? []
+}
+
+async function loadMatchingProductIds({
+  count,
+  exploreHeading,
+  exploreItem,
+  groups,
+  order,
+  query,
+}: {
+  count: number
+  exploreHeading: string
+  exploreItem: string
+  groups: ExploreGroup[]
+  order: string
+  query: string
+}) {
+  const selectionLimit = Math.min(count, MAX_BULK_EXPLORE_PRODUCTS)
+
+  if (!selectionLimit) {
+    return []
+  }
+
+  const filterTermIds = getExploreFilterTermIds(
+    groups,
+    exploreHeading,
+    exploreItem
+  )
+  const filteredProductIds = filterTermIds.length
+    ? await loadProductIdsForExploreTerms(filterTermIds)
+    : undefined
+
+  if (filterTermIds.length && !filteredProductIds?.length) {
+    return []
+  }
+
+  const productIds: string[] = []
+  let offset = 0
+
+  while (productIds.length < selectionLimit) {
+    const limit = Math.min(
+      PRODUCT_ID_PAGE_SIZE,
+      selectionLimit - productIds.length
+    )
+    const productsUrl = new URL("/admin/products", window.location.origin)
+
+    productsUrl.searchParams.set("limit", String(limit))
+    productsUrl.searchParams.set("offset", String(offset))
+    productsUrl.searchParams.set("is_giftcard", "false")
+    productsUrl.searchParams.set("fields", "id")
+    filteredProductIds?.forEach((productId) => {
+      productsUrl.searchParams.append("id", productId)
+    })
+
+    if (query) {
+      productsUrl.searchParams.set("q", query)
+    }
+
+    if (order) {
+      productsUrl.searchParams.set("order", order)
+    }
+
+    const response = await adminFetch<ProductIdListResponse>(
+      productsUrl.toString()
+    )
+
+    productIds.push(...response.products.map((product) => product.id))
+
+    if (!response.products.length || productIds.length >= response.count) {
+      break
+    }
+
+    offset += limit
+  }
+
+  return Array.from(new Set(productIds)).slice(0, selectionLimit)
 }
 
 async function getUploadErrorMessage(response: Response) {

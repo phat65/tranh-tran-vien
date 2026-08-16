@@ -87,11 +87,26 @@ export function toTtvExploreNavGroups(
         .map((term) => ({
           id: term.id,
           label: term.name,
-          href: `/explore/${group.slug}/${getPublicExploreTermSlug(term)}`,
+          href: getTtvExploreHref(group, term),
           image_url: term.image_url,
           sort_order: term.sort_order,
         })),
     }))
+}
+
+export function getTtvExploreHref(
+  group: TtvExploreGroup,
+  term: TtvExploreGroup["terms"][number]
+) {
+  const navigation = group.navigation
+
+  if (navigation?.mode === "filter_tabs" && navigation.target) {
+    return `/explore/${navigation.target.heading_slug}/${
+      navigation.target.term_slug
+    }?filter=${encodeURIComponent(getPublicExploreTermSlug(term))}`
+  }
+
+  return `/explore/${group.slug}/${getPublicExploreTermSlug(term)}`
 }
 
 export function buildTtvShopNavGroups({
@@ -250,7 +265,9 @@ function resolveNavigationHref(item: TtvNavigationItem): string {
   return "/"
 }
 
-function getPublicExploreTermSlug(term: TtvExploreGroup["terms"][number]) {
+export function getPublicExploreTermSlug(
+  term: TtvExploreGroup["terms"][number]
+) {
   const metadataSlug = term.metadata?.slug
 
   return typeof metadataSlug === "string" && metadataSlug.trim()
