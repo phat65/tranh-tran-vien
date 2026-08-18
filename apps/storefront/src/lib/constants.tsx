@@ -39,6 +39,10 @@ export const paymentInfoMap: Record<
     title: "Chuyển khoản ngân hàng (PayOS)",
     icon: <CreditCard />,
   },
+  pp_sepay_sepay: {
+    title: "Chuyển khoản ngân hàng (SePay)",
+    icon: <CreditCard />,
+  },
   // Add more payment providers here
 }
 
@@ -57,6 +61,9 @@ export const isManual = (providerId?: string) => {
 }
 export const isPayOS = (providerId?: string) => {
   return providerId === "pp_payos_payos"
+}
+export const isSePay = (providerId?: string) => {
+  return providerId === "pp_sepay_sepay"
 }
 
 // Add currencies that don't need to be divided by 100

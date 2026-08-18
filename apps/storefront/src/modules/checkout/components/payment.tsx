@@ -2,9 +2,15 @@
 // Component giao diện xử lý phần payment trong storefront.
 
 import { RadioGroup } from "@headlessui/react"
-import { isPayOS, isStripeLike, paymentInfoMap } from "@lib/constants"
+import {
+  isPayOS,
+  isSePay,
+  isStripeLike,
+  paymentInfoMap,
+} from "@lib/constants"
 import { initiatePaymentSession } from "@lib/data/cart"
 import { getPayOSCheckoutUrl } from "@lib/util/payos"
+import { submitSePayCheckout } from "@lib/util/sepay"
 import { CheckCircleSolid, CreditCard } from "@medusajs/icons"
 import ErrorMessage from "@modules/checkout/components/error-message"
 import PaymentContainer, {
@@ -113,6 +119,21 @@ const Payment = ({
         }
 
         window.location.assign(checkoutUrl)
+        return
+      }
+
+      if (isSePay(selectedPaymentMethod)) {
+        const submitted = submitSePayCheckout(
+          paymentSession?.data?.checkout_url,
+          paymentSession?.data?.checkout_fields
+        )
+
+        if (!submitted) {
+          throw new Error(
+            "Không tạo được phiên thanh toán SePay. Vui lòng thử lại."
+          )
+        }
+
         return
       }
 
@@ -229,6 +250,8 @@ const Payment = ({
               ? " Enter card details"
               : isPayOS(selectedPaymentMethod)
               ? "Thanh toán qua PayOS"
+              : isSePay(selectedPaymentMethod)
+              ? "Thanh toán qua SePay"
               : "Continue to review"}
           </Button>
         </div>
@@ -266,6 +289,8 @@ const Payment = ({
                       ? cardBrand
                       : isPayOS(activeSession.provider_id)
                       ? "Quét mã QR hoặc chuyển khoản trên PayOS"
+                      : isSePay(activeSession.provider_id)
+                      ? "Quét mã QR hoặc chuyển khoản trên SePay"
                       : "Another step will appear"}
                   </Text>
                 </div>

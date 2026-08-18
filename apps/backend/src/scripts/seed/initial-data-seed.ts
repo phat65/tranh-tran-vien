@@ -51,6 +51,7 @@ export default async function initial_data_seed({
   const vietnamPaymentProviders = [
     "pp_system_default",
     ...(isPayOSConfigured() ? ["pp_payos_payos"] : []),
+    ...(isSePayConfigured() ? ["pp_sepay_sepay"] : []),
   ];
 
   logger.info("Seeding store data...");
@@ -407,5 +408,16 @@ function isPayOSConfigured() {
       process.env.PAYOS_CHECKSUM_KEY &&
       process.env.PAYOS_RETURN_URL &&
       process.env.PAYOS_CANCEL_URL
+  );
+}
+
+function isSePayConfigured() {
+  return Boolean(
+    process.env.SEPAY_ENVIRONMENT &&
+      process.env.SEPAY_MERCHANT_ID &&
+      process.env.SEPAY_SECRET_KEY &&
+      process.env.SEPAY_SUCCESS_URL &&
+      process.env.SEPAY_ERROR_URL &&
+      process.env.SEPAY_CANCEL_URL
   );
 }

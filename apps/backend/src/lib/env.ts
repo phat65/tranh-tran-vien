@@ -18,6 +18,14 @@ const optionalUrl = z.preprocess(
   (value) => (value === "" ? undefined : value),
   z.string().url().optional()
 )
+const optionalSePayEnvironment = z.preprocess(
+  (value) => (value === "" ? undefined : value),
+  z.enum(["sandbox", "production"]).optional()
+)
+const optionalSePayPaymentMethod = z.preprocess(
+  (value) => (value === "" ? undefined : value),
+  z.enum(["BANK_TRANSFER", "NAPAS_BANK_TRANSFER"]).optional()
+)
 
 const backendEnvSchema = z.object({
   NODE_ENV: z
@@ -49,6 +57,14 @@ const backendEnvSchema = z.object({
   PAYOS_WEBHOOK_URL: optionalUrl,
   PAYOS_API_URL: optionalUrl,
   PAYOS_PARTNER_CODE: optionalString,
+  SEPAY_ENVIRONMENT: optionalSePayEnvironment,
+  SEPAY_MERCHANT_ID: optionalString,
+  SEPAY_SECRET_KEY: optionalString,
+  SEPAY_SUCCESS_URL: optionalUrl,
+  SEPAY_ERROR_URL: optionalUrl,
+  SEPAY_CANCEL_URL: optionalUrl,
+  SEPAY_PAYMENT_METHOD: optionalSePayPaymentMethod,
+  SEPAY_IPN_SECRET: optionalString,
 }).superRefine((env, ctx) => {
   const hasS3Value = [
     env.S3_ENDPOINT,
@@ -108,6 +124,32 @@ const backendEnvSchema = z.object({
           code: z.ZodIssueCode.custom,
           path: [field],
           message: `${field} is required when PayOS is configured`,
+        })
+      }
+    }
+  }
+
+  const hasSePayCredential = [
+    env.SEPAY_MERCHANT_ID,
+    env.SEPAY_SECRET_KEY,
+  ].some(Boolean)
+
+  if (hasSePayCredential) {
+    const requiredFields = [
+      "SEPAY_ENVIRONMENT",
+      "SEPAY_MERCHANT_ID",
+      "SEPAY_SECRET_KEY",
+      "SEPAY_SUCCESS_URL",
+      "SEPAY_ERROR_URL",
+      "SEPAY_CANCEL_URL",
+    ] as const
+
+    for (const field of requiredFields) {
+      if (!env[field]) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [field],
+          message: `${field} is required when SePay is configured`,
         })
       }
     }

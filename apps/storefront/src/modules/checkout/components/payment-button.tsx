@@ -2,9 +2,10 @@
 
 // Component giao diện xử lý phần payment button trong storefront.
 
-import { isManual, isPayOS, isStripeLike } from "@lib/constants"
+import { isManual, isPayOS, isSePay, isStripeLike } from "@lib/constants"
 import { placeOrder } from "@lib/data/cart"
 import { getPayOSCheckoutUrl } from "@lib/util/payos"
+import { submitSePayCheckout } from "@lib/util/sepay"
 import { HttpTypes } from "@medusajs/types"
 import { Button } from "@modules/common/components/ui"
 import { useElements, useStripe } from "@stripe/react-stripe-js"
@@ -53,9 +54,65 @@ const PaymentButton: React.FC<PaymentButtonProps> = ({
           data-testid={dataTestId}
         />
       )
+    case isSePay(paymentSession?.provider_id):
+      return (
+        <SePayPaymentButton
+          notReady={notReady}
+          checkoutUrl={paymentSession?.data?.checkout_url}
+          checkoutFields={paymentSession?.data?.checkout_fields}
+          data-testid={dataTestId}
+        />
+      )
     default:
       return <Button disabled>Select a payment method</Button>
   }
+}
+
+const SePayPaymentButton = ({
+  checkoutUrl,
+  checkoutFields,
+  notReady,
+  "data-testid": dataTestId,
+}: {
+  checkoutUrl: unknown
+  checkoutFields: unknown
+  notReady: boolean
+  "data-testid"?: string
+}) => {
+  const [submitting, setSubmitting] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
+  const handlePayment = () => {
+    setErrorMessage(null)
+    setSubmitting(true)
+
+    const submitted = submitSePayCheckout(checkoutUrl, checkoutFields)
+
+    if (!submitted) {
+      setSubmitting(false)
+      setErrorMessage(
+        "Không tạo được phiên thanh toán SePay. Vui lòng chọn lại phương thức thanh toán."
+      )
+    }
+  }
+
+  return (
+    <>
+      <Button
+        disabled={notReady}
+        isLoading={submitting}
+        onClick={handlePayment}
+        size="large"
+        data-testid={dataTestId}
+      >
+        Thanh toán qua SePay
+      </Button>
+      <ErrorMessage
+        error={errorMessage}
+        data-testid="sepay-payment-error-message"
+      />
+    </>
+  )
 }
 
 const PayOSPaymentButton = ({

@@ -31,6 +31,55 @@ const usePayOSPaymentProvider = Boolean(
     backendEnv.PAYOS_RETURN_URL &&
     backendEnv.PAYOS_CANCEL_URL
 )
+const useSePayPaymentProvider = Boolean(
+  backendEnv.SEPAY_ENVIRONMENT &&
+    backendEnv.SEPAY_MERCHANT_ID &&
+    backendEnv.SEPAY_SECRET_KEY &&
+    backendEnv.SEPAY_SUCCESS_URL &&
+    backendEnv.SEPAY_ERROR_URL &&
+    backendEnv.SEPAY_CANCEL_URL
+)
+const paymentProviders: Array<{
+  resolve: string
+  id: string
+  options: Record<string, unknown>
+}> = []
+const paymentProviderDependencies: string[] = []
+
+if (usePayOSPaymentProvider) {
+  paymentProviderDependencies.push("payos")
+  paymentProviders.push({
+    resolve: "./src/modules/payos-payment",
+    id: "payos",
+    options: {
+      clientId: backendEnv.PAYOS_CLIENT_ID,
+      apiKey: backendEnv.PAYOS_API_KEY,
+      checksumKey: backendEnv.PAYOS_CHECKSUM_KEY,
+      returnUrl: backendEnv.PAYOS_RETURN_URL,
+      cancelUrl: backendEnv.PAYOS_CANCEL_URL,
+      apiUrl: backendEnv.PAYOS_API_URL,
+      partnerCode: backendEnv.PAYOS_PARTNER_CODE,
+    },
+  })
+}
+
+if (useSePayPaymentProvider) {
+  paymentProviderDependencies.push("sepay")
+  paymentProviders.push({
+    resolve: "./src/modules/sepay-payment",
+    id: "sepay",
+    options: {
+      environment: backendEnv.SEPAY_ENVIRONMENT,
+      merchantId: backendEnv.SEPAY_MERCHANT_ID,
+      secretKey: backendEnv.SEPAY_SECRET_KEY,
+      successUrl: backendEnv.SEPAY_SUCCESS_URL,
+      errorUrl: backendEnv.SEPAY_ERROR_URL,
+      cancelUrl: backendEnv.SEPAY_CANCEL_URL,
+      paymentMethod: backendEnv.SEPAY_PAYMENT_METHOD,
+      ipnSecret: backendEnv.SEPAY_IPN_SECRET,
+    },
+  })
+}
 const s3FileProviderOptions: Record<string, unknown> = {
   file_url: s3FileUrl,
   access_key_id: backendEnv.S3_ACCESS_KEY_ID,
@@ -123,27 +172,16 @@ module.exports = defineConfig({
     {
       resolve: "./src/modules/payos",
     },
-    ...(usePayOSPaymentProvider
+    {
+      resolve: "./src/modules/sepay",
+    },
+    ...(paymentProviders.length
       ? [
           {
             resolve: "@medusajs/medusa/payment",
-            dependencies: ["payos"],
+            dependencies: paymentProviderDependencies,
             options: {
-              providers: [
-                {
-                  resolve: "./src/modules/payos-payment",
-                  id: "payos",
-                  options: {
-                    clientId: backendEnv.PAYOS_CLIENT_ID,
-                    apiKey: backendEnv.PAYOS_API_KEY,
-                    checksumKey: backendEnv.PAYOS_CHECKSUM_KEY,
-                    returnUrl: backendEnv.PAYOS_RETURN_URL,
-                    cancelUrl: backendEnv.PAYOS_CANCEL_URL,
-                    apiUrl: backendEnv.PAYOS_API_URL,
-                    partnerCode: backendEnv.PAYOS_PARTNER_CODE,
-                  },
-                },
-              ],
+              providers: paymentProviders,
             },
           },
         ]
