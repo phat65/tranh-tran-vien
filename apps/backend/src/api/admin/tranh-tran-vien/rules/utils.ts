@@ -5,9 +5,6 @@ import { ContainerRegistrationKeys, MedusaError } from "@medusajs/framework/util
 
 import { COMBO_RULE_MODULE } from "../../../../modules/combo-rule"
 import ComboRuleModuleService from "../../../../modules/combo-rule/service"
-import { TAXONOMY_MODULE } from "../../../../modules/taxonomy"
-import TaxonomyModuleService from "../../../../modules/taxonomy/service"
-import { EXPLORE_GROUP_DEFINITIONS } from "../../../../lib/explore-navigation"
 import { RulesListQuery, rulesListQuerySchema } from "./validators"
 
 type QueryGraph = {
@@ -62,29 +59,26 @@ export function getComboRuleService(scope: MedusaContainer) {
   return scope.resolve<ComboRuleModuleService>(COMBO_RULE_MODULE)
 }
 
-export async function assertActiveExploreTerm(
+export async function assertCatalogScope(
   scope: MedusaContainer,
-  termId: string
+  scopeType: "category" | "collection",
+  id: string
 ) {
-  const service = scope.resolve<TaxonomyModuleService>(TAXONOMY_MODULE)
-  const term = await service.retrieveTaxonomyTerm(termId)
-  const taxonomy = await service.retrieveTaxonomy(term.taxonomy_id)
-  const exploreCodes = new Set<string>(
-    EXPLORE_GROUP_DEFINITIONS.map((group) => group.code)
-  )
+  const query = scope.resolve<QueryGraph>(ContainerRegistrationKeys.QUERY)
+  const { data } = await query.graph({
+    entity:
+      scopeType === "category" ? "product_category" : "product_collection",
+    fields: ["id"],
+    filters: { id },
+    pagination: { take: 1 },
+  })
 
-  if (
-    term.status !== "active" ||
-    taxonomy.status !== "active" ||
-    !exploreCodes.has(taxonomy.code)
-  ) {
+  if (!data.length) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Combo rules can only use a visible Explore Item."
+      `The selected ${scopeType} does not exist.`
     )
   }
-
-  return { taxonomy, term }
 }
 
 export function assertFound<T>(record: T | null | undefined, message: string): T {

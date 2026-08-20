@@ -5,6 +5,7 @@ import { MedusaError } from "@medusajs/framework/utils"
 import { addToCartWorkflow } from "@medusajs/medusa/core-flows"
 
 import { syncCartRules } from "../../../../../lib/cart-rules"
+import { canonicalizeImageProductLineMetadata } from "../../../../../lib/image-product-cart"
 
 type CustomCrop = {
   offsetX?: unknown
@@ -25,6 +26,14 @@ type CustomWallCartItemPayload = {
   product_id?: unknown
   product_title?: unknown
   custom_item_index?: unknown
+  virtual_product_id?: unknown
+  image_id?: unknown
+  image_code?: unknown
+  image_name?: unknown
+  image_handle?: unknown
+  image_alt?: unknown
+  parent_product_id?: unknown
+  parent_product_handle?: unknown
 }
 
 type CustomWallCartPayload = {
@@ -49,7 +58,10 @@ export async function POST(
     throw new MedusaError(MedusaError.Types.INVALID_DATA, "cart_id is required")
   }
 
-  const items = normalizeCartItems(payloadItems as CustomWallCartItemPayload[])
+  const items = await normalizeCartItems(
+    req,
+    payloadItems as CustomWallCartItemPayload[]
+  )
 
   if (!items.length) {
     throw new MedusaError(
@@ -75,10 +87,12 @@ export async function POST(
   })
 }
 
-function normalizeCartItems(
+async function normalizeCartItems(
+  req: MedusaRequest,
   payloadItems: CustomWallCartItemPayload[]
-): NormalizedCartItem[] {
+): Promise<NormalizedCartItem[]> {
   const productQuantities = new Map<string, number>()
+  const imageProductItems: NormalizedCartItem[] = []
   const customItems: NormalizedCartItem[] = []
 
   for (const payloadItem of payloadItems) {
@@ -93,6 +107,27 @@ function normalizeCartItems(
     }
 
     if (source === "product") {
+      const imageId = getString(payloadItem.image_id)
+
+      if (imageId) {
+        const metadata = await canonicalizeImageProductLineMetadata({
+          scope: req.scope,
+          variantId,
+          metadata: {
+            ttv_explore_image_id: imageId,
+            ttv_explore_group_code: "",
+            ttv_explore_group_label: "",
+            ttv_explore_group_slug: "",
+            ttv_explore_item_id: "",
+            ttv_explore_item_name: "",
+            ttv_explore_item_slug: "",
+            ttv_wall_slot: Number(payloadItem.wall_slot) || 0,
+          },
+        })
+        imageProductItems.push({ variant_id: variantId, quantity, metadata })
+        continue
+      }
+
       productQuantities.set(
         variantId,
         (productQuantities.get(variantId) ?? 0) + quantity
@@ -112,6 +147,7 @@ function normalizeCartItems(
       variant_id: variantId,
       quantity,
     })),
+    ...imageProductItems,
     ...customItems,
   ]
 }

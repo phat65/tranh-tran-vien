@@ -33,7 +33,8 @@ type RuleOption = {
 }
 
 type RuleOptions = {
-  explore_items: RuleOption[]
+  categories: RuleOption[]
+  collections: RuleOption[]
   sales_channels: RuleOption[]
   regions: RuleOption[]
 }
@@ -79,7 +80,8 @@ type ComboRule = {
 type ComboRuleForm = {
   name: string
   description: string
-  taxonomy_term_id: string
+  scope_type: "category" | "collection"
+  scope_id: string
   sales_channel_id: string
   region_id: string
   tiers: ComboTierForm[]
@@ -93,7 +95,8 @@ type ComboRuleForm = {
 const RULES_API = "/admin/tranh-tran-vien/rules"
 
 const emptyOptions: RuleOptions = {
-  explore_items: [],
+  categories: [],
+  collections: [],
   sales_channels: [],
   regions: [],
 }
@@ -110,7 +113,8 @@ const emptyTier: ComboTierForm = {
 const emptyForm: ComboRuleForm = {
   name: "",
   description: "",
-  taxonomy_term_id: "",
+  scope_type: "category",
+  scope_id: "",
   sales_channel_id: "",
   region_id: "",
   tiers: [emptyTier],
@@ -137,7 +141,8 @@ const TtvRulesPage = () => {
 
   const optionLabels = useMemo(() => {
     return {
-      explore_items: toLabelMap(options.explore_items),
+      categories: toLabelMap(options.categories),
+      collections: toLabelMap(options.collections),
       sales_channels: toLabelMap(options.sales_channels),
       regions: toLabelMap(options.regions),
     }
@@ -180,8 +185,8 @@ const TtvRulesPage = () => {
       return
     }
 
-    if (!form.taxonomy_term_id) {
-      toast.error("Select an Explore Item for this combo")
+    if (!form.scope_id) {
+      toast.error(`Select a ${form.scope_type} for this combo`)
       return
     }
 
@@ -268,8 +273,7 @@ const TtvRulesPage = () => {
         <div>
           <Heading level="h1">TTV Rules</Heading>
           <Text className="text-ui-fg-subtle" size="small">
-            Set combo prices and quantity discounts for products in an Explore
-            Item.
+            Set combo prices for products in a Medusa category or collection.
           </Text>
         </div>
         <Button
@@ -331,33 +335,48 @@ const TtvRulesPage = () => {
           </Field>
 
           <Field
-            label="Explore Item"
-            description="Only products assigned to this Explore Item count toward the combo quantity."
+            label="Combo scope"
+            description="Use the same Category or Collection already assigned on the parent Product."
           >
             <Select
-              value={form.taxonomy_term_id}
+              value={form.scope_type}
               onValueChange={(value) =>
                 setForm((current) => ({
                   ...current,
-                  taxonomy_term_id: value,
+                  scope_type: value as "category" | "collection",
+                  scope_id: "",
                 }))
               }
             >
               <Select.Trigger>
-                <Select.Value placeholder="Select an Explore Item" />
+                <Select.Value />
               </Select.Trigger>
               <Select.Content>
-                {options.explore_items.length ? (
-                  options.explore_items.map((option) => (
-                    <Select.Item key={option.id} value={option.id}>
-                      {formatOption(option)}
-                    </Select.Item>
-                  ))
-                ) : (
-                  <Select.Item value="none" disabled>
-                    No visible Explore Items found
+                <Select.Item value="category">Category</Select.Item>
+                <Select.Item value="collection">Collection</Select.Item>
+              </Select.Content>
+            </Select>
+          </Field>
+
+          <Field label={form.scope_type === "category" ? "Category" : "Collection"}>
+            <Select
+              value={form.scope_id}
+              onValueChange={(value) =>
+                setForm((current) => ({ ...current, scope_id: value }))
+              }
+            >
+              <Select.Trigger>
+                <Select.Value placeholder={`Select a ${form.scope_type}`} />
+              </Select.Trigger>
+              <Select.Content>
+                {(form.scope_type === "category"
+                  ? options.categories
+                  : options.collections
+                ).map((option) => (
+                  <Select.Item key={option.id} value={option.id}>
+                    {formatOption(option)}
                   </Select.Item>
-                )}
+                ))}
               </Select.Content>
             </Select>
           </Field>
@@ -776,10 +795,17 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 function ruleToForm(rule: ComboRule): ComboRuleForm {
+  const scopeType =
+    rule.scope_type === "collection" ? "collection" : "category"
+
   return {
     name: rule.name ?? "",
     description: rule.description ?? "",
-    taxonomy_term_id: rule.taxonomy_term_id ?? "",
+    scope_type: scopeType,
+    scope_id:
+      scopeType === "category"
+        ? rule.category_id ?? ""
+        : rule.collection_id ?? "",
     sales_channel_id: rule.sales_channel_id ?? "",
     region_id: rule.region_id ?? "",
     tiers: Array.isArray(rule.tiers) && rule.tiers.length
@@ -820,12 +846,14 @@ function buildPayload(form: ComboRuleForm) {
   return {
     name: form.name.trim(),
     description: optionalString(form.description),
-    scope_type: "taxonomy" as const,
+    scope_type: form.scope_type,
     product_id: null,
-    category_id: null,
-    collection_id: null,
+    category_id:
+      form.scope_type === "category" ? optionalString(form.scope_id) : null,
+    collection_id:
+      form.scope_type === "collection" ? optionalString(form.scope_id) : null,
     option_value_id: null,
-    taxonomy_term_id: optionalString(form.taxonomy_term_id),
+    taxonomy_term_id: null,
     sales_channel_id: optionalString(form.sales_channel_id),
     region_id: optionalString(form.region_id),
     tiers: form.tiers
@@ -884,14 +912,20 @@ function formatScope(
     | "taxonomy_term_id"
   >,
   labels: {
-    explore_items: Map<string, string>
+    categories: Map<string, string>
+    collections: Map<string, string>
   }
 ): string {
+  if (rule.scope_type === "category") {
+    return `Category: ${getLabel(labels.categories, rule.category_id)}`
+  }
+
+  if (rule.scope_type === "collection") {
+    return `Collection: ${getLabel(labels.collections, rule.collection_id)}`
+  }
+
   if (rule.scope_type === "taxonomy") {
-    return `Explore: ${getLabel(
-      labels.explore_items,
-      rule.taxonomy_term_id
-    )}`
+    return "Legacy Explore scope"
   }
 
   return `Legacy scope: ${rule.scope_type}`

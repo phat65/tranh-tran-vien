@@ -1,7 +1,6 @@
 // Component giao diện xử lý phần product rail trong storefront.
 
-import { listProducts } from "@lib/data/products"
-import { filterTtvVisibleStorefrontProducts } from "@lib/util/product-visibility"
+import { listImageProducts } from "@lib/data/image-products"
 import { HttpTypes } from "@medusajs/types"
 import { Text } from "@modules/common/components/ui"
 
@@ -17,15 +16,14 @@ export default async function ProductRail({
 }) {
   const {
     response: { products: pricedProducts },
-  } = await listProducts({
+  } = await listImageProducts({
     regionId: region.id,
     queryParams: {
       collection_id: collection.id,
-      fields: "*variants.calculated_price",
     },
   })
 
-  const visibleProducts = filterTtvVisibleStorefrontProducts(pricedProducts)
+  const visibleProducts = pricedProducts
 
   if (!visibleProducts.length) {
     return null

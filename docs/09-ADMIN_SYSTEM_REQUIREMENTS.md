@@ -111,6 +111,17 @@ Không bulk delete mặc định.
 
 ## Product Edit
 
+For a printable album, Product Edit must include an `Image products` section.
+Admin can upload multiple ProductImages and edit each image's storefront name,
+unique handle, code, alt text, active state, and order. Upload derives safe
+defaults from the filename; an operator can edit them before publishing.
+
+Category and Collection are edited with Medusa's native Product fields. Admin
+must not assign a second Explore taxonomy to the same Product.
+
+Deleting or hiding an image affects future storefront visibility only. Existing
+orders keep their immutable line-item snapshot.
+
 Sections:
 - basic info,
 - media,

@@ -33,6 +33,12 @@ export type TtvSelectedExploreImage = {
   code: string
   url: string
   original_filename?: string
+  title?: string
+  handle?: string
+  alt?: string
+  virtual_product_id?: string
+  parent_product_id?: string
+  parent_product_handle?: string
   explore_group_code: string
   explore_group_label: string
   explore_group_slug: string
@@ -79,46 +85,19 @@ export type TtvExploreItemResponse = {
 
 const defaultExploreGroups: TtvExploreGroup[] = [
   {
-    code: "explore_shop_by_shape",
-    label: "Shop by Shape",
-    slug: "shop-by-shape",
+    code: "medusa_categories",
+    label: "Danh muc",
+    slug: "categories",
     sort_order: 10,
     taxonomy_id: null,
     navigation: standaloneNavigation,
     terms: [],
   },
   {
-    code: "explore_shop_by_category",
-    label: "Shop by Category",
-    slug: "shop-by-category",
+    code: "medusa_collections",
+    label: "Bo suu tap",
+    slug: "collections",
     sort_order: 20,
-    taxonomy_id: null,
-    navigation: standaloneNavigation,
-    terms: [],
-  },
-  {
-    code: "explore_popular_anime",
-    label: "Popular Anime",
-    slug: "popular-anime",
-    sort_order: 30,
-    taxonomy_id: null,
-    navigation: standaloneNavigation,
-    terms: [],
-  },
-  {
-    code: "explore_popular_games",
-    label: "Popular Games",
-    slug: "popular-games",
-    sort_order: 40,
-    taxonomy_id: null,
-    navigation: standaloneNavigation,
-    terms: [],
-  },
-  {
-    code: "explore_shop_extras",
-    label: "Shop Extras",
-    slug: "shop-extras",
-    sort_order: 50,
     taxonomy_id: null,
     navigation: standaloneNavigation,
     terms: [],

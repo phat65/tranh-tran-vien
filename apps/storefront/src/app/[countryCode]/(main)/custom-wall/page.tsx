@@ -5,7 +5,7 @@ import { notFound } from "next/navigation"
 
 import { listCollections } from "@lib/data/collections"
 import { addCustomWallItemsToCart } from "@lib/data/custom-wall"
-import { listProducts } from "@lib/data/products"
+import { listImageProducts } from "@lib/data/image-products"
 import { getRegion } from "@lib/data/regions"
 import CustomWallTemplate from "@modules/custom-wall/templates"
 
@@ -31,12 +31,10 @@ export default async function CustomWallPage(props: CustomWallPageProps) {
   }
 
   const [{ response }, collectionsResponse] = await Promise.all([
-    listProducts({
+    listImageProducts({
       countryCode: params.countryCode,
       queryParams: {
         limit: 100,
-        fields:
-          "*variants.calculated_price,*variants.images,*variants.options,+metadata,+tags,*categories,*collection,*images",
       },
     }),
     listCollections({ limit: "100" }, { cache: "no-store" }).catch(() => ({

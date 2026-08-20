@@ -5,33 +5,18 @@ import {
   ContainerRegistrationKeys,
   ModuleRegistrationName,
   Modules,
-  ProductStatus,
 } from "@medusajs/framework/utils";
 import {
   createApiKeysWorkflow,
-  createProductOptionsWorkflow,
-  createProductsWorkflow,
   createRegionsWorkflow,
   createSalesChannelsWorkflow,
   createShippingOptionsWorkflow,
-  createShippingProfilesWorkflow,
   createStockLocationsWorkflow,
   createStoresWorkflow,
   createTaxRegionsWorkflow,
   linkSalesChannelsToApiKeyWorkflow,
   linkSalesChannelsToStockLocationWorkflow,
 } from "@medusajs/medusa/core-flows";
-import {
-  DRAGON_BALL_HEXAGON_EXPLORE_SEEDS,
-  DRAGON_BALL_HEXAGON_EXPLORE_NAVIGATION_SEEDS,
-  DRAGON_BALL_HEXAGON_PRODUCT_PRICE_VND,
-  DRAGON_BALL_HEXAGON_PRODUCT_SEEDS,
-} from "../../data/dragon-ball-hexagon-products";
-import { getStaticAssetBaseUrl } from "../../lib/static-assets";
-import {
-  seedExploreNavigation,
-  seedProductExploreAssignments,
-} from "./explore-seed";
 
 export default async function initial_data_seed({
   container,
@@ -45,9 +30,7 @@ export default async function initial_data_seed({
     ModuleRegistrationName.FULFILLMENT
   );
 
-  const europeanCountries = ["gb", "de", "dk", "se", "fr", "es", "it"];
-  const storefrontCountries = [...europeanCountries, "vn"];
-  const staticAssetBaseUrl = getStaticAssetBaseUrl();
+  const storefrontCountries = ["vn"];
   const vietnamPaymentProviders = [
     "pp_system_default",
     ...(isPayOSConfigured() ? ["pp_payos_payos"] : []),
@@ -74,7 +57,7 @@ export default async function initial_data_seed({
     input: {
       api_keys: [
         {
-          title: "khóa cho shop vietnam",
+          title: "Vietnam Storefront",
           type: "publishable",
           created_by: "",
         },
@@ -89,25 +72,15 @@ export default async function initial_data_seed({
     },
   });
 
-  const {
-    result: [store],
-  } = await createStoresWorkflow(container).run({
+  await createStoresWorkflow(container).run({
     input: {
       stores: [
         {
           name: "Tranh Tran Vien Vietnam",
           supported_currencies: [
             {
-              currency_code: "eur",
-              is_default: true,
-            },
-            {
-              currency_code: "usd",
-              is_default: false,
-            },
-            {
               currency_code: "vnd",
-              is_default: false,
+              is_default: true,
             },
           ],
           default_sales_channel_id: defaultSalesChannel.id,
@@ -121,12 +94,6 @@ export default async function initial_data_seed({
     input: {
       regions: [
         {
-          name: "Europe",
-          currency_code: "eur",
-          countries: europeanCountries,
-          payment_providers: ["pp_system_default"],
-        },
-        {
           name: "Vietnam",
           currency_code: "vnd",
           countries: ["vn"],
@@ -135,8 +102,7 @@ export default async function initial_data_seed({
       ],
     },
   });
-  const region = regionResult[0];
-  const vietnamRegion = regionResult[1];
+  const vietnamRegion = regionResult[0];
   logger.info("Finished seeding regions.");
 
   logger.info("Seeding tax regions...");
@@ -210,74 +176,22 @@ export default async function initial_data_seed({
   await createShippingOptionsWorkflow(container).run({
     input: [
       {
-        name: "Standard Shipping",
+        name: "Giao hang tieu chuan",
         price_type: "flat",
         provider_id: "manual_manual",
         service_zone_id: fulfillmentSet.service_zones[0].id,
         shipping_profile_id: shippingProfile.id,
         type: {
-          label: "Standard",
-          description: "Ship in 2-3 days.",
-          code: "standard",
+          label: "Tieu chuan",
+          description: "In theo don va giao hang tai Viet Nam.",
+          code: "standard-vn",
         },
         prices: [
           {
-            currency_code: "usd",
-            amount: 10,
-          },
-          {
-            currency_code: "eur",
-            amount: 10,
-          },
-          {
-            region_id: region.id,
-            amount: 10,
-          },
-          {
             region_id: vietnamRegion.id,
+            // VND has no minor currency unit; this is 30,000 VND.
+            // eslint-disable-next-line @medusajs/prices-in-major-units
             amount: 30000,
-          },
-        ],
-        rules: [
-          {
-            attribute: "enabled_in_store",
-            value: "true",
-            operator: "eq",
-          },
-          {
-            attribute: "is_return",
-            value: "false",
-            operator: "eq",
-          },
-        ],
-      },
-      {
-        name: "Express Shipping",
-        price_type: "flat",
-        provider_id: "manual_manual",
-        service_zone_id: fulfillmentSet.service_zones[0].id,
-        shipping_profile_id: shippingProfile.id,
-        type: {
-          label: "Express",
-          description: "Ship in 24 hours.",
-          code: "express",
-        },
-        prices: [
-          {
-            currency_code: "usd",
-            amount: 10,
-          },
-          {
-            currency_code: "eur",
-            amount: 10,
-          },
-          {
-            region_id: region.id,
-            amount: 10,
-          },
-          {
-            region_id: vietnamRegion.id,
-            amount: 50000,
           },
         ],
         rules: [
@@ -304,101 +218,9 @@ export default async function initial_data_seed({
     },
   });
   logger.info("Finished seeding stock location data.");
-
-  logger.info("Seeding product data...");
-
-  const { result: productOptionsResult } = await createProductOptionsWorkflow(
-    container
-  ).run({
-    input: {
-      product_options: [
-        {
-          title: "Kich thuoc",
-          values: ["Luc giac tieu chuan"],
-        },
-      ],
-    },
-  });
-  const hexagonSizeOption = productOptionsResult.find(
-    (o) => o.title === "Kich thuoc"
-  )!;
-  await createProductsWorkflow(container).run({
-    input: {
-      products: DRAGON_BALL_HEXAGON_PRODUCT_SEEDS.map((product) => {
-        const imageUrl = `${staticAssetBaseUrl}/${product.imagePath}`;
-
-        return {
-          title: product.title,
-          description:
-            "Tranh luc giac chu de Dragon Ball cho setup goc lam viec, phong ngu va tuong decor.",
-          handle: product.handle,
-          weight: 250,
-          status: ProductStatus.PUBLISHED,
-          shipping_profile_id: shippingProfile.id,
-          images: [
-            {
-              url: imageUrl,
-            },
-          ],
-          options: [{ id: hexagonSizeOption.id }],
-          variants: [
-            {
-              title: "Luc giac tieu chuan",
-              sku: product.sku,
-              manage_inventory: false,
-              allow_backorder: true,
-              options: {
-                "Kich thuoc": "Luc giac tieu chuan",
-              },
-              prices: [
-                {
-                  amount: DRAGON_BALL_HEXAGON_PRODUCT_PRICE_VND,
-                  currency_code: "vnd",
-                },
-                {
-                  amount: 5,
-                  currency_code: "usd",
-                },
-                {
-                  amount: 5,
-                  currency_code: "eur",
-                },
-              ],
-            },
-          ],
-          sales_channels: [
-            {
-              id: defaultSalesChannel.id,
-            },
-          ],
-          metadata: {
-            product_line: "tranh-luc-giac-hop-kim",
-            source_batch: "dot-1",
-            source_image_path: product.imagePath,
-          },
-        };
-      }),
-    },
-  });
-  const { data: seededProducts } = await query.graph({
-    entity: "product",
-    fields: ["id", "handle"],
-    filters: {
-      handle: DRAGON_BALL_HEXAGON_PRODUCT_SEEDS.map(
-        (product) => product.handle
-      ),
-    },
-  });
-  await seedProductExploreAssignments(
-    container,
-    DRAGON_BALL_HEXAGON_EXPLORE_SEEDS,
-    seededProducts as { id: string; handle?: string | null }[]
+  logger.info(
+    "Seed complete. Products, categories and collections are managed in Medusa Admin."
   );
-  await seedExploreNavigation(
-    container,
-    DRAGON_BALL_HEXAGON_EXPLORE_NAVIGATION_SEEDS
-  );
-  logger.info("Finished seeding product data.");
 }
 
 function isPayOSConfigured() {

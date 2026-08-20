@@ -1,9 +1,17 @@
 // Trang route storefront render màn hình countryCode / (main) / products / handle.
 
 import { Metadata } from "next"
-import { notFound } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
+import {
+  listImageProducts,
+  retrieveImageProduct,
+  TtvImageProduct,
+} from "@lib/data/image-products"
 import { listProducts } from "@lib/data/products"
-import { retrieveTtvSelectedExploreImage } from "@lib/data/ttv-explore"
+import {
+  retrieveTtvExploreItem,
+  TtvSelectedExploreImage,
+} from "@lib/data/ttv-explore"
 import { getRegion, listRegions } from "@lib/data/regions"
 import ProductTemplate from "@modules/products/templates"
 import { HttpTypes } from "@medusajs/types"
@@ -29,9 +37,9 @@ export async function generateStaticParams() {
     }
 
     const promises = countryCodes.map(async (country) => {
-      const { response } = await listProducts({
+      const { response } = await listImageProducts({
         countryCode: country,
-        queryParams: { limit: 100, fields: "handle" },
+        queryParams: { limit: 500 },
       })
 
       return {
@@ -89,10 +97,10 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
     notFound()
   }
 
-  const product = await listProducts({
+  const product = await retrieveImageProduct({
     countryCode: params.countryCode,
-    queryParams: { handle },
-  }).then(({ response }) => response.products[0])
+    handle,
+  })
 
   if (!product) {
     notFound()
@@ -115,26 +123,46 @@ export default async function ProductPage(props: Props) {
   const searchParams = await props.searchParams
 
   const selectedVariantId = searchParams.v_id
-  const selectedExploreImage = await retrieveTtvSelectedExploreImage({
-    headingSlug: searchParams.explore_heading,
-    itemSlug: searchParams.explore_item,
-    imageId: searchParams.explore_image_id,
-  })
 
   if (!region) {
     notFound()
   }
 
-  const pricedProduct = await listProducts({
+  const handle = normalizeHandle(params.handle)
+  const pricedProduct = await retrieveImageProduct({
     countryCode: params.countryCode,
-    queryParams: { handle: normalizeHandle(params.handle) },
-  }).then(({ response }) => response.products[0])
+    handle,
+  })
 
   if (!pricedProduct) {
+    const parentProduct = await listProducts({
+      countryCode: params.countryCode,
+      queryParams: { handle },
+    }).then(({ response }) => response.products[0])
+    const replacement = parentProduct
+      ? await listImageProducts({
+          countryCode: params.countryCode,
+          queryParams: { parent_handle: handle, limit: 1 },
+        }).then(({ response }) => response.products[0])
+      : null
+
+    if (replacement?.handle) {
+      redirect(
+        `/${encodeURIComponent(params.countryCode)}/products/${encodeURIComponent(
+          replacement.handle
+        )}`
+      )
+    }
+
     notFound()
   }
 
   const images = getImagesForVariant(pricedProduct, selectedVariantId)
+  const selectedExploreImage = await toSelectedImageProduct({
+    product: pricedProduct,
+    headingSlug: searchParams.explore_heading,
+    itemSlug: searchParams.explore_item,
+  })
 
   return (
     <ProductTemplate
@@ -143,6 +171,41 @@ export default async function ProductPage(props: Props) {
       countryCode={params.countryCode}
       images={images ?? []}
       selectedExploreImage={selectedExploreImage}
+      parentProductId={pricedProduct.parent_product_id}
     />
   )
+}
+
+async function toSelectedImageProduct({
+  product,
+  headingSlug,
+  itemSlug,
+}: {
+  product: TtvImageProduct
+  headingSlug?: string
+  itemSlug?: string
+}): Promise<TtvSelectedExploreImage> {
+  const explore =
+    headingSlug && itemSlug
+      ? await retrieveTtvExploreItem(headingSlug, itemSlug)
+      : null
+
+  return {
+    image_id: product.image_id,
+    code: product.image_code,
+    url: product.image_url,
+    original_filename: product.image_original_filename,
+    title: product.image_title,
+    handle: product.image_handle,
+    alt: product.image_alt,
+    virtual_product_id: product.id,
+    parent_product_id: product.parent_product_id,
+    parent_product_handle: product.parent_product_handle,
+    explore_group_code: explore?.group?.code ?? "",
+    explore_group_label: explore?.group?.label ?? "",
+    explore_group_slug: explore?.group?.slug ?? "",
+    explore_item_id: explore?.item?.id ?? "",
+    explore_item_name: explore?.item?.name ?? "",
+    explore_item_slug: itemSlug ?? "",
+  }
 }

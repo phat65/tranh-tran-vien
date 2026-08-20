@@ -17,6 +17,28 @@ lib/api/
 
 ## Storefront Contracts
 
+### List image products
+
+```http
+GET /store/image-products
+```
+
+Supported catalog filters include `q`, `handle`, `image_id`, `parent_handle`,
+`category_id`, `collection_id`, and parent `id`. `taxonomy_term_id` is retained
+only for backward compatibility. The API:
+
+- returns one record per active `ProductImage`;
+- inherits categories, collection, options, internal variants, and calculated
+  price from the parent Product;
+- filters parent products by published status and the publishable key's sales
+  channels;
+- returns canonical image metadata and `parent_product_id`.
+
+Store/category/collection grids consume this endpoint. Explore navigation is a
+thin adapter over native Medusa Categories and Collections. Native
+`/store/products` remains the commerce source for retrieving a parent product
+and its internal variant.
+
 ### Get Product
 
 ```ts

@@ -382,12 +382,6 @@ const TtvStorefrontPage = () => {
           >
             Category pages
           </a>
-          <a
-            href="/app/tranh-tran-vien/storefront/explore-items"
-            className="rounded-rounded border border-ui-border-base px-3 py-2 text-small-regular text-ui-fg-subtle transition-colors hover:border-ui-border-strong hover:text-ui-fg-base"
-          >
-            Explore items
-          </a>
           <Button
             type="button"
             variant="secondary"

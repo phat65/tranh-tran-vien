@@ -90,7 +90,17 @@ export type TtvComboRule = {
   id: string
   name: string
   description?: string | null
-  scope_type: "taxonomy"
+  scope_type:
+    | "all"
+    | "product"
+    | "category"
+    | "collection"
+    | "option"
+    | "taxonomy"
+  product_id?: string | null
+  category_id?: string | null
+  collection_id?: string | null
+  option_value_id?: string | null
   taxonomy_term_id?: string | null
   sales_channel_id?: string | null
   region_id?: string | null

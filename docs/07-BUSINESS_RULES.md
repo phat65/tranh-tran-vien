@@ -4,6 +4,27 @@
 
 ## Product
 
+For the printable catalog, a Medusa Product is an album/collection of designs,
+not one storefront card. Every active ProductImage is one virtual storefront
+product. All images inherit the parent Product's category, Medusa collection,
+price, options, and production method.
+
+The parent must retain at least one internal variant for Medusa pricing and
+checkout. Images must not be modeled as variants.
+
+All printable image products are made-to-order. Their internal variants use
+`manage_inventory = false` and `allow_backorder = true`; fulfillment begins
+only after the order identifies the selected ProductImage.
+
+Combo tiers such as 3/5/7 images are backend rules. A `fixed_total` tier fixes
+the total at its threshold, while quantity between thresholds is prorated from
+the highest matched tier. Combo scope uses the parent Product's native Medusa
+Category or Collection, so images can be combined even when they share the same
+parent internal variant.
+
+Explore is storefront navigation only. It reads native Categories and
+Collections and must not introduce a second catalog-assignment system.
+
 Một product có thể có:
 - material,
 - size,

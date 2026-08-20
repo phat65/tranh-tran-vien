@@ -20,6 +20,7 @@ type ExploreSelection = {
   groupLabel: string
   itemName: string
   imageId: string
+  imageName: string
   imageCode: string
   imageUrl: string
   filename: string
@@ -37,7 +38,7 @@ const TtvOrderExploreSelectionWidget = ({ data }: OrderWidgetProps) => {
   return (
     <Container className="divide-y p-0">
       <div className="px-6 py-4">
-        <Heading level="h2">Customer selected Explore images</Heading>
+        <Heading level="h2">Made-to-order image products</Heading>
         <Text className="text-ui-fg-subtle" size="small">
           Image IDs and codes are stored on the order line item metadata.
         </Text>
@@ -55,11 +56,18 @@ const TtvOrderExploreSelectionWidget = ({ data }: OrderWidgetProps) => {
             />
             <div className="grid content-center gap-1">
               <Text size="small" weight="plus">
-                {selection.productTitle}
+                {selection.imageName}
               </Text>
               <Text size="small" className="text-ui-fg-subtle">
-                Explore: {selection.groupLabel} / {selection.itemName}
+                Album: {selection.productTitle}
               </Text>
+              {selection.groupLabel || selection.itemName ? (
+                <Text size="small" className="text-ui-fg-subtle">
+                  Explore: {[selection.groupLabel, selection.itemName]
+                    .filter(Boolean)
+                    .join(" / ")}
+                </Text>
+              ) : null}
               <Text size="small">
                 Selected Image:{" "}
                 <span className="font-semibold">{selection.imageCode}</span>
@@ -96,6 +104,8 @@ function getExploreSelection(item: OrderLineItem): ExploreSelection | null {
     groupLabel: getString(metadata?.ttv_explore_group_label) ?? "Explore",
     itemName: getString(metadata?.ttv_explore_item_name) ?? "",
     imageId,
+    imageName:
+      getString(metadata?.ttv_explore_image_name) ?? imageCode,
     imageCode,
     imageUrl,
     filename: getString(metadata?.ttv_explore_original_filename) ?? "",

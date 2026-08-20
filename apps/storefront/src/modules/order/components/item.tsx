@@ -14,6 +14,8 @@ type ItemProps = {
 }
 
 const Item = ({ item, currencyCode }: ItemProps) => {
+  const imageProduct = getExploreImageSelection(item)
+
   return (
     <Table.Row className="w-full" data-testid="product-row">
       <Table.Cell className="!pl-0 p-4 w-24">
@@ -27,10 +29,10 @@ const Item = ({ item, currencyCode }: ItemProps) => {
           className="txt-medium-plus text-ui-fg-base"
           data-testid="product-name"
         >
-          {item.product_title}
+          {imageProduct?.name ?? item.product_title}
         </Text>
         <LineItemOptions variant={item.variant} data-testid="product-variant" />
-        {getExploreImageSelection(item) ? (
+        {imageProduct ? (
           <ExploreSelection item={item} />
         ) : null}
       </Table.Cell>
@@ -78,7 +80,7 @@ function ExploreSelection({
         className="h-10 w-10 rounded border border-ui-border-base object-cover"
       />
       <Text className="text-xs text-ui-fg-muted">
-        {selection.group} / {selection.item}:{" "}
+        {selection.context ? `${selection.context}: ` : ""}
         <span className="font-semibold text-ui-fg-base">{selection.code}</span>
         {selection.filename ? ` (${selection.filename})` : ""}
       </Text>
@@ -100,18 +102,24 @@ function getExploreImageSelection(
   return {
     code,
     url,
+    name:
+      typeof metadata?.ttv_explore_image_name === "string"
+        ? metadata.ttv_explore_image_name
+        : code,
     filename:
       typeof metadata?.ttv_explore_original_filename === "string"
         ? metadata.ttv_explore_original_filename
         : "",
-    group:
+    context: [
       typeof metadata?.ttv_explore_group_label === "string"
         ? metadata.ttv_explore_group_label
-        : "Explore",
-    item:
+        : "",
       typeof metadata?.ttv_explore_item_name === "string"
         ? metadata.ttv_explore_item_name
         : "",
+    ]
+      .filter(Boolean)
+      .join(" / "),
   }
 }
 

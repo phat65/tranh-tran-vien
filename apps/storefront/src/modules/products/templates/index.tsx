@@ -21,6 +21,7 @@ type ProductTemplateProps = {
   countryCode: string
   images: HttpTypes.StoreProductImage[]
   selectedExploreImage?: TtvSelectedExploreImage | null
+  parentProductId?: string
 }
 
 const ProductTemplate: React.FC<ProductTemplateProps> = ({
@@ -29,6 +30,7 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
   countryCode,
   images,
   selectedExploreImage,
+  parentProductId,
 }) => {
   if (!product || !product.id) {
     return notFound()
@@ -55,7 +57,7 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
             }
           >
             <ProductActionsWrapper
-              id={product.id}
+              id={parentProductId ?? product.id}
               region={region}
               selectedExploreImage={selectedExploreImage}
             />
@@ -70,7 +72,7 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
         data-testid="related-products-container"
       >
         <Suspense fallback={null}>
-          <FeedbackList productId={product.id} />
+          <FeedbackList productId={parentProductId ?? product.id} />
         </Suspense>
         <Suspense fallback={<SkeletonRelatedProducts />}>
           <RelatedProducts product={product} countryCode={countryCode} />

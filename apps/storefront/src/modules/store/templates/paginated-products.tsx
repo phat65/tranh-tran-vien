@@ -1,6 +1,6 @@
 // Template ghép dữ liệu và component để dựng khu vực paginated products.
 
-import { listProductsWithSort } from "@lib/data/products"
+import { listImageProductsWithSort } from "@lib/data/image-products"
 import { getRegion } from "@lib/data/regions"
 import ProductPreview from "@modules/products/components/product-preview"
 import { Pagination } from "@modules/store/components/pagination"
@@ -70,7 +70,7 @@ export default async function PaginatedProducts({
 
   const {
     response: { products, count },
-  } = await listProductsWithSort({
+  } = await listImageProductsWithSort({
     page,
     queryParams,
     sortBy,

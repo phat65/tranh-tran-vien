@@ -1,8 +1,7 @@
 // Component giao diện xử lý phần related products trong storefront.
 
-import { listProducts } from "@lib/data/products"
+import { listImageProducts } from "@lib/data/image-products"
 import { getRegion } from "@lib/data/regions"
-import { filterTtvVisibleStorefrontProducts } from "@lib/util/product-visibility"
 import { HttpTypes } from "@medusajs/types"
 import Product from "./product-preview"
 
@@ -22,25 +21,16 @@ export default async function RelatedProducts({
   }
 
   // edit this function to define your related products logic
-  const queryParams: HttpTypes.StoreProductListParams = {}
-  if (region?.id) {
-    queryParams.region_id = region.id
-  }
+  const queryParams: Parameters<typeof listImageProducts>[0]["queryParams"] = {}
   if (product.collection_id) {
     queryParams.collection_id = [product.collection_id]
   }
-  if (product.tags) {
-    queryParams.tag_id = product.tags
-      .map((t) => t.id)
-      .filter(Boolean) as string[]
-  }
-  queryParams.is_giftcard = false
 
-  const products = await listProducts({
+  const products = await listImageProducts({
     queryParams,
     countryCode,
   }).then(({ response }) => {
-    return filterTtvVisibleStorefrontProducts(response.products).filter(
+    return response.products.filter(
       (responseProduct) => responseProduct.id !== product.id
     )
   })

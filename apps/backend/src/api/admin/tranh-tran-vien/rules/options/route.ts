@@ -1,36 +1,26 @@
-// API admin xử lý dữ liệu quản trị cho tranh tran vien / rules / options.
+// Options for the small combo-rule editor.
 
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaContainer } from "@medusajs/framework/types"
 
-import {
-  EXPLORE_GROUP_DEFINITIONS,
-  getPublicExploreTermSlug,
-} from "../../../../../lib/explore-navigation"
-import { getTaxonomyService } from "../../catalog/utils"
 import { safeGraph } from "../utils"
 
 type Option = {
   id: string
   label: string
   subtitle?: string
-  image_url?: string | null
 }
 
-type TaxonomyRecord = {
-  id: string
-  code: string
-  status: "draft" | "active" | "archived"
+type CategoryRecord = {
+  id?: string
+  name?: string
+  handle?: string
 }
 
-type TaxonomyTermRecord = {
-  id: string
-  taxonomy_id: string
-  name: string
-  slug: string
-  status: "draft" | "active" | "archived"
-  sort_order: number
-  metadata?: Record<string, unknown> | null
+type CollectionRecord = {
+  id?: string
+  title?: string
+  handle?: string
 }
 
 type SalesChannelRecord = {
@@ -49,54 +39,47 @@ export async function GET(
   req: MedusaRequest,
   res: MedusaResponse
 ): Promise<void> {
-  const [exploreItems, salesChannels, regions] = await Promise.all([
-    getExploreItemOptions(req.scope),
+  const [categories, collections, salesChannels, regions] = await Promise.all([
+    getCategoryOptions(req.scope),
+    getCollectionOptions(req.scope),
     getSalesChannelOptions(req.scope),
     getRegionOptions(req.scope),
   ])
 
   res.status(200).json({
-    explore_items: exploreItems,
+    categories,
+    collections,
     sales_channels: salesChannels,
     regions,
   })
 }
 
-async function getExploreItemOptions(
-  scope: MedusaContainer
-): Promise<Option[]> {
-  const service = getTaxonomyService(scope)
-  const taxonomies = (await service.listTaxonomies(
-    { status: "active" },
-    { take: 500 }
-  )) as TaxonomyRecord[]
-  const taxonomyByCode = new Map(
-    taxonomies.map((taxonomy) => [taxonomy.code, taxonomy])
+async function getCategoryOptions(scope: MedusaContainer): Promise<Option[]> {
+  const categories = await safeGraph<CategoryRecord>(
+    scope,
+    "product_category",
+    ["id", "name", "handle"]
   )
-  const options: Option[] = []
 
-  for (const group of EXPLORE_GROUP_DEFINITIONS) {
-    const taxonomy = taxonomyByCode.get(group.code)
+  return categories.map((category) => ({
+    id: category.id ?? "",
+    label: category.name ?? category.handle ?? category.id ?? "",
+    subtitle: category.handle,
+  }))
+}
 
-    if (!taxonomy) {
-      continue
-    }
+async function getCollectionOptions(scope: MedusaContainer): Promise<Option[]> {
+  const collections = await safeGraph<CollectionRecord>(
+    scope,
+    "product_collection",
+    ["id", "title", "handle"]
+  )
 
-    const terms = (await service.listTaxonomyTerms(
-      { taxonomy_id: taxonomy.id, status: "active" },
-      { take: 500, order: { sort_order: "ASC", created_at: "ASC" } }
-    )) as TaxonomyTermRecord[]
-
-    options.push(
-      ...terms.map((term) => ({
-        id: term.id,
-        label: term.name,
-        subtitle: `${group.label} / ${getPublicExploreTermSlug(term)}`,
-      }))
-    )
-  }
-
-  return options
+  return collections.map((collection) => ({
+    id: collection.id ?? "",
+    label: collection.title ?? collection.handle ?? collection.id ?? "",
+    subtitle: collection.handle,
+  }))
 }
 
 async function getSalesChannelOptions(

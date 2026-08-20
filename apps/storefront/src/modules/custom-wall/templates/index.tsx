@@ -67,6 +67,7 @@ type WallItem = {
   originalFilename?: string | null
   price?: number | null
   crop?: CustomCrop
+  imageProduct?: ImageProductSnapshot
 }
 
 type ProductOption = {
@@ -79,6 +80,19 @@ type ProductOption = {
   price?: number | null
   priceLabel?: string | null
   inStock: boolean
+  imageProduct?: ImageProductSnapshot
+}
+
+type ImageProductSnapshot = {
+  virtualProductId: string
+  imageId: string
+  imageCode: string
+  imageName: string
+  imageHandle: string
+  imageAlt: string
+  parentProductId: string
+  parentProductHandle: string
+  originalFilename: string
 }
 
 type WallSlotDefinition = {
@@ -220,6 +234,7 @@ const CustomWallTemplate = ({
         source: "product",
         imageUrl: product.imageUrl ?? product.thumbnail,
         price: product.price,
+        imageProduct: product.imageProduct,
       },
     ])
   }
@@ -244,6 +259,7 @@ const CustomWallTemplate = ({
           source: "product",
           imageUrl: product.imageUrl ?? product.thumbnail,
           price: product.price,
+          imageProduct: product.imageProduct,
         },
       ]
     })
@@ -504,6 +520,17 @@ const CustomWallTemplate = ({
                 source: "product",
                 variantId: item.variantId,
                 quantity: 1,
+                imageUrl: item.imageUrl,
+                originalFilename: item.imageProduct?.originalFilename,
+                wallSlot: item.slot,
+                virtualProductId: item.imageProduct?.virtualProductId,
+                imageId: item.imageProduct?.imageId,
+                imageCode: item.imageProduct?.imageCode,
+                imageName: item.imageProduct?.imageName,
+                imageHandle: item.imageProduct?.imageHandle,
+                imageAlt: item.imageProduct?.imageAlt,
+                parentProductId: item.imageProduct?.parentProductId,
+                parentProductHandle: item.imageProduct?.parentProductHandle,
               }
             }
 
@@ -1238,6 +1265,9 @@ function toProductOption(product: HttpTypes.StoreProduct): ProductOption {
       getProductPrice({ product }).cheapestPrice
     : null
 
+  const metadata = product.metadata as Record<string, unknown> | null | undefined
+  const imageId = getMetadataString(metadata, "ttv_image_id")
+
   return {
     id: product.id!,
     title: product.title ?? "Untitled product",
@@ -1248,7 +1278,42 @@ function toProductOption(product: HttpTypes.StoreProduct): ProductOption {
     price: price?.calculated_price_number ?? null,
     priceLabel: price?.calculated_price ?? null,
     inStock: variant ? isVariantInStock(variant) : false,
+    imageProduct: imageId
+      ? {
+          virtualProductId:
+            getMetadataString(metadata, "ttv_virtual_product_id") || product.id!,
+          imageId,
+          imageCode: getMetadataString(metadata, "ttv_image_code"),
+          imageName:
+            getMetadataString(metadata, "ttv_image_title") ||
+            product.title ||
+            "Image product",
+          imageHandle:
+            getMetadataString(metadata, "ttv_image_handle") ||
+            product.handle ||
+            "",
+          imageAlt: getMetadataString(metadata, "ttv_image_alt"),
+          parentProductId: getMetadataString(metadata, "ttv_parent_product_id"),
+          parentProductHandle: getMetadataString(
+            metadata,
+            "ttv_parent_product_handle"
+          ),
+          originalFilename: getMetadataString(
+            metadata,
+            "ttv_image_original_filename"
+          ),
+        }
+      : undefined,
   }
+}
+
+function getMetadataString(
+  metadata: Record<string, unknown> | null | undefined,
+  key: string
+) {
+  const value = metadata?.[key]
+
+  return typeof value === "string" ? value : ""
 }
 
 function normalizeSearch(value: string) {

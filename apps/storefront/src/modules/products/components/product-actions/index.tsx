@@ -211,6 +211,16 @@ export default function ProductActions({
               ttv_explore_image_id: selectedExploreImage.image_id,
               ttv_explore_image_code: selectedExploreImage.code,
               ttv_explore_image_url: selectedExploreImage.url,
+              ttv_explore_image_name:
+                selectedExploreImage.title ?? selectedExploreImage.code,
+              ttv_explore_image_alt: selectedExploreImage.alt ?? "",
+              ttv_image_product_handle: selectedExploreImage.handle ?? "",
+              ttv_virtual_product_id:
+                selectedExploreImage.virtual_product_id ?? "",
+              ttv_parent_product_id:
+                selectedExploreImage.parent_product_id ?? product.id,
+              ttv_parent_product_handle:
+                selectedExploreImage.parent_product_handle ?? product.handle,
               ttv_explore_original_filename:
                 selectedExploreImage.original_filename ?? "",
             }
@@ -295,16 +305,26 @@ export default function ProductActions({
             <div className="mb-5 grid grid-cols-[72px_1fr] gap-3 rounded-lg border border-ui-border-base bg-ui-bg-subtle p-3">
               <img
                 src={selectedExploreImage.url}
-                alt={selectedExploreImage.code}
+                alt={selectedExploreImage.alt || selectedExploreImage.title || selectedExploreImage.code}
                 className="h-[72px] w-[72px] rounded-md object-cover"
               />
               <div className="grid content-center gap-1">
                 <Text className="text-sm font-semibold text-ui-fg-base">
-                  Selected image: {selectedExploreImage.code}
+                  {selectedExploreImage.title || selectedExploreImage.code}
                 </Text>
-                <Text className="text-xs text-ui-fg-subtle">
-                  {selectedExploreImage.explore_group_label} /{" "}
-                  {selectedExploreImage.explore_item_name}
+                {selectedExploreImage.explore_group_label ||
+                selectedExploreImage.explore_item_name ? (
+                  <Text className="text-xs text-ui-fg-subtle">
+                    {[
+                      selectedExploreImage.explore_group_label,
+                      selectedExploreImage.explore_item_name,
+                    ]
+                      .filter(Boolean)
+                      .join(" / ")}
+                  </Text>
+                ) : null}
+                <Text className="text-xs text-ui-fg-muted">
+                  Code: {selectedExploreImage.code}
                 </Text>
                 {selectedExploreImage.original_filename ? (
                   <Text className="text-xs text-ui-fg-muted">

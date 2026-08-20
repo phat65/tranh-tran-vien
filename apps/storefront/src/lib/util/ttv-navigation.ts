@@ -98,6 +98,12 @@ export function getTtvExploreHref(
   group: TtvExploreGroup,
   term: TtvExploreGroup["terms"][number]
 ) {
+  const nativeHref = term.metadata?.href
+
+  if (typeof nativeHref === "string" && nativeHref.startsWith("/")) {
+    return nativeHref
+  }
+
   const navigation = group.navigation
 
   if (navigation?.mode === "filter_tabs" && navigation.target) {

@@ -1,84 +1,127 @@
-// API storefront cho Explore động từ taxonomy terms.
+// Explore is a small storefront adapter over native Medusa categories and collections.
 
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
-import {
-  EXPLORE_GROUP_DEFINITIONS,
-  getPublicExploreTermSlug,
-  resolveExploreNavigations,
-} from "../../../../../lib/explore-navigation"
-import { getTaxonomyService } from "../utils"
-
-const exploreGroups = EXPLORE_GROUP_DEFINITIONS
-
-type TaxonomyRecord = {
+type ProductLink = {
   id: string
-  code: string
-  name: string
-  status: "draft" | "active" | "archived"
-  sort_order: number
-  metadata?: Record<string, unknown> | null
 }
 
-type TaxonomyTermRecord = {
+type CategoryRecord = {
+  id: string
+  name: string
+  handle: string
+  description?: string | null
+  rank?: number | null
+  is_active?: boolean
+  is_internal?: boolean
+  parent_category_id?: string | null
+  metadata?: Record<string, unknown> | null
+  products?: ProductLink[]
+}
+
+type CollectionRecord = {
+  id: string
+  title: string
+  handle: string
+  metadata?: Record<string, unknown> | null
+  products?: ProductLink[]
+}
+
+type ExploreTerm = {
   id: string
   taxonomy_id: string
   name: string
   slug: string
-  image_url?: string | null
-  description?: string | null
-  status: "draft" | "active" | "archived"
+  image_url: string | null
+  description: string | null
   sort_order: number
-  seo_title?: string | null
-  seo_description?: string | null
-  metadata?: Record<string, unknown> | null
+  seo_title: string | null
+  seo_description: string | null
+  metadata: Record<string, unknown>
+  product_ids: string[]
 }
 
-type ProductTaxonomyTermRecord = {
-  id: string
-  product_id: string
-  term_id: string
+const standaloneNavigation = {
+  mode: "standalone" as const,
+  auto_assign_target: false,
+  target: null,
 }
 
 export async function GET(
   req: MedusaRequest,
   res: MedusaResponse
 ): Promise<void> {
-  const headingSlug =
-    typeof req.query.heading_slug === "string"
-      ? req.query.heading_slug
-      : undefined
-  const itemSlug =
-    typeof req.query.item_slug === "string" ? req.query.item_slug : undefined
-  const taxonomyService = getTaxonomyService(req.scope)
-  const groups = await getExploreGroups(taxonomyService)
+  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
+  const [categoryResult, collectionResult] = await Promise.all([
+    query.graph({
+      entity: "product_category",
+      fields: [
+        "id",
+        "name",
+        "handle",
+        "description",
+        "rank",
+        "is_active",
+        "is_internal",
+        "parent_category_id",
+        "metadata",
+        "products.id",
+      ],
+      pagination: { take: 500, order: { rank: "ASC" } },
+    }),
+    query.graph({
+      entity: "product_collection",
+      fields: ["id", "title", "handle", "metadata", "products.id"],
+      pagination: { take: 500, order: { title: "ASC" } },
+    }),
+  ])
+
+  const categories = (categoryResult.data as CategoryRecord[])
+    .filter(
+      (category) =>
+        category.is_active !== false &&
+        category.is_internal !== true &&
+        !category.parent_category_id
+    )
+    .map((category, index) => toCategoryTerm(category, index))
+  const collections = (collectionResult.data as CollectionRecord[]).map(
+    (collection, index) => toCollectionTerm(collection, index)
+  )
+  const groups = [
+    {
+      code: "medusa_categories",
+      label: "Danh muc",
+      slug: "categories",
+      sort_order: 10,
+      taxonomy_id: null,
+      metadata: null,
+      navigation: standaloneNavigation,
+      terms: categories,
+    },
+    {
+      code: "medusa_collections",
+      label: "Bo suu tap",
+      slug: "collections",
+      sort_order: 20,
+      taxonomy_id: null,
+      metadata: null,
+      navigation: standaloneNavigation,
+      terms: collections,
+    },
+  ]
+  const headingSlug = getQueryString(req.query.heading_slug)
+  const itemSlug = getQueryString(req.query.item_slug)
 
   if (headingSlug && itemSlug) {
-    const group = groups.find((entry) => entry.slug === headingSlug)
-    const item = group?.terms.find(
-      (term) => getPublicExploreTermSlug(term) === itemSlug
-    )
-
-    if (!group || !item) {
-      res.status(200).json({
-        groups,
-        group: null,
-        item: null,
-        product_ids: [],
-      })
-      return
-    }
-
-    const productLinks = (await taxonomyService.listProductTaxonomyTerms(
-      { term_id: item.id },
-      { take: 1000, order: { sort_order: "ASC", created_at: "DESC" } }
-    )) as ProductTaxonomyTermRecord[]
+    const group = groups.find((candidate) => candidate.slug === headingSlug)
+    const item = group?.terms.find((term) => term.slug === itemSlug)
 
     res.status(200).json({
       groups,
-      group,
-      item,
-      product_ids: productLinks.map((link) => link.product_id),
+      group: group && item ? group : null,
+      item: item ?? null,
+      product_ids: item?.product_ids ?? [],
     })
     return
   }
@@ -86,42 +129,71 @@ export async function GET(
   res.status(200).json({ groups })
 }
 
-async function getExploreGroups(taxonomyService: any) {
-  const taxonomies = (await taxonomyService.listTaxonomies(
-    { status: "active" },
-    { take: 500, order: { sort_order: "ASC", created_at: "DESC" } }
-  )) as TaxonomyRecord[]
-  const byCode = new Map(taxonomies.map((taxonomy) => [taxonomy.code, taxonomy]))
-  const termsByTaxonomyId = new Map<string, TaxonomyTermRecord[]>()
+function toCategoryTerm(
+  category: CategoryRecord,
+  index: number
+): ExploreTerm {
+  const metadata = category.metadata ?? {}
 
-  for (const group of exploreGroups) {
-    const taxonomy = byCode.get(group.code)
-
-    if (!taxonomy) {
-      continue
-    }
-
-    const terms = (await taxonomyService.listTaxonomyTerms(
-      { taxonomy_id: taxonomy.id, status: "active" },
-      { take: 200, order: { sort_order: "ASC", created_at: "DESC" } }
-    )) as TaxonomyTermRecord[]
-
-    termsByTaxonomyId.set(taxonomy.id, terms)
+  return {
+    id: category.id,
+    taxonomy_id: "medusa_categories",
+    name: category.name,
+    slug: category.handle,
+    image_url: getMetadataString(metadata, "image_url"),
+    description: category.description ?? null,
+    sort_order: category.rank ?? index,
+    seo_title: getMetadataString(metadata, "seo_title"),
+    seo_description: getMetadataString(metadata, "seo_description"),
+    metadata: {
+      ...metadata,
+      entity_type: "category",
+      href: `/categories/${category.handle}`,
+    },
+    product_ids: uniqueProductIds(category.products),
   }
+}
 
-  const groups = exploreGroups.map((group) => {
-    const taxonomy = byCode.get(group.code)
+function toCollectionTerm(
+  collection: CollectionRecord,
+  index: number
+): ExploreTerm {
+  const metadata = collection.metadata ?? {}
 
-    return {
-      code: group.code,
-      label: group.label,
-      slug: group.slug,
-      sort_order: group.sort_order,
-      taxonomy_id: taxonomy?.id ?? null,
-      metadata: taxonomy?.metadata ?? null,
-      terms: taxonomy ? termsByTaxonomyId.get(taxonomy.id) ?? [] : [],
-    }
-  })
+  return {
+    id: collection.id,
+    taxonomy_id: "medusa_collections",
+    name: collection.title,
+    slug: collection.handle,
+    image_url: getMetadataString(metadata, "image_url"),
+    description: getMetadataString(metadata, "description"),
+    sort_order: index,
+    seo_title: getMetadataString(metadata, "seo_title"),
+    seo_description: getMetadataString(metadata, "seo_description"),
+    metadata: {
+      ...metadata,
+      entity_type: "collection",
+      href: `/collections/${collection.handle}`,
+    },
+    product_ids: uniqueProductIds(collection.products),
+  }
+}
 
-  return resolveExploreNavigations(groups)
+function uniqueProductIds(products: ProductLink[] | undefined) {
+  return Array.from(
+    new Set((products ?? []).map((product) => product.id).filter(Boolean))
+  )
+}
+
+function getMetadataString(
+  metadata: Record<string, unknown>,
+  key: string
+) {
+  const value = metadata[key]
+
+  return typeof value === "string" && value.trim() ? value.trim() : null
+}
+
+function getQueryString(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined
 }

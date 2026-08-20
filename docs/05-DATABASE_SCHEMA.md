@@ -26,6 +26,23 @@ source of truth for payment and order state.
 
 ## Product Extensions
 
+### Catalog album and image products
+
+For the printable catalog, native Medusa entities have these roles:
+
+- `Product` is the album/group and owns categories, collection, description,
+  price configuration, and the internal commerce variant.
+- Each native `ProductImage` is projected as one storefront image product.
+- `ProductImage.metadata` stores `title`, `handle`, `code`, `active`, `alt`, and
+  `original_filename`.
+- The image is not a Medusa variant. Cart and checkout still use the parent
+  product's internal variant.
+- Cart/order line metadata snapshots the image ID, name, code, URL, virtual
+  handle, and parent product ID so production can identify the selected print.
+
+The native `ProductImage.id` is the stable catalog-image identity. A URL or
+image rank must not be used as the identity.
+
 Các metadata/custom relation có thể gồm:
 - material,
 - size,

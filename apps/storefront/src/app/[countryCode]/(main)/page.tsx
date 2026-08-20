@@ -3,7 +3,7 @@
 import { Metadata } from "next"
 
 import { listCategories } from "@lib/data/categories"
-import { listProducts } from "@lib/data/products"
+import { listImageProducts } from "@lib/data/image-products"
 import { getRegion } from "@lib/data/regions"
 import {
   getTtvCategoryPageConfig,
@@ -11,7 +11,6 @@ import {
   type TtvCategoryPageConfig,
 } from "@lib/data/ttv"
 import { HttpTypes } from "@medusajs/types"
-import { filterTtvVisibleStorefrontProducts } from "@lib/util/product-visibility"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import HomeHeroCarousel from "@modules/home/components/hero-carousel"
 import ProductPreview from "@modules/products/components/product-preview"
@@ -39,7 +38,7 @@ export default async function Home(props: {
       },
       { cache: "no-store" }
     ).catch(() => []),
-    listProducts({
+    listImageProducts({
       countryCode,
       queryParams: {
         limit: 8,
@@ -50,9 +49,7 @@ export default async function Home(props: {
     })),
     getTtvHomeHeroConfig(),
   ])
-  const products = filterTtvVisibleStorefrontProducts(
-    productsResponse.response.products
-  )
+  const products = productsResponse.response.products
   const displayCategories = getRootCategories(categories).slice(0, 8)
   const categoryConfigs = await Promise.all(
     displayCategories.map((category) =>

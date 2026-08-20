@@ -10,6 +10,7 @@ import {
   uploadFilesWorkflow,
 } from "@medusajs/medusa/core-flows"
 
+import { buildImageProductMetadata } from "../../../../../../lib/image-products"
 import { getTaxonomyService, unique } from "../../utils"
 import {
   buildProductImageUploadTarget,
@@ -45,6 +46,8 @@ type ProductTaxonomyTermRecord = {
 type ProductImageRecord = {
   id?: string
   url: string
+  rank?: number | null
+  metadata?: Record<string, unknown> | null
 }
 
 type ProductRecord = {
@@ -66,14 +69,15 @@ export async function POST(
   res: MedusaResponse
 ): Promise<void> {
   const body = req.body as Record<string, unknown>
+  const productId = getString(body.product_id)
   const termId = getString(body.term_id)
   const exploreHeading = getString(body.explore_heading)
   const files = getUploadedFiles(body.files)
 
-  if (!termId) {
+  if (!termId && !productId) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Please select an Explore Item before uploading images."
+      "A product or Explore Item is required before uploading images."
     )
   }
 
@@ -85,8 +89,12 @@ export async function POST(
   }
 
   const taxonomyService = getTaxonomyService(req.scope)
-  const term = await getExploreTerm(taxonomyService, termId, exploreHeading)
-  const product = await getProductForExploreTerm(req, term)
+  const term = termId
+    ? await getExploreTerm(taxonomyService, termId, exploreHeading)
+    : null
+  const product = productId
+    ? await getProductById(req, productId)
+    : await getProductForExploreTerm(req, term!)
   const failed: FailedUpload[] = []
   const validFiles = files.filter((file) => {
     const isSupported = isSupportedProductImageFile({
@@ -115,22 +123,26 @@ export async function POST(
   }
 
   const currentImages = product.images ?? []
+  const sequenceKey = term?.id ?? product.id
+  const pathBaseName =
+    term?.slug || term?.name || product.handle || product.title
   let nextSequence = getNextProductImageSequence({
     images: currentImages,
-    pathBaseName: term.slug || term.name || product.handle || product.title,
-    storedSequence: getStoredSequence(product.metadata, term.id),
+    pathBaseName,
+    storedSequence: getStoredSequence(product.metadata, sequenceKey),
   })
   const uploadedImages: Array<{
     name: string
     sequence: number
     url: string
+    metadata: ReturnType<typeof buildImageProductMetadata>
   }> = []
 
   for (const file of validFiles) {
     const sequence = nextSequence
     const target = buildProductImageUploadTarget({
       displayBaseName: product.title,
-      pathBaseName: term.slug || term.name || product.handle || product.title,
+      pathBaseName,
       sequence,
       originalFilename: file.filename,
     })
@@ -161,6 +173,12 @@ export async function POST(
         name: target.displayName,
         sequence,
         url: uploadedFile.url,
+        metadata: buildImageProductMetadata({
+          parentTitle: product.title,
+          parentHandle: product.handle,
+          sequence,
+          originalFilename: file.filename,
+        }),
       })
       nextSequence += 1
     } catch (error) {
@@ -177,12 +195,16 @@ export async function POST(
       ...currentImages.map((image) => ({
         ...(image.id ? { id: image.id } : {}),
         url: image.url,
+        metadata: image.metadata ?? {},
       })),
-      ...uploadedImages.map((image) => ({ url: image.url })),
+      ...uploadedImages.map((image) => ({
+        url: image.url,
+        metadata: image.metadata,
+      })),
     ]
     const nextMetadata = setStoredSequence(
       product.metadata,
-      term.id,
+      sequenceKey,
       uploadedImages[uploadedImages.length - 1].sequence
     )
 
@@ -288,6 +310,8 @@ async function getProductById(
       "metadata",
       "images.id",
       "images.url",
+      "images.rank",
+      "images.metadata",
     ],
     filters: { id: productId },
   })) as { data?: ProductRecord[] }
@@ -373,6 +397,17 @@ async function createProductForExploreItem(
               values: ["Default"],
             },
           ],
+          variants: [
+            {
+              title: "Default",
+              sku: `${handle.toUpperCase().replace(/-/g, "_")}_DEFAULT`,
+              manage_inventory: false,
+              allow_backorder: true,
+              options: {
+                Default: "Default",
+              },
+            },
+          ],
           metadata: {
             ttv_created_from_explore_item_id: term.id,
             ttv_created_from_explore_item_name: term.name,
@@ -425,6 +460,8 @@ const productLookupFields = [
   "metadata",
   "images.id",
   "images.url",
+  "images.rank",
+  "images.metadata",
 ]
 
 function normalizeProductLookupValue(value: string) {

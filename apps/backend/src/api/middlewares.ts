@@ -1,11 +1,27 @@
 // Backend middleware for API body size and project-specific request shaping.
 
+import { validateAndTransformQuery } from "@medusajs/framework"
 import {
+  applyDefaultFilters,
+  authenticate,
+  clearFiltersByKey,
   defineMiddlewares,
   MedusaNextFunction,
   MedusaRequest,
   MedusaResponse,
+  maybeApplyLinkFilter,
 } from "@medusajs/framework/http"
+import { ProductStatus } from "@medusajs/framework/utils"
+import {
+  filterByValidSalesChannels,
+  normalizeDataForContext,
+  setPricingContext,
+  setTaxContext,
+} from "@medusajs/medusa/api/utils/middlewares/index"
+
+import { listImageProductQueryConfig } from "./store/image-products/query-config"
+import { StoreGetImageProductsParams } from "./store/image-products/validators"
+import { canonicalizeImageProductLineMetadata } from "../lib/image-product-cart"
 
 export default defineMiddlewares({
   routes: [
@@ -51,6 +67,56 @@ export default defineMiddlewares({
       },
     },
     {
+      matcher: "/store/image-products",
+      methods: ["GET"],
+      middlewares: [
+        authenticate("customer", ["session", "bearer"], {
+          allowUnauthenticated: true,
+        }),
+        validateAndTransformQuery(
+          StoreGetImageProductsParams,
+          listImageProductQueryConfig
+        ),
+        filterByValidSalesChannels(),
+        maybeApplyLinkFilter({
+          entryPoint: "product_sales_channel",
+          resourceId: "product_id",
+          filterableField: "sales_channel_id",
+        }),
+        applyDefaultFilters({
+          status: ProductStatus.PUBLISHED,
+          categories: (filters) => {
+            const categoryIds = filters.category_id
+            delete filters.category_id
+
+            if (!categoryIds) {
+              return
+            }
+
+            return {
+              id: categoryIds,
+              is_internal: false,
+              is_active: true,
+            }
+          },
+        }),
+        normalizeDataForContext(),
+        setPricingContext(),
+        setTaxContext(),
+        clearFiltersByKey([
+          "region_id",
+          "country_code",
+          "province",
+          "cart_id",
+        ]),
+      ],
+    },
+    {
+      matcher: "/store/carts/*/line-items",
+      methods: ["POST"],
+      middlewares: [canonicalizeImageProductLineItem],
+    },
+    {
       matcher: "/store/tranh-tran-vien/custom-wall/uploads",
       methods: ["POST"],
       bodyParser: {
@@ -84,6 +150,35 @@ function forceMadeToOrderInventory(
 
   forceProductPayload(req.body)
   next()
+}
+
+async function canonicalizeImageProductLineItem(
+  req: MedusaRequest,
+  _res: MedusaResponse,
+  next: MedusaNextFunction
+) {
+  try {
+    if (!isRecord(req.body)) {
+      return next()
+    }
+
+    const variantId =
+      typeof req.body.variant_id === "string" ? req.body.variant_id : ""
+    const metadata = isRecord(req.body.metadata) ? req.body.metadata : null
+
+    if (!variantId || !metadata) {
+      return next()
+    }
+
+    req.body.metadata = await canonicalizeImageProductLineMetadata({
+      scope: req.scope,
+      variantId,
+      metadata,
+    })
+    next()
+  } catch (error) {
+    next(error)
+  }
 }
 
 function blockInventoryWrites(

@@ -28,7 +28,13 @@ type ComboTier = {
 type ComboRule = {
   id: string
   name: string
-  scope_type: "taxonomy"
+  scope_type:
+    | "all"
+    | "product"
+    | "category"
+    | "collection"
+    | "option"
+    | "taxonomy"
   taxonomy_term_id?: string | null
   tiers: ComboTier[]
 }

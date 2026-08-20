@@ -42,13 +42,28 @@ export default async function ProductActionsWrapper({
   const taxonomyTermIds = new Set(
     catalogLinks.product_taxonomy_terms.map((link) => link.term_id)
   )
-  const comboRules = rules.filter(
-    (rule) =>
-      rule.scope_type === "taxonomy" &&
-      Boolean(
+  const categoryIds = new Set((product.categories ?? []).map(({ id }) => id))
+  const comboRules = rules.filter((rule) => {
+    if (rule.scope_type === "category") {
+      return Boolean(rule.category_id && categoryIds.has(rule.category_id))
+    }
+
+    if (rule.scope_type === "collection") {
+      return rule.collection_id === product.collection_id
+    }
+
+    if (rule.scope_type === "product") {
+      return rule.product_id === product.id
+    }
+
+    if (rule.scope_type === "taxonomy") {
+      return Boolean(
         rule.taxonomy_term_id && taxonomyTermIds.has(rule.taxonomy_term_id)
       )
-  )
+    }
+
+    return rule.scope_type === "all"
+  })
 
   return (
     <ProductActions

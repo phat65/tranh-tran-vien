@@ -1,6 +1,6 @@
 import { defineWidgetConfig } from "@medusajs/admin-sdk"
-import { Button, Container, Heading, Text, toast } from "@medusajs/ui"
-import { ChangeEvent, useEffect, useMemo, useState } from "react"
+import { Button, Container, Heading, Text, toast, usePrompt } from "@medusajs/ui"
+import { ChangeEvent, useEffect, useState } from "react"
 
 type ProductWidgetProps = {
   data?: {
@@ -8,67 +8,43 @@ type ProductWidgetProps = {
   }
 }
 
-type ExploreImage = {
+type ImageProduct = {
   image_id: string
+  title: string
+  handle: string
   code: string
   url: string
   original_filename: string
   alt: string
+  active: boolean
   sort_order: number
-  visibility: "visible" | "hidden"
 }
 
-type ExploreTerm = {
-  id: string
-  name: string
-  status: "draft" | "active" | "archived"
-  metadata?: {
-    gallery_images?: ExploreImage[]
-    [key: string]: unknown
-  } | null
+type ImageProductsResponse = {
+  product_id: string
+  product_title: string
+  images: ImageProduct[]
 }
 
-type ExploreGroup = {
-  code: string
-  label: string
-  terms: ExploreTerm[]
+type ProductImageUploadResponse = {
+  uploaded_count: number
+  failed_count: number
+  failed?: Array<{ filename: string; message: string }>
 }
 
-type ExploreResponse = {
-  groups: ExploreGroup[]
-  selected_term_ids?: string[]
-}
-
-type GalleryResponse = {
-  gallery_images: ExploreImage[]
-}
-
-const EXPLORE_API = "/admin/tranh-tran-vien/catalog/explore"
+const IMAGE_PRODUCTS_API = "/admin/tranh-tran-vien/catalog/image-products"
+const IMAGE_UPLOAD_API =
+  "/admin/tranh-tran-vien/catalog/explore/product-images"
 
 const TtvProductExploreWidget = ({ data }: ProductWidgetProps) => {
   const productId = data?.id
-  const [groups, setGroups] = useState<ExploreGroup[]>([])
-  const [selectedTermIds, setSelectedTermIds] = useState<string[]>([])
-  const [activeGroupCode, setActiveGroupCode] = useState("")
-  const [activeTermId, setActiveTermId] = useState("")
+  const prompt = usePrompt()
+  const [images, setImages] = useState<ImageProduct[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
+  const [savingImageId, setSavingImageId] = useState("")
 
-  const activeGroup = useMemo(
-    () => groups.find((group) => group.code === activeGroupCode) ?? groups[0],
-    [activeGroupCode, groups]
-  )
-  const activeTerm = useMemo(
-    () => activeGroup?.terms.find((term) => term.id === activeTermId),
-    [activeGroup, activeTermId]
-  )
-  const galleryImages = useMemo(
-    () => getGalleryImages(activeTerm),
-    [activeTerm]
-  )
-
-  const loadExplore = async () => {
+  const loadData = async () => {
     if (!productId) {
       return
     }
@@ -76,107 +52,67 @@ const TtvProductExploreWidget = ({ data }: ProductWidgetProps) => {
     setIsLoading(true)
 
     try {
-      const response = await adminFetch<ExploreResponse>(
-        `${EXPLORE_API}?product_id=${encodeURIComponent(productId)}`
+      const imageProducts = await adminFetch<ImageProductsResponse>(
+        `${IMAGE_PRODUCTS_API}?product_id=${encodeURIComponent(productId)}`
       )
-
-      setGroups(response.groups)
-      setSelectedTermIds(response.selected_term_ids ?? [])
-      setActiveGroupCode((current) => {
-        const nextGroup = getValidGroup(response.groups, current)
-        return nextGroup?.code ?? ""
-      })
-      setActiveTermId((current) => {
-        const nextGroup = getValidGroup(response.groups, activeGroupCode)
-        const isValidCurrent = nextGroup?.terms.some(
-          (term) => term.id === current
-        )
-
-        return isValidCurrent ? current : nextGroup?.terms[0]?.id ?? ""
-      })
+      setImages(imageProducts.images)
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not load Explore")
+      toast.error(error instanceof Error ? error.message : "Could not load product data")
     } finally {
       setIsLoading(false)
     }
   }
 
-  const saveProductAssignment = async () => {
-    if (!productId) {
-      return
-    }
+  useEffect(() => {
+    loadData()
+  }, [productId])
 
-    setIsSaving(true)
-
-    try {
-      const response = await adminFetch<{ selected_term_ids?: string[] }>(
-        EXPLORE_API,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            product_id: productId,
-            term_ids: selectedTermIds,
-          }),
-        }
-      )
-
-      setSelectedTermIds(response.selected_term_ids ?? [])
-      toast.success("Explore assignments saved")
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not save Explore")
-    } finally {
-      setIsSaving(false)
-    }
+  if (!productId) {
+    return null
   }
 
-  const uploadGalleryImages = async (event: ChangeEvent<HTMLInputElement>) => {
+  const uploadImages = async (event: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files ?? [])
     event.target.value = ""
 
-    if (!activeTerm || !files.length) {
+    if (!files.length) {
       return
     }
 
     setIsUploading(true)
 
     try {
-      const data = new FormData()
-      files.forEach((file) => data.append("files", file))
+      const payloadFiles = await Promise.all(
+        files.map(async (file) => ({
+          filename: file.name,
+          mime_type: file.type,
+          content: await fileToBase64(file),
+        }))
+      )
+      const response = await adminFetch<ProductImageUploadResponse>(
+        IMAGE_UPLOAD_API,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            product_id: productId,
+            files: payloadFiles,
+          }),
+        }
+      )
 
-      const response = await fetch("/admin/uploads?fields=id,url", {
-        method: "POST",
-        body: data,
-      })
-
-      if (!response.ok) {
-        const text = await response.text()
-        throw new Error(text || `Upload failed with status ${response.status}`)
+      if (response.uploaded_count) {
+        toast.success(`${response.uploaded_count} image product(s) uploaded`)
       }
 
-      const result = (await response.json()) as {
-        files?: { id: string; url: string }[]
+      if (response.failed?.length) {
+        toast.error(
+          response.failed
+            .map((failure) => `${failure.filename}: ${failure.message}`)
+            .join("\n")
+        )
       }
-      const uploadedFiles = result.files ?? []
 
-      if (!uploadedFiles.length) {
-        throw new Error("Upload did not return image URLs")
-      }
-
-      const gallery = await adminFetch<GalleryResponse>(EXPLORE_API, {
-        method: "PATCH",
-        body: JSON.stringify({
-          action: "add_images",
-          term_id: activeTerm.id,
-          images: uploadedFiles.map((file, index) => ({
-            image_id: file.id,
-            url: file.url,
-            original_filename: files[index]?.name ?? "",
-          })),
-        }),
-      })
-
-      updateActiveTermGallery(gallery.gallery_images)
-      toast.success(`Uploaded ${uploadedFiles.length} image(s)`)
+      await loadImages(productId, setImages)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not upload images")
     } finally {
@@ -184,419 +120,290 @@ const TtvProductExploreWidget = ({ data }: ProductWidgetProps) => {
     }
   }
 
-  const patchGalleryImage = async (
-    imageId: string,
-    patch: Partial<ExploreImage>
-  ) => {
-    if (!activeTerm) {
-      return
-    }
-
-    try {
-      const response = await adminFetch<GalleryResponse>(EXPLORE_API, {
-        method: "PATCH",
-        body: JSON.stringify({
-          action: "update_image",
-          term_id: activeTerm.id,
-          image_id: imageId,
-          patch,
-        }),
-      })
-
-      updateActiveTermGallery(response.gallery_images)
-      toast.success("Image saved")
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not save image")
-    }
-  }
-
-  const deleteGalleryImage = async (imageId: string) => {
-    if (!activeTerm) {
-      return
-    }
-
-    try {
-      const response = await adminFetch<GalleryResponse>(EXPLORE_API, {
-        method: "PATCH",
-        body: JSON.stringify({
-          action: "delete_image",
-          term_id: activeTerm.id,
-          image_id: imageId,
-        }),
-      })
-
-      updateActiveTermGallery(response.gallery_images)
-      toast.success("Image deleted")
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not delete image")
-    }
-  }
-
-  const moveGalleryImage = async (imageId: string, direction: -1 | 1) => {
-    if (!activeTerm) {
-      return
-    }
-
-    const currentIndex = galleryImages.findIndex(
-      (image) => image.image_id === imageId
-    )
-    const nextIndex = currentIndex + direction
-
-    if (currentIndex < 0 || nextIndex < 0 || nextIndex >= galleryImages.length) {
-      return
-    }
-
-    const nextImages = [...galleryImages]
-    const [image] = nextImages.splice(currentIndex, 1)
-    nextImages.splice(nextIndex, 0, image)
-
-    try {
-      const response = await adminFetch<GalleryResponse>(EXPLORE_API, {
-        method: "PATCH",
-        body: JSON.stringify({
-          action: "reorder_images",
-          term_id: activeTerm.id,
-          image_ids: nextImages.map((candidate) => candidate.image_id),
-        }),
-      })
-
-      updateActiveTermGallery(response.gallery_images)
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not reorder image")
-    }
-  }
-
   const updateLocalImage = (
     imageId: string,
-    patch: Partial<ExploreImage>
+    patch: Partial<ImageProduct>
   ) => {
-    updateActiveTermGallery(
-      galleryImages.map((image) =>
+    setImages((current) =>
+      current.map((image) =>
         image.image_id === imageId ? { ...image, ...patch } : image
       )
     )
   }
 
-  const updateActiveTermGallery = (images: ExploreImage[]) => {
-    if (!activeTerm) {
+  const saveImage = async (image: ImageProduct) => {
+    setSavingImageId(image.image_id)
+
+    try {
+      const response = await patchImages({
+        action: "update_image",
+        product_id: productId,
+        image_id: image.image_id,
+        patch: {
+          title: image.title,
+          handle: image.handle,
+          code: image.code,
+          active: image.active,
+          alt: image.alt,
+          original_filename: image.original_filename,
+        },
+      })
+
+      setImages(response.images)
+      toast.success("Image product saved")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not save image product")
+    } finally {
+      setSavingImageId("")
+    }
+  }
+
+  const moveImage = async (imageId: string, direction: -1 | 1) => {
+    const currentIndex = images.findIndex((image) => image.image_id === imageId)
+    const nextIndex = currentIndex + direction
+
+    if (currentIndex < 0 || nextIndex < 0 || nextIndex >= images.length) {
       return
     }
 
-    setGroups((current) =>
-      current.map((group) => ({
-        ...group,
-        terms: group.terms.map((term) =>
-          term.id === activeTerm.id
-            ? {
-                ...term,
-                metadata: {
-                  ...(term.metadata ?? {}),
-                  gallery_images: images,
-                },
-              }
-            : term
-        ),
-      }))
-    )
+    const nextImages = [...images]
+    const [image] = nextImages.splice(currentIndex, 1)
+    nextImages.splice(nextIndex, 0, image)
+    setImages(nextImages)
+
+    try {
+      const response = await patchImages({
+        action: "reorder_images",
+        product_id: productId,
+        image_ids: nextImages.map((candidate) => candidate.image_id),
+      })
+      setImages(response.images)
+    } catch (error) {
+      setImages(images)
+      toast.error(error instanceof Error ? error.message : "Could not reorder images")
+    }
   }
 
-  useEffect(() => {
-    loadExplore()
-  }, [productId])
+  const deleteImage = async (image: ImageProduct) => {
+    const confirmed = await prompt({
+      title: "Delete image product?",
+      description: `Remove “${image.title}” from this product album. Existing order snapshots are not changed.`,
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      variant: "danger",
+    })
 
-  if (!productId) {
-    return null
+    if (!confirmed) {
+      return
+    }
+
+    try {
+      const response = await patchImages({
+        action: "delete_image",
+        product_id: productId,
+        image_id: image.image_id,
+      })
+      setImages(response.images)
+      toast.success("Image product deleted")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not delete image product")
+    }
   }
 
   return (
     <Container className="divide-y p-0">
-      <div className="flex items-center justify-between px-6 py-4">
+      <div className="flex items-center justify-between gap-4 px-6 py-4">
         <div>
-          <Heading level="h2">Explore</Heading>
+          <Heading level="h2">Album & image products</Heading>
           <Text className="text-ui-fg-subtle" size="small">
-            Assign this product and manage the selected Explore Item gallery.
+            This Medusa Product is the album. Each active image is one storefront product.
           </Text>
         </div>
-        <div className="flex items-center gap-2">
-          <a
-            href="/app/tranh-tran-vien/storefront/explore-items"
-            className="rounded-rounded border border-ui-border-base px-3 py-2 text-small-regular text-ui-fg-subtle transition-colors hover:border-ui-border-strong hover:text-ui-fg-base"
-          >
-            Manage items
-          </a>
-          <Button
-            type="button"
-            size="small"
-            variant="secondary"
-            onClick={loadExplore}
-            isLoading={isLoading}
-          >
-            Refresh
-          </Button>
-        </div>
+        <Button
+          type="button"
+          size="small"
+          variant="secondary"
+          onClick={loadData}
+          isLoading={isLoading}
+        >
+          Refresh
+        </Button>
       </div>
 
-      <div className="grid gap-6 p-6">
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-          {groups.map((group) => (
-            <div key={group.code} className="grid content-start gap-2">
-              <Text size="small" weight="plus">
-                {group.label}
-              </Text>
-              {group.terms.length ? (
-                group.terms.map((term) => (
-                  <label
-                    key={term.id}
-                    className="flex items-center gap-2 text-small-regular text-ui-fg-subtle"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedTermIds.includes(term.id)}
-                      onChange={(event) =>
-                        setSelectedTermIds((current) =>
-                          event.target.checked
-                            ? unique([...current, term.id])
-                            : current.filter((termId) => termId !== term.id)
-                        )
-                      }
-                    />
-                    <span>
-                      {term.name}
-                      {term.status === "active" ? "" : " (hidden)"}
-                    </span>
-                  </label>
-                ))
-              ) : (
-                <Text className="text-ui-fg-muted" size="xsmall">
-                  No items yet
-                </Text>
-              )}
-            </div>
-          ))}
-        </div>
-
-        <div className="flex justify-end">
-          <Button
-            type="button"
-            onClick={saveProductAssignment}
-            isLoading={isSaving}
-          >
-            Save Explore
-          </Button>
-        </div>
-
-        <div className="grid gap-4 rounded-rounded border border-ui-border-base p-4">
-          <div className="grid gap-3 md:grid-cols-2">
-            <label className="grid gap-1 text-small-regular text-ui-fg-subtle">
-              <span>Explore Heading</span>
-              <select
-                className="h-10 rounded-rounded border border-ui-border-base bg-ui-bg-base px-3 text-ui-fg-base"
-                value={activeGroup?.code ?? ""}
-                onChange={(event) => {
-                  const group = groups.find(
-                    (candidate) => candidate.code === event.target.value
-                  )
-                  setActiveGroupCode(event.target.value)
-                  setActiveTermId("")
-                  window.setTimeout(
-                    () => setActiveTermId(group?.terms[0]?.id ?? ""),
-                    0
-                  )
-                }}
-              >
-                {groups.map((group) => (
-                  <option key={group.code} value={group.code}>
-                    {group.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="grid gap-1 text-small-regular text-ui-fg-subtle">
-              <span>Explore Item</span>
-              <select
-                className="h-10 rounded-rounded border border-ui-border-base bg-ui-bg-base px-3 text-ui-fg-base"
-                value={activeTerm?.id ?? ""}
-                onChange={(event) => setActiveTermId(event.target.value)}
-                disabled={!activeGroup?.terms.length}
-              >
-                {(activeGroup?.terms ?? []).map((term) => (
-                  <option key={term.id} value={term.id}>
-                    {term.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <Text size="small" weight="plus">
-                Images
-              </Text>
-              <Text className="text-ui-fg-subtle" size="xsmall">
-                {activeTerm
-                  ? `${activeGroup?.label ?? ""} / ${activeTerm.name}`
-                  : "Choose an Explore Item"}
-              </Text>
-            </div>
-            <label className="cursor-pointer rounded-rounded border border-ui-border-base px-3 py-2 text-small-regular text-ui-fg-subtle transition-colors hover:border-ui-border-strong hover:text-ui-fg-base">
-              {isUploading ? "Uploading..." : "+ Add Images"}
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                className="sr-only"
-                disabled={!activeTerm || isUploading}
-                onChange={uploadGalleryImages}
-              />
-            </label>
-          </div>
-
-          {!activeTerm ? (
-            <Text className="text-ui-fg-muted" size="small">
-              Choose an Explore Item to view its images.
+      <div className="grid gap-5 p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <Text size="small" weight="plus">Image products ({images.length})</Text>
+            <Text className="text-ui-fg-subtle" size="xsmall">
+              Category and collection come from this parent Product. Price and
+              production options come from its internal variant.
             </Text>
-          ) : galleryImages.length ? (
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {galleryImages.map((image, index) => (
-                <div
-                  key={image.image_id}
-                  className="grid gap-3 rounded-rounded border border-ui-border-base p-3"
-                >
-                  <img
-                    src={image.url}
-                    alt={image.alt || image.code}
-                    className="aspect-[4/3] w-full rounded-rounded border border-ui-border-base object-cover"
+          </div>
+          <label className="cursor-pointer rounded-rounded border border-ui-border-base px-3 py-2 text-small-regular text-ui-fg-subtle transition-colors hover:border-ui-border-strong hover:text-ui-fg-base">
+            {isUploading ? "Uploading..." : "+ Add images"}
+            <input
+              type="file"
+              accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+              multiple
+              className="sr-only"
+              disabled={isUploading}
+              onChange={uploadImages}
+            />
+          </label>
+        </div>
+
+        {images.length ? (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {images.map((image, index) => (
+              <div
+                key={image.image_id}
+                className="grid gap-3 rounded-rounded border border-ui-border-base p-3"
+              >
+                <img
+                  src={image.url}
+                  alt={image.alt || image.title}
+                  className="aspect-[4/3] w-full rounded-rounded border border-ui-border-base object-cover"
+                />
+                <ImageField
+                  label="Storefront name"
+                  value={image.title}
+                  onChange={(value) => updateLocalImage(image.image_id, { title: value })}
+                />
+                <ImageField
+                  label="Handle"
+                  value={image.handle}
+                  onChange={(value) => updateLocalImage(image.image_id, { handle: value })}
+                />
+                <ImageField
+                  label="Code"
+                  value={image.code}
+                  onChange={(value) => updateLocalImage(image.image_id, { code: value })}
+                />
+                <ImageField
+                  label="Alt text"
+                  value={image.alt}
+                  onChange={(value) => updateLocalImage(image.image_id, { alt: value })}
+                />
+                <ImageField
+                  label="Original filename"
+                  value={image.original_filename}
+                  onChange={(value) =>
+                    updateLocalImage(image.image_id, { original_filename: value })
+                  }
+                />
+                <label className="flex items-center gap-2 text-small-regular text-ui-fg-subtle">
+                  <input
+                    type="checkbox"
+                    checked={image.active}
+                    onChange={(event) =>
+                      updateLocalImage(image.image_id, { active: event.target.checked })
+                    }
                   />
-                  <div className="grid gap-2">
-                    <label className="grid gap-1 text-small-regular text-ui-fg-subtle">
-                      <span>Image code</span>
-                      <input
-                        className="h-9 rounded-rounded border border-ui-border-base bg-ui-bg-base px-2 text-ui-fg-base"
-                        value={image.code}
-                        onChange={(event) =>
-                          updateLocalImage(image.image_id, {
-                            code: event.target.value,
-                          })
-                        }
-                      />
-                    </label>
-                    <label className="grid gap-1 text-small-regular text-ui-fg-subtle">
-                      <span>Original filename</span>
-                      <input
-                        className="h-9 rounded-rounded border border-ui-border-base bg-ui-bg-base px-2 text-ui-fg-base"
-                        value={image.original_filename}
-                        onChange={(event) =>
-                          updateLocalImage(image.image_id, {
-                            original_filename: event.target.value,
-                          })
-                        }
-                      />
-                    </label>
-                    <label className="grid gap-1 text-small-regular text-ui-fg-subtle">
-                      <span>Alt / display name</span>
-                      <input
-                        className="h-9 rounded-rounded border border-ui-border-base bg-ui-bg-base px-2 text-ui-fg-base"
-                        value={image.alt}
-                        onChange={(event) =>
-                          updateLocalImage(image.image_id, {
-                            alt: event.target.value,
-                          })
-                        }
-                      />
-                    </label>
-                  </div>
-                  <Text className="text-ui-fg-muted" size="xsmall">
-                    Order: {image.sort_order + 1} / ID: {image.image_id}
-                  </Text>
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      type="button"
-                      size="small"
-                      variant="secondary"
-                      onClick={() =>
-                        patchGalleryImage(image.image_id, {
-                          code: image.code,
-                          original_filename: image.original_filename,
-                          alt: image.alt,
-                          visibility: image.visibility,
-                        })
-                      }
-                    >
-                      Save
-                    </Button>
-                    <Button
-                      type="button"
-                      size="small"
-                      variant="secondary"
-                      disabled={index === 0}
-                      onClick={() => moveGalleryImage(image.image_id, -1)}
-                    >
-                      Up
-                    </Button>
-                    <Button
-                      type="button"
-                      size="small"
-                      variant="secondary"
-                      disabled={index === galleryImages.length - 1}
-                      onClick={() => moveGalleryImage(image.image_id, 1)}
-                    >
-                      Down
-                    </Button>
-                    <Button
-                      type="button"
-                      size="small"
-                      variant="secondary"
-                      onClick={() =>
-                        patchGalleryImage(image.image_id, {
-                          visibility:
-                            image.visibility === "visible" ? "hidden" : "visible",
-                        })
-                      }
-                    >
-                      {image.visibility === "visible" ? "Hide" : "Show"}
-                    </Button>
-                    <Button
-                      type="button"
-                      size="small"
-                      variant="danger"
-                      onClick={() => deleteGalleryImage(image.image_id)}
-                    >
-                      Delete
-                    </Button>
-                  </div>
+                  Visible on storefront
+                </label>
+                <Text className="text-ui-fg-muted" size="xsmall">
+                  Order {index + 1} · ID {image.image_id}
+                </Text>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    size="small"
+                    onClick={() => saveImage(image)}
+                    isLoading={savingImageId === image.image_id}
+                  >
+                    Save
+                  </Button>
+                  <Button
+                    type="button"
+                    size="small"
+                    variant="secondary"
+                    disabled={index === 0}
+                    onClick={() => moveImage(image.image_id, -1)}
+                  >
+                    Up
+                  </Button>
+                  <Button
+                    type="button"
+                    size="small"
+                    variant="secondary"
+                    disabled={index === images.length - 1}
+                    onClick={() => moveImage(image.image_id, 1)}
+                  >
+                    Down
+                  </Button>
+                  <Button
+                    type="button"
+                    size="small"
+                    variant="danger"
+                    onClick={() => deleteImage(image)}
+                  >
+                    Delete
+                  </Button>
                 </div>
-              ))}
-            </div>
-          ) : (
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-rounded border border-dashed border-ui-border-base p-6">
             <Text className="text-ui-fg-muted" size="small">
-              No images for this Explore Item yet.
+              No images yet. Upload at least one image before publishing this album.
             </Text>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </Container>
   )
 }
 
-function getGalleryImages(term?: ExploreTerm): ExploreImage[] {
-  const galleryImages = term?.metadata?.gallery_images
-
-  if (!Array.isArray(galleryImages)) {
-    return []
-  }
-
-  return [...galleryImages].sort(
-    (first, second) => first.sort_order - second.sort_order
+function ImageField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string
+  value: string
+  onChange: (value: string) => void
+}) {
+  return (
+    <label className="grid gap-1 text-small-regular text-ui-fg-subtle">
+      <span>{label}</span>
+      <input
+        className="h-9 rounded-rounded border border-ui-border-base bg-ui-bg-base px-2 text-ui-fg-base"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      />
+    </label>
   )
 }
 
-function getValidGroup(groups: ExploreGroup[], groupCode: string) {
-  return groups.find((group) => group.code === groupCode) ?? groups[0]
+async function loadImages(
+  productId: string,
+  setImages: (images: ImageProduct[]) => void
+) {
+  const response = await adminFetch<ImageProductsResponse>(
+    `${IMAGE_PRODUCTS_API}?product_id=${encodeURIComponent(productId)}`
+  )
+  setImages(response.images)
 }
 
-function unique(values: string[]) {
-  return Array.from(new Set(values))
+async function patchImages(body: Record<string, unknown>) {
+  return adminFetch<ImageProductsResponse>(IMAGE_PRODUCTS_API, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  })
+}
+
+async function fileToBase64(file: File) {
+  const buffer = await file.arrayBuffer()
+  let binary = ""
+  const bytes = new Uint8Array(buffer)
+  const chunkSize = 0x8000
+
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize))
+  }
+
+  return window.btoa(binary)
 }
 
 async function adminFetch<T = unknown>(
@@ -613,7 +420,19 @@ async function adminFetch<T = unknown>(
 
   if (!response.ok) {
     const text = await response.text()
-    throw new Error(text || `Request failed with status ${response.status}`)
+    let message = text
+
+    try {
+      const payload = JSON.parse(text) as { message?: unknown }
+
+      if (typeof payload.message === "string") {
+        message = payload.message
+      }
+    } catch {
+      message = text
+    }
+
+    throw new Error(message || `Request failed with status ${response.status}`)
   }
 
   return response.json() as Promise<T>

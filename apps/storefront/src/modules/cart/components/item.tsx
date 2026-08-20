@@ -53,7 +53,7 @@ const Item = ({ item, type = "full", currencyCode }: ItemProps) => {
   const exploreImage = getExploreImageSelection(item)
   const productHref = customImageUrl
     ? "/custom/tranh-luc-giac"
-    : `/products/${item.product_handle}`
+    : `/products/${exploreImage?.handle || item.product_handle}`
 
   return (
     <Table.Row className="w-full" data-testid="product-row">
@@ -82,7 +82,7 @@ const Item = ({ item, type = "full", currencyCode }: ItemProps) => {
           className="txt-medium-plus text-ui-fg-base"
           data-testid="product-title"
         >
-          {customDisplayTitle ?? item.product_title}
+          {customDisplayTitle ?? exploreImage?.name ?? item.product_title}
         </Text>
         <LineItemOptions variant={item.variant} data-testid="product-variant" />
         {customImageUrl && (
@@ -98,7 +98,7 @@ const Item = ({ item, type = "full", currencyCode }: ItemProps) => {
               className="h-10 w-10 rounded border border-ui-border-base object-cover"
             />
             <Text className="text-xs text-ui-fg-muted">
-              {exploreImage.group} / {exploreImage.item}:{" "}
+              {exploreImage.context ? `${exploreImage.context}: ` : ""}
               <span className="font-semibold text-ui-fg-base">
                 {exploreImage.code}
               </span>
@@ -217,18 +217,28 @@ function getExploreImageSelection(item: HttpTypes.StoreCartLineItem) {
   return {
     code,
     url,
+    name:
+      typeof metadata?.ttv_explore_image_name === "string"
+        ? metadata.ttv_explore_image_name
+        : code,
+    handle:
+      typeof metadata?.ttv_image_product_handle === "string"
+        ? metadata.ttv_image_product_handle
+        : "",
     filename:
       typeof metadata?.ttv_explore_original_filename === "string"
         ? metadata.ttv_explore_original_filename
         : "",
-    group:
+    context: [
       typeof metadata?.ttv_explore_group_label === "string"
         ? metadata.ttv_explore_group_label
-        : "Explore",
-    item:
+        : "",
       typeof metadata?.ttv_explore_item_name === "string"
         ? metadata.ttv_explore_item_name
         : "",
+    ]
+      .filter(Boolean)
+      .join(" / "),
   }
 }
 

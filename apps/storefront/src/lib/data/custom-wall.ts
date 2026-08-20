@@ -25,6 +25,14 @@ export type CustomWallCartItemInput = {
   productId?: string | null
   productTitle?: string | null
   customItemIndex?: number | null
+  virtualProductId?: string | null
+  imageId?: string | null
+  imageCode?: string | null
+  imageName?: string | null
+  imageHandle?: string | null
+  imageAlt?: string | null
+  parentProductId?: string | null
+  parentProductHandle?: string | null
 }
 
 export async function addCustomWallItemsToCart({
@@ -56,6 +64,14 @@ export async function addCustomWallItemsToCart({
         product_id: item.productId,
         product_title: item.productTitle,
         custom_item_index: item.customItemIndex,
+        virtual_product_id: item.virtualProductId,
+        image_id: item.imageId,
+        image_code: item.imageCode,
+        image_name: item.imageName,
+        image_handle: item.imageHandle,
+        image_alt: item.imageAlt,
+        parent_product_id: item.parentProductId,
+        parent_product_handle: item.parentProductHandle,
       })),
     },
     cache: "no-store",
