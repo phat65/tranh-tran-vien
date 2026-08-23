@@ -12,13 +12,7 @@ import {
   ImageProductSource,
   projectImageProducts,
 } from "../../../lib/image-products"
-import { getTaxonomyService } from "../tranh-tran-vien/catalog/utils"
 import type { StoreGetImageProductsParamsType } from "./validators"
-
-type ProductTaxonomyTermRecord = {
-  product_id: string
-  term_id: string
-}
 
 export async function GET(
   req: MedusaRequest,
@@ -39,7 +33,6 @@ export async function GET(
   delete filters.handle
   delete filters.parent_handle
   delete filters.image_id
-  delete filters.taxonomy_term_id
   delete filters.offset
   delete filters.limit
   delete filters.order
@@ -54,18 +47,6 @@ export async function GET(
 
   if (parentHandles.length) {
     filters.handle = parentHandles
-  }
-
-  const taxonomyProductIds = await getTaxonomyProductIds(
-    req,
-    toArray(params.taxonomy_term_id)
-  )
-
-  if (taxonomyProductIds) {
-    const currentIds = toArray(filters.id)
-    filters.id = currentIds.length
-      ? currentIds.filter((id) => taxonomyProductIds.includes(id))
-      : taxonomyProductIds
   }
 
   if (Array.isArray(filters.id) && !filters.id.length) {
@@ -132,23 +113,6 @@ export async function GET(
   })
 }
 
-async function getTaxonomyProductIds(
-  req: MedusaRequest,
-  taxonomyTermIds: string[]
-): Promise<string[] | null> {
-  if (!taxonomyTermIds.length) {
-    return null
-  }
-
-  const taxonomyService = getTaxonomyService(req.scope)
-  const links = (await taxonomyService.listProductTaxonomyTerms(
-    { term_id: taxonomyTermIds },
-    { take: 10000 }
-  )) as ProductTaxonomyTermRecord[]
-
-  return Array.from(new Set(links.map((link) => link.product_id)))
-}
-
 function filterImageProducts(
   products: ImageProduct[],
   params: StoreGetImageProductsParamsType,
@@ -157,7 +121,9 @@ function filterImageProducts(
   const requestedHandles = new Set(toArray(params.handle))
   const requestedImageIds = new Set([
     ...toArray(params.image_id),
-    ...requestedVirtualIds.map((id) => id.slice(IMAGE_PRODUCT_ID_PREFIX.length)),
+    ...requestedVirtualIds.map((id) =>
+      id.slice(IMAGE_PRODUCT_ID_PREFIX.length)
+    ),
   ])
   const search = params.q?.trim().toLocaleLowerCase() ?? ""
 

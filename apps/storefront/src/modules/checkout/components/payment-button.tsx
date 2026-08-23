@@ -5,7 +5,7 @@
 import { isManual, isPayOS, isSePay, isStripeLike } from "@lib/constants"
 import { placeOrder } from "@lib/data/cart"
 import { getPayOSCheckoutUrl } from "@lib/util/payos"
-import { submitSePayCheckout } from "@lib/util/sepay"
+import { getSePayQrDetails } from "@lib/util/sepay"
 import { HttpTypes } from "@medusajs/types"
 import { Button } from "@modules/common/components/ui"
 import { useElements, useStripe } from "@stripe/react-stripe-js"
@@ -30,7 +30,7 @@ const PaymentButton: React.FC<PaymentButtonProps> = ({
 
   const paymentSession =
     cart.payment_collection?.payment_sessions?.find(
-      (session) => session.status === "pending"
+      (session) => session.status === "pending",
     ) ?? cart.payment_collection?.payment_sessions?.[0]
 
   switch (true) {
@@ -58,7 +58,6 @@ const PaymentButton: React.FC<PaymentButtonProps> = ({
       return (
         <SePayPaymentButton
           notReady={notReady}
-          checkoutUrl={paymentSession?.data?.checkout_url}
           checkoutFields={paymentSession?.data?.checkout_fields}
           data-testid={dataTestId}
         />
@@ -69,43 +68,56 @@ const PaymentButton: React.FC<PaymentButtonProps> = ({
 }
 
 const SePayPaymentButton = ({
-  checkoutUrl,
   checkoutFields,
   notReady,
   "data-testid": dataTestId,
 }: {
-  checkoutUrl: unknown
   checkoutFields: unknown
   notReady: boolean
   "data-testid"?: string
 }) => {
   const [submitting, setSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const qrDetails = getSePayQrDetails(checkoutFields)
 
-  const handlePayment = () => {
+  const handlePayment = async () => {
     setErrorMessage(null)
     setSubmitting(true)
 
-    const submitted = submitSePayCheckout(checkoutUrl, checkoutFields)
-
-    if (!submitted) {
+    if (!qrDetails) {
       setSubmitting(false)
       setErrorMessage(
-        "Không tạo được phiên thanh toán SePay. Vui lòng chọn lại phương thức thanh toán."
+        "Không tạo được mã QR SePay. Vui lòng chọn lại phương thức thanh toán.",
       )
+      return
+    }
+
+    try {
+      await placeOrder()
+      setErrorMessage(
+        "SePay chưa xác nhận giao dịch. Vui lòng đợi vài giây rồi kiểm tra lại.",
+      )
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Chưa thể xác nhận thanh toán SePay.",
+      )
+    } finally {
+      setSubmitting(false)
     }
   }
 
   return (
     <>
       <Button
-        disabled={notReady}
+        disabled={notReady || !qrDetails}
         isLoading={submitting}
         onClick={handlePayment}
         size="large"
         data-testid={dataTestId}
       >
-        Thanh toán qua SePay
+        Kiểm tra thanh toán SePay
       </Button>
       <ErrorMessage
         error={errorMessage}
@@ -133,7 +145,7 @@ const PayOSPaymentButton = ({
 
     if (!validCheckoutUrl) {
       setErrorMessage(
-        "Không tạo được liên kết PayOS. Vui lòng chọn lại phương thức thanh toán."
+        "Không tạo được liên kết PayOS. Vui lòng chọn lại phương thức thanh toán.",
       )
       return
     }
@@ -188,7 +200,7 @@ const StripePaymentButton = ({
   const card = elements?.getElement("card")
 
   const session = cart.payment_collection?.payment_sessions?.find(
-    (s) => s.status === "pending"
+    (s) => s.status === "pending",
   )
 
   const disabled = !stripe || !elements ? true : false

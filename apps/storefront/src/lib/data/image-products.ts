@@ -19,6 +19,9 @@ export type TtvImageProduct = HttpTypes.StoreProduct & {
   image_alt: string
   image_original_filename: string
   image_active: boolean
+  image_role: "primary"
+  gallery_image_ids: string[]
+  production_image_url: string
 }
 
 export type ImageProductListQueryParams = {
@@ -31,7 +34,6 @@ export type ImageProductListQueryParams = {
   parent_handle?: string | string[]
   category_id?: string | string[]
   collection_id?: string | string[]
-  taxonomy_term_id?: string | string[]
   order?: string
 }
 
@@ -114,7 +116,10 @@ export async function listImageProductsWithSort({
     },
     countryCode,
   })
-  const sortedProducts = sortProducts(response.products, sortBy) as TtvImageProduct[]
+  const sortedProducts = sortProducts(
+    response.products,
+    sortBy,
+  ) as TtvImageProduct[]
   const offset = (Math.max(page, 1) - 1) * limit
 
   return {

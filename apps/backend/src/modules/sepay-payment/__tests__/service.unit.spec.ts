@@ -1,50 +1,55 @@
 import { PaymentActions } from "@medusajs/framework/utils"
+import { createHmac } from "node:crypto"
 
 import SePayPaymentProviderService from "../service"
 
 const options = {
-  environment: "sandbox" as const,
-  merchantId: "MERCHANT_TEST",
-  secretKey: "merchant-secret",
-  successUrl: "https://shop.example/success",
-  errorUrl: "https://shop.example/error",
-  cancelUrl: "https://shop.example/cancel",
-  paymentMethod: "BANK_TRANSFER" as const,
+  bankAccount: "0123456789",
+  bankCode: "Vietcombank",
+  accountHolder: "TRANH TRAN VIEN",
+  webhookSecret: "webhook-secret",
 }
 
 const pendingAttempt = {
   id: "sepayattempt_01",
   payment_session_id: "payses_current",
-  invoice_number: "TTV123456",
+  invoice_number: "TTV1234567890123456",
   amount: 150000,
   currency_code: "vnd",
   payment_method: "BANK_TRANSFER" as const,
   status: "pending" as const,
 }
 
-const paidIpn = {
-  timestamp: 1786957200,
-  notification_type: "ORDER_PAID",
-  order: {
-    id: "order_internal_01",
-    order_id: "SEPAY-ORDER-01",
-    order_status: "CAPTURED",
-    order_currency: "VND",
-    order_amount: "150000.00",
-    order_invoice_number: pendingAttempt.invoice_number,
-  },
-  transaction: {
-    id: "transaction_internal_01",
-    transaction_id: "FT_SEPAY_01",
-    transaction_status: "APPROVED",
-    transaction_amount: "150000",
-    transaction_currency: "VND",
-  },
-  customer: {},
+function createWebhook(overrides: Record<string, unknown> = {}) {
+  const data = {
+    id: 92704,
+    gateway: options.bankCode,
+    accountNumber: options.bankAccount,
+    code: pendingAttempt.invoice_number,
+    content: `${pendingAttempt.invoice_number} chuyen tien`,
+    transferType: "in",
+    transferAmount: 150000,
+    referenceCode: "FT24012345678",
+    ...overrides,
+  }
+  const rawData = JSON.stringify(data)
+  const timestamp = String(Math.floor(Date.now() / 1000))
+  const signature = `sha256=${createHmac("sha256", options.webhookSecret)
+    .update(`${timestamp}.${rawData}`)
+    .digest("hex")}`
+
+  return {
+    data,
+    rawData,
+    headers: {
+      "x-sepay-signature": signature,
+      "x-sepay-timestamp": timestamp,
+    },
+  }
 }
 
-describe("SePay payment provider", () => {
-  it("creates and persists checkout form fields for a new payment session", async () => {
+describe("SePay direct QR payment provider", () => {
+  it("creates and persists an inline QR payment session", async () => {
     const sepay = {
       listSepayPaymentAttempts: jest.fn().mockResolvedValue([]),
       createSepayPaymentAttempts: jest
@@ -75,24 +80,18 @@ describe("SePay payment provider", () => {
     expect(result.status).toBe("pending")
     expect(result.data).toEqual(
       expect.objectContaining({
-        session_id: pendingAttempt.payment_session_id,
-        checkout_url: "https://pay-sandbox.sepay.vn/v1/checkout/init",
         checkout_fields: expect.objectContaining({
-          signature: expect.any(String),
+          qr_code_url: expect.stringContaining("https://vietqr.app/img?"),
+          bank_account: options.bankAccount,
+          transfer_content: expect.stringMatching(/^TTV\d{16,20}$/),
           order_amount: 150000,
         }),
       })
     )
-    expect(sepay.updateSepayPaymentAttempts).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: pendingAttempt.id,
-        status: "pending",
-        checkout_fields: expect.any(Object),
-      })
-    )
+    expect(result.data?.checkout_url).toBeUndefined()
   })
 
-  it("rejects an IPN with the wrong secret", async () => {
+  it("rejects a bank webhook with an invalid HMAC signature", async () => {
     const provider = new SePayPaymentProviderService(
       {
         logger: { error: jest.fn() },
@@ -100,36 +99,33 @@ describe("SePay payment provider", () => {
       } as never,
       options
     )
+    const webhook = createWebhook()
 
     await expect(
       provider.getWebhookActionAndData({
-        data: paidIpn,
-        rawData: JSON.stringify(paidIpn),
-        headers: { "x-secret-key": "wrong-secret" },
+        ...webhook,
+        headers: {
+          ...webhook.headers,
+          "x-sepay-signature": "sha256=invalid",
+        },
       })
-    ).rejects.toThrow("Invalid SePay IPN secret")
+    ).rejects.toThrow("Invalid SePay webhook signature")
   })
 
-  it("captures the matching Medusa payment session from a paid IPN", async () => {
+  it("captures the matching session from a signed incoming bank webhook", async () => {
     const sepay = {
       listSepayPaymentAttempts: jest.fn().mockResolvedValue([pendingAttempt]),
       updateSepayPaymentAttempts: jest
         .fn()
-        .mockImplementation(async (data) => ({
-          ...pendingAttempt,
-          ...data,
-        })),
+        .mockImplementation(async (data) => ({ ...pendingAttempt, ...data })),
     }
     const provider = new SePayPaymentProviderService(
       { logger: { error: jest.fn() }, sepay } as never,
       options
     )
+    const webhook = createWebhook()
 
-    const result = await provider.getWebhookActionAndData({
-      data: paidIpn,
-      rawData: JSON.stringify(paidIpn),
-      headers: { "x-secret-key": options.secretKey },
-    })
+    const result = await provider.getWebhookActionAndData(webhook)
 
     expect(result.action).toBe(PaymentActions.SUCCESSFUL)
     expect(result.data).toEqual(
@@ -141,40 +137,30 @@ describe("SePay payment provider", () => {
       expect.objectContaining({
         id: pendingAttempt.id,
         status: "paid",
-        sepay_order_id: paidIpn.order.order_id,
-        transaction_id: paidIpn.transaction.transaction_id,
+        transaction_id: webhook.data.referenceCode,
       })
     )
   })
 
-  it("does not complete the current cart from a cancelled SePay attempt", async () => {
-    const attempt = { ...pendingAttempt, status: "cancelled" as const }
+  it("rejects a signed transfer with a different amount or account", async () => {
     const sepay = {
-      listSepayPaymentAttempts: jest.fn().mockResolvedValue([attempt]),
-      updateSepayPaymentAttempts: jest
-        .fn()
-        .mockImplementation(async (data) => ({ ...attempt, ...data })),
+      listSepayPaymentAttempts: jest.fn().mockResolvedValue([pendingAttempt]),
+      updateSepayPaymentAttempts: jest.fn().mockResolvedValue(pendingAttempt),
     }
-    const logger = { error: jest.fn() }
     const provider = new SePayPaymentProviderService(
-      { logger, sepay } as never,
+      { logger: { error: jest.fn() }, sepay } as never,
       options
     )
 
-    const result = await provider.getWebhookActionAndData({
-      data: paidIpn,
-      rawData: JSON.stringify(paidIpn),
-      headers: { "X-Secret-Key": options.secretKey },
-    })
-
-    expect(result.action).toBe(PaymentActions.NOT_SUPPORTED)
-    expect(sepay.updateSepayPaymentAttempts).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: attempt.id,
-        status: "paid",
-        transaction_id: paidIpn.transaction.transaction_id,
-      })
+    await expect(
+      provider.getWebhookActionAndData(
+        createWebhook({ transferAmount: 149000 })
+      )
+    ).rejects.toThrow(
+      "SePay transfer amount or receiving account does not match"
     )
-    expect(logger.error).toHaveBeenCalledTimes(1)
+    expect(sepay.updateSepayPaymentAttempts).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "failed" })
+    )
   })
 })

@@ -4,7 +4,6 @@ import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
 import { addToCartWorkflow } from "@medusajs/medusa/core-flows"
 
-import { syncCartRules } from "../../../../../lib/cart-rules"
 import { canonicalizeImageProductLineMetadata } from "../../../../../lib/image-product-cart"
 
 type CustomCrop = {
@@ -77,14 +76,7 @@ export async function POST(
     },
   })
 
-  const result = await syncCartRules(req.scope, cartId)
-
-  res.status(200).json({
-    cart: result.cart,
-    combo_discounts: result.combo_discounts,
-    gifts: result.gifts,
-    shipping_rule: result.shipping_rule,
-  })
+  res.status(200).json({ success: true })
 }
 
 async function normalizeCartItems(

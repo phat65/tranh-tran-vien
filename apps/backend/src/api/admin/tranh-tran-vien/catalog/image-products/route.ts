@@ -8,6 +8,7 @@ import { updateProductsWorkflow } from "@medusajs/medusa/core-flows"
 
 import {
   normalizeImageProductMetadata,
+  promoteGalleryImage,
   slugifyImageProductValue,
 } from "../../../../../lib/image-products"
 
@@ -38,6 +39,8 @@ const updateImageSchema = z.object({
       active: z.boolean().optional(),
       alt: z.string().trim().max(250).optional(),
       original_filename: z.string().trim().max(250).optional(),
+      role: z.enum(["primary", "gallery"]).optional(),
+      primary_image_id: z.string().trim().max(200).nullable().optional(),
     })
     .strict(),
 })
@@ -54,10 +57,24 @@ const deleteImageSchema = z.object({
   image_id: z.string().min(1),
 })
 
+const deleteImagesSchema = z.object({
+  action: z.literal("delete_images"),
+  product_id: z.string().min(1),
+  image_ids: z.array(z.string().min(1)).min(1),
+})
+
+const promoteGallerySchema = z.object({
+  action: z.literal("promote_gallery"),
+  product_id: z.string().min(1),
+  image_id: z.string().min(1),
+})
+
 const patchSchema = z.discriminatedUnion("action", [
   updateImageSchema,
   reorderImagesSchema,
   deleteImageSchema,
+  deleteImagesSchema,
+  promoteGallerySchema,
 ])
 
 export async function GET(
@@ -95,6 +112,7 @@ export async function PATCH(
   const product = await getProduct(req, input.product_id)
   const currentImages = product.images ?? []
   let nextImages = currentImages
+  let nextThumbnail = product.thumbnail
 
   if (input.action === "update_image") {
     const currentImage = currentImages.find(
@@ -122,7 +140,15 @@ export async function PATCH(
       )
     }
 
-    if (normalizedPatch.handle) {
+    if (
+      normalizedPatch.handle &&
+      (normalizedPatch.role ??
+        normalizeImageProductMetadata({
+          parent: product,
+          image: currentImage,
+          index: currentImages.indexOf(currentImage),
+        }).role) === "primary"
+    ) {
       await ensureUniqueHandle(req, normalizedPatch.handle, input.image_id)
     }
 
@@ -170,6 +196,54 @@ export async function PATCH(
     nextImages = currentImages.filter((image) => image.id !== input.image_id)
   }
 
+  if (input.action === "delete_images") {
+    const requestedIds = new Set(input.image_ids)
+    const missingIds = input.image_ids.filter(
+      (imageId) => !currentImages.some((image) => image.id === imageId)
+    )
+
+    if (missingIds.length) {
+      throw new MedusaError(
+        MedusaError.Types.NOT_FOUND,
+        `Product image not found: ${missingIds.join(", ")}`
+      )
+    }
+
+    nextImages = currentImages.filter((image) => !requestedIds.has(image.id))
+  }
+
+  if (input.action === "promote_gallery") {
+    const promoted = promoteGalleryImage({
+      parent: product,
+      images: currentImages,
+      galleryImageId: input.image_id,
+    })
+
+    if (!promoted) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Only a gallery image linked to an existing primary can become the primary image."
+      )
+    }
+
+    nextImages = promoted.images as ProductImageRecord[]
+    const previousPrimary = currentImages.find(
+      (image) => image.id === promoted.previousPrimaryImageId
+    )
+    const selectedImage = currentImages.find(
+      (image) => image.id === input.image_id
+    )
+
+    if (
+      previousPrimary?.url === product.thumbnail &&
+      selectedImage?.url
+    ) {
+      nextThumbnail = selectedImage.url
+    }
+  }
+
+  validateImageRoles(product, nextImages)
+
   await updateProductsWorkflow(req.scope).run({
     input: {
       selector: { id: product.id },
@@ -179,10 +253,9 @@ export async function PATCH(
           url: image.url,
           metadata: image.metadata ?? {},
         })),
-        thumbnail:
-          nextImages.some((image) => image.url === product.thumbnail)
-            ? product.thumbnail
-            : nextImages[0]?.url ?? null,
+        thumbnail: nextImages.some((image) => image.url === nextThumbnail)
+          ? nextThumbnail
+          : (nextImages[0]?.url ?? null),
       },
     },
   })
@@ -227,7 +300,14 @@ async function ensureUniqueHandle(
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
     entity: "product",
-    fields: ["id", "title", "handle", "images.id", "images.url", "images.metadata"],
+    fields: [
+      "id",
+      "title",
+      "handle",
+      "images.id",
+      "images.url",
+      "images.metadata",
+    ],
     pagination: { skip: 0, take: 10000 },
   })
 
@@ -237,10 +317,13 @@ async function ensureUniqueHandle(
         return false
       }
 
-      return (
-        normalizeImageProductMetadata({ parent: product, image, index })
-          .handle === handle
-      )
+      const normalized = normalizeImageProductMetadata({
+        parent: product,
+        image,
+        index,
+      })
+
+      return normalized.role === "primary" && normalized.handle === handle
     })
   )
 
@@ -253,15 +336,62 @@ async function ensureUniqueHandle(
 }
 
 function toResponse(product: ProductRecord) {
+  const normalizedImages = (product.images ?? []).map((image, index) => ({
+    image,
+    metadata: normalizeImageProductMetadata({ parent: product, image, index }),
+  }))
+
   return {
     product_id: product.id,
     product_title: product.title,
-    images: (product.images ?? []).map((image, index) => ({
+    images: normalizedImages.map(({ image, metadata }, index) => ({
       image_id: image.id,
+      virtual_product_id: `imgprod_${image.id}`,
       url: image.url,
       sort_order: index,
-      ...normalizeImageProductMetadata({ parent: product, image, index }),
+      ...metadata,
+      gallery_count:
+        metadata.role === "primary"
+          ? normalizedImages.filter(
+              (candidate) =>
+                candidate.metadata.role === "gallery" &&
+                candidate.metadata.primary_image_id === image.id
+            ).length
+          : 0,
     })),
+  }
+}
+
+function validateImageRoles(
+  product: ProductRecord,
+  images: ProductImageRecord[]
+) {
+  const normalizedImages = images.map((image, index) => ({
+    image,
+    metadata: normalizeImageProductMetadata({
+      parent: { ...product, images },
+      image,
+      index,
+    }),
+  }))
+  const primaryIds = new Set(
+    normalizedImages
+      .filter((entry) => entry.metadata.role === "primary")
+      .map((entry) => entry.image.id)
+  )
+  const invalidGallery = normalizedImages.find(
+    (entry) =>
+      entry.metadata.role === "gallery" &&
+      (!entry.metadata.primary_image_id ||
+        entry.metadata.primary_image_id === entry.image.id ||
+        !primaryIds.has(entry.metadata.primary_image_id))
+  )
+
+  if (invalidGallery) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Each gallery image must reference an existing primary image product."
+    )
   }
 }
 

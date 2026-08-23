@@ -5,13 +5,8 @@ export const BACKEND_SERVICE_NAME = "commerce"
 
 export const ACTIVE_FOUNDATION_MODULES = [
   "brand",
-  "taxonomy",
-  "navigation",
   "site-setting",
   "custom-design",
-  "gift-rule",
-  "shipping-rule",
-  "combo-rule",
   "feedback",
   "content",
   "audit-log",

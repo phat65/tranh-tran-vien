@@ -1,6 +1,5 @@
 // Hàm tiện ích xử lý ttv navigation dùng chung trong storefront.
 
-import type { TtvNavigationItem } from "@lib/data/ttv"
 import type { TtvExploreGroup } from "@lib/data/ttv-explore"
 import type { HttpTypes } from "@medusajs/types"
 
@@ -20,62 +19,8 @@ export type TtvNavGroup = {
   links: TtvNavLink[]
 }
 
-export function toTtvNavLinks(
-  items: TtvNavigationItem[] | null | undefined = []
-): TtvNavLink[] {
-  return (Array.isArray(items) ? [...items] : [])
-    .filter((item) => !item.parent_id)
-    .sort((a, b) => a.sort_order - b.sort_order)
-    .map((item) => ({
-      id: item.id,
-      label: item.label,
-      href: resolveNavigationHref(item),
-      image_url: item.image_url,
-      parent_id: item.parent_id,
-    }))
-}
-
-export function toTtvNavGroups(
-  items: TtvNavigationItem[] | null | undefined = []
-): TtvNavGroup[] {
-  const visibleItems = (Array.isArray(items) ? [...items] : [])
-    .filter((item) => item.visibility !== "hidden")
-    .sort((a, b) => a.sort_order - b.sort_order)
-  const parents = visibleItems.filter((item) => !item.parent_id)
-  const childrenByParent = new Map<string, TtvNavigationItem[]>()
-
-  visibleItems.forEach((item) => {
-    if (!item.parent_id) {
-      return
-    }
-
-    childrenByParent.set(item.parent_id, [
-      ...(childrenByParent.get(item.parent_id) ?? []),
-      item,
-    ])
-  })
-
-  return parents
-    .map((parent) => {
-      const children = childrenByParent.get(parent.id) ?? []
-
-      return {
-        id: parent.id,
-        label: parent.label,
-        image_url: parent.image_url,
-        links: children.map((child) => ({
-          id: child.id,
-          label: child.label,
-          href: resolveNavigationHref(child),
-          image_url: child.image_url,
-          parent_id: child.parent_id,
-        })),
-      }
-    })
-}
-
 export function toTtvExploreNavGroups(
-  groups: TtvExploreGroup[] | null | undefined = []
+  groups: TtvExploreGroup[] | null | undefined = [],
 ): TtvNavGroup[] {
   return (Array.isArray(groups) ? groups : [])
     .sort((first, second) => first.sort_order - second.sort_order)
@@ -96,7 +41,7 @@ export function toTtvExploreNavGroups(
 
 export function getTtvExploreHref(
   group: TtvExploreGroup,
-  term: TtvExploreGroup["terms"][number]
+  term: TtvExploreGroup["terms"][number],
 ) {
   const nativeHref = term.metadata?.href
 
@@ -128,14 +73,14 @@ export function buildTtvShopNavGroups({
       label: category.name,
       href: `/categories/${category.handle}`,
       sort_order: category.rank ?? undefined,
-    })
+    }),
   )
   const collectionLinks = sortCollections(collections ?? []).map(
     (collection) => ({
       id: `collection-${collection.id}`,
       label: collection.title,
       href: `/collections/${collection.handle}`,
-    })
+    }),
   )
 
   return [
@@ -162,7 +107,7 @@ export function buildTtvShopNavGroups({
 
 export function mergeTtvNavGroups(
   primaryGroups: TtvNavGroup[],
-  fallbackGroups: TtvNavGroup[]
+  fallbackGroups: TtvNavGroup[],
 ): TtvNavGroup[] {
   const seen = new Set<string>()
 
@@ -179,7 +124,7 @@ export function mergeTtvNavGroups(
 }
 
 function sortRootCategories(
-  categories: HttpTypes.StoreProductCategory[]
+  categories: HttpTypes.StoreProductCategory[],
 ): HttpTypes.StoreProductCategory[] {
   const visible = collectCategories(categories)
 
@@ -189,7 +134,7 @@ function sortRootCategories(
 }
 
 function collectCategories(
-  categories: HttpTypes.StoreProductCategory[]
+  categories: HttpTypes.StoreProductCategory[],
 ): HttpTypes.StoreProductCategory[] {
   const byId = new Map<string, HttpTypes.StoreProductCategory>()
 
@@ -199,7 +144,7 @@ function collectCategories(
     }
 
     ;(category.category_children ?? []).forEach((child) =>
-      visit(child as HttpTypes.StoreProductCategory)
+      visit(child as HttpTypes.StoreProductCategory),
     )
   }
 
@@ -210,7 +155,7 @@ function collectCategories(
 
 function compareCategories(
   first: HttpTypes.StoreProductCategory,
-  second: HttpTypes.StoreProductCategory
+  second: HttpTypes.StoreProductCategory,
 ) {
   const firstRank = first.rank ?? Number.MAX_SAFE_INTEGER
   const secondRank = second.rank ?? Number.MAX_SAFE_INTEGER
@@ -224,7 +169,7 @@ function compareCategories(
 
 function sortCollections(collections: HttpTypes.StoreCollection[]) {
   return [...collections].sort((first, second) =>
-    first.title.localeCompare(second.title)
+    first.title.localeCompare(second.title),
   )
 }
 
@@ -235,44 +180,8 @@ function normalizeSearch(value: string | null | undefined): string {
     .toLowerCase()
 }
 
-function resolveNavigationHref(item: TtvNavigationItem): string {
-  if (item.url) {
-    return item.url
-  }
-
-  if (!item.entity_id) {
-    return "/"
-  }
-
-  if (item.link_type === "product") {
-    return `/products/${item.entity_id}`
-  }
-
-  if (item.link_type === "category") {
-    return `/categories/${item.entity_id}`
-  }
-
-  if (item.link_type === "page") {
-    return `/pages/${item.entity_id}`
-  }
-
-  if (item.link_type === "post") {
-    return `/posts/${item.entity_id}`
-  }
-
-  if (item.link_type === "brand") {
-    return `/store?brand_id=${item.entity_id}`
-  }
-
-  if (item.link_type === "taxonomy") {
-    return `/store?taxonomy_term_id=${item.entity_id}`
-  }
-
-  return "/"
-}
-
 export function getPublicExploreTermSlug(
-  term: TtvExploreGroup["terms"][number]
+  term: TtvExploreGroup["terms"][number],
 ) {
   const metadataSlug = term.metadata?.slug
 

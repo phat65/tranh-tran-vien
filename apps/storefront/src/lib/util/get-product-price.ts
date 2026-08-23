@@ -20,6 +20,10 @@ export const getPricesForVariant = (variant: VariantWithPrice) => {
     return null
   }
 
+  const hasDiscount =
+    variant.calculated_price.original_amount >
+    variant.calculated_price.calculated_amount
+
   return {
     calculated_price_number: variant.calculated_price.calculated_amount,
     calculated_price: convertToLocale({
@@ -32,7 +36,7 @@ export const getPricesForVariant = (variant: VariantWithPrice) => {
       currency_code: variant.calculated_price.currency_code,
     }),
     currency_code: variant.calculated_price.currency_code,
-    price_type: variant.calculated_price.calculated_price.price_list_type,
+    price_type: hasDiscount ? "sale" : "default",
     percentage_diff: getPercentageDiff(
       variant.calculated_price.original_amount,
       variant.calculated_price.calculated_amount

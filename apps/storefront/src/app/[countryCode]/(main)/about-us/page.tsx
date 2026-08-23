@@ -46,11 +46,11 @@ export default function AboutUsPage() {
         </div>
         <div className="border-t border-ui-border-base pt-5">
           <h2 className="txt-compact-large-plus text-ui-fg-base">
-            Combo trong sản phẩm
+            Bảng giá số lượng
           </h2>
           <p className="mt-3 text-small-regular leading-6 text-ui-fg-subtle">
-            Ưu đãi combo được hiện trong trang sản phẩm và giỏ hàng, không
-            tách thành một trang riêng.
+            Các mức giá số lượng từ Medusa được hiển thị ngay trong trang chi
+            tiết sản phẩm.
           </p>
         </div>
       </section>

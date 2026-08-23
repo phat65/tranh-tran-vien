@@ -18,7 +18,7 @@ import Image from "next/image"
 
 export const metadata: Metadata = {
   title: "Tranh Trần Viền",
-  description: "Tranh decor, khung Pokemon và combo sản phẩm cho collectors.",
+  description: "Tranh decor và sản phẩm in theo yêu cầu cho collectors.",
 }
 
 export default async function Home(props: {
@@ -71,7 +71,7 @@ export default async function Home(props: {
 
       <section className="content-container py-10">
         <div className="grid gap-3 border-y border-ui-border-base py-5 small:grid-cols-4">
-          <TrustItem title="Combo pricing" text="Rules sync directly in cart." />
+          <TrustItem title="Quantity pricing" text="Prices come directly from Medusa." />
           <TrustItem title="No-drill setup" text="Built around clean mounting." />
           <TrustItem title="Custom design" text="Send images for made-to-order art." />
           <TrustItem title="Collector focus" text="Built for series, sets and themes." />

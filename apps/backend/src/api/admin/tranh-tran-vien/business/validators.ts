@@ -25,56 +25,6 @@ export const businessListQuerySchema = z.object({
   order_id: z.string().trim().optional(),
 })
 
-export const giftRuleBodySchema = z
-  .object({
-    name: z.string().trim().min(1),
-    scope_type: z
-      .enum(["all", "product", "category", "collection", "brand", "taxonomy"])
-      .default("all"),
-    product_id: nullableString,
-    category_id: nullableString,
-    collection_id: nullableString,
-    brand_id: nullableString,
-    taxonomy_term_id: nullableString,
-    minimum_quantity: z.coerce.number().int().min(1).default(1),
-    gift_variant_id: z.string().trim().min(1),
-    gift_quantity: z.coerce.number().int().min(1).default(1),
-    starts_at: optionalDate,
-    ends_at: optionalDate,
-    priority: z.coerce.number().int().default(0),
-    is_stackable: z.coerce.boolean().default(false),
-    status: z.enum(["draft", "active", "archived"]).default("draft"),
-    metadata: metadataSchema,
-  })
-  .strict()
-
-export const giftRuleUpdateBodySchema = giftRuleBodySchema.partial()
-
-export const shippingRuleBodySchema = z
-  .object({
-    name: z.string().trim().min(1),
-    scope_type: z
-      .enum(["all", "product", "category", "collection", "brand", "taxonomy"])
-      .default("all"),
-    product_id: nullableString,
-    category_id: nullableString,
-    collection_id: nullableString,
-    brand_id: nullableString,
-    taxonomy_term_id: nullableString,
-    minimum_quantity: z.coerce.number().int().min(1).default(1),
-    maximum_quantity: z.coerce.number().int().min(1).nullable().optional(),
-    shipping_fee: z.coerce.number().int().min(0).default(0),
-    is_free_shipping: z.coerce.boolean().default(false),
-    starts_at: optionalDate,
-    ends_at: optionalDate,
-    priority: z.coerce.number().int().default(0),
-    status: z.enum(["draft", "active", "archived"]).default("draft"),
-    metadata: metadataSchema,
-  })
-  .strict()
-
-export const shippingRuleUpdateBodySchema = shippingRuleBodySchema.partial()
-
 export const feedbackBodySchema = z
   .object({
     customer_id: nullableString,
@@ -130,12 +80,6 @@ export const pageBodySchema = z
 export const pageUpdateBodySchema = pageBodySchema.partial()
 
 export type BusinessListQuery = z.infer<typeof businessListQuerySchema>
-export type GiftRuleBody = z.infer<typeof giftRuleBodySchema>
-export type GiftRuleUpdateBody = z.infer<typeof giftRuleUpdateBodySchema>
-export type ShippingRuleBody = z.infer<typeof shippingRuleBodySchema>
-export type ShippingRuleUpdateBody = z.infer<
-  typeof shippingRuleUpdateBodySchema
->
 export type FeedbackBody = z.infer<typeof feedbackBodySchema>
 export type FeedbackUpdateBody = z.infer<typeof feedbackUpdateBodySchema>
 export type PostBody = z.infer<typeof postBodySchema>

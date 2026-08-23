@@ -9,6 +9,7 @@ import {
   Transition,
 } from "@headlessui/react"
 import { convertToLocale } from "@lib/util/money"
+import { getImageProductDisplayImageUrl } from "@lib/util/line-item-image"
 import { HttpTypes } from "@medusajs/types"
 import { Button } from "@modules/common/components/ui"
 import DeleteButton from "@modules/common/components/delete-button"
@@ -146,10 +147,13 @@ const CartDropdown = ({
                     })
                     .map((item) => {
                       const customImageUrl = getCustomImageUrl(item)
+                      const imageProductUrl =
+                        getImageProductDisplayImageUrl(item)
                       const itemHref = customImageUrl
                         ? "/custom/tranh-luc-giac"
                         : `/products/${item.product_handle}`
-                      const itemTitle = getCustomDisplayTitle(item) ?? item.title
+                      const itemTitle =
+                        getCustomDisplayTitle(item) ?? item.title
 
                       return (
                         <div
@@ -157,16 +161,17 @@ const CartDropdown = ({
                           key={item.id}
                           data-testid="cart-item"
                         >
-                          <LocalizedClientLink
-                            href={itemHref}
-                            className="w-24"
-                          >
+                          <LocalizedClientLink href={itemHref} className="w-24">
                             {customImageUrl ? (
                               <CustomLineItemThumbnail item={item} />
                             ) : (
                               <Thumbnail
-                                thumbnail={item.thumbnail}
-                                images={item.variant?.product?.images}
+                                thumbnail={imageProductUrl ?? item.thumbnail}
+                                images={
+                                  imageProductUrl
+                                    ? []
+                                    : item.variant?.product?.images
+                                }
                                 size="square"
                               />
                             )}

@@ -1,4 +1,4 @@
-// Dynamic Explore item page. Products come from the Explore taxonomy term selected in admin Product.
+// Explore compatibility route backed by native Medusa categories and collections.
 
 import { Metadata } from "next"
 import { notFound, redirect } from "next/navigation"
@@ -94,7 +94,7 @@ export default async function ExploreItemPage(props: Props) {
   const filteredResult = selectedFilterTerm
     ? await retrieveTtvExploreItem(
         filterGroup!.slug,
-        getPublicExploreTermSlug(selectedFilterTerm)
+        getPublicExploreTermSlug(selectedFilterTerm),
       )
     : null
 
@@ -188,20 +188,20 @@ function findFilterGroup(groups: TtvExploreGroup[], targetTermId: string) {
   return groups.find(
     (group) =>
       group.navigation.mode === "filter_tabs" &&
-      group.navigation.target?.term_id === targetTermId
+      group.navigation.target?.term_id === targetTermId,
   )
 }
 
 function findFilterTerm(
   filterGroup: TtvExploreGroup | undefined,
-  filterSlug: string | undefined
+  filterSlug: string | undefined,
 ): TtvExploreTerm | undefined {
   if (!filterGroup || !filterSlug) {
     return undefined
   }
 
   return filterGroup.terms.find(
-    (term) => getPublicExploreTermSlug(term) === filterSlug
+    (term) => getPublicExploreTermSlug(term) === filterSlug,
   )
 }
 
@@ -238,7 +238,7 @@ function redirectToDestination({
 
   redirect(
     `/${encodeURIComponent(countryCode)}/explore/${encodeURIComponent(
-      navigationTarget.heading_slug
-    )}/${encodeURIComponent(navigationTarget.term_slug)}?${nextParams.toString()}`
+      navigationTarget.heading_slug,
+    )}/${encodeURIComponent(navigationTarget.term_slug)}?${nextParams.toString()}`,
   )
 }

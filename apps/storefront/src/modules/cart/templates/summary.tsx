@@ -1,6 +1,6 @@
 "use client"
 
-// Template ghép dữ liệu và component để dựng khu vực summary.
+// Cart summary uses Medusa's native totals, promotions, and shipping methods.
 
 import { Button, Heading } from "@modules/common/components/ui"
 
@@ -9,34 +9,9 @@ import Divider from "@modules/common/components/divider"
 import DiscountCode from "@modules/checkout/components/discount-code"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import { HttpTypes } from "@medusajs/types"
-import { convertToLocale } from "@lib/util/money"
 
 type SummaryProps = {
   cart: HttpTypes.StoreCart
-  comboRules?: ComboRule[]
-}
-
-type ComboTier = {
-  minimum_quantity: number
-  discount_type: "percentage" | "fixed" | "fixed_total"
-  discount_value: number
-  label?: string | null
-  is_featured?: boolean
-  is_free_shipping?: boolean
-}
-
-type ComboRule = {
-  id: string
-  name: string
-  scope_type:
-    | "all"
-    | "product"
-    | "category"
-    | "collection"
-    | "option"
-    | "taxonomy"
-  taxonomy_term_id?: string | null
-  tiers: ComboTier[]
 }
 
 function getCheckoutStep(cart: HttpTypes.StoreCart) {
@@ -44,12 +19,12 @@ function getCheckoutStep(cart: HttpTypes.StoreCart) {
     return "address"
   } else if (cart?.shipping_methods?.length === 0) {
     return "delivery"
-  } else {
-    return "payment"
   }
+
+  return "payment"
 }
 
-const Summary = ({ cart, comboRules = [] }: SummaryProps) => {
+const Summary = ({ cart }: SummaryProps) => {
   const step = getCheckoutStep(cart)
 
   return (
@@ -58,180 +33,16 @@ const Summary = ({ cart, comboRules = [] }: SummaryProps) => {
         Summary
       </Heading>
       <DiscountCode cart={cart} />
-      <CartComboSummary cart={cart} comboRules={comboRules} />
       <Divider />
       <CartTotals totals={cart} />
       <LocalizedClientLink
         href={"/checkout?step=" + step}
         data-testid="checkout-button"
       >
-        <Button className="w-full h-10">Go to checkout</Button>
+        <Button className="h-10 w-full">Go to checkout</Button>
       </LocalizedClientLink>
     </div>
   )
 }
 
 export default Summary
-
-function CartComboSummary({
-  cart,
-  comboRules,
-}: {
-  cart: HttpTypes.StoreCart
-  comboRules: ComboRule[]
-}) {
-  const applied = getAppliedComboDiscounts(cart)
-  const nextTier = getNextComboTier(cart, comboRules)
-
-  if (!applied.length && !nextTier) {
-    return null
-  }
-
-  return (
-    <div className="grid gap-3 border-y border-ui-border-base py-4">
-      <div className="flex items-center justify-between gap-3">
-        <span className="txt-compact-small-plus text-ui-fg-base">
-          Combo savings
-        </span>
-        {!!applied.length && (
-          <span className="txt-small-plus text-ui-fg-interactive">Applied</span>
-        )}
-      </div>
-
-      {!!applied.length && (
-        <div className="grid gap-2">
-          {applied.map((discount) => (
-            <div
-              key={`${discount.rule_id}-${discount.minimum_quantity}`}
-              className="grid gap-0.5"
-            >
-              <span className="txt-small-plus text-ui-fg-base">
-                {discount.name}
-              </span>
-              <span className="txt-small text-ui-fg-subtle">
-                {formatAppliedDiscount(discount, cart.currency_code)}
-                {discount.is_free_shipping ? " - Freeship" : ""}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {nextTier && (
-        <div className="grid gap-1">
-          <span className="txt-small text-ui-fg-subtle">
-            Add {nextTier.remaining} more to unlock:
-          </span>
-          <span className="txt-small-plus text-ui-fg-base">
-            {nextTier.rule.name} -{" "}
-            {formatTier(nextTier.tier, cart.currency_code)}
-          </span>
-        </div>
-      )}
-    </div>
-  )
-}
-
-function getAppliedComboDiscounts(cart: HttpTypes.StoreCart) {
-  const metadata = cart.metadata as
-    | {
-        ttv_cart_rules?: {
-          combo_discounts?: {
-            rule_id: string
-            name: string
-            minimum_quantity: number
-            discount_type: ComboTier["discount_type"]
-            discount_value: number
-            is_free_shipping?: boolean
-          }[]
-        }
-      }
-    | undefined
-
-  return metadata?.ttv_cart_rules?.combo_discounts ?? []
-}
-
-function getNextComboTier(cart: HttpTypes.StoreCart, rules: ComboRule[]) {
-  return rules
-    .flatMap((rule) => {
-      const quantity = getMatchingQuantity(cart, rule)
-
-      return rule.tiers
-        .filter((tier) => tier.minimum_quantity > quantity)
-        .map((tier) => ({
-          rule,
-          tier,
-          remaining: tier.minimum_quantity - quantity,
-        }))
-    })
-    .sort((a, b) => {
-      if (a.remaining !== b.remaining) {
-        return a.remaining - b.remaining
-      }
-
-      return a.tier.minimum_quantity - b.tier.minimum_quantity
-    })[0]
-}
-
-function getMatchingQuantity(cart: HttpTypes.StoreCart, rule: ComboRule) {
-  return getComboProgress(cart).find((item) => item.rule_id === rule.id)
-    ?.matching_quantity ?? 0
-}
-
-function getComboProgress(cart: HttpTypes.StoreCart) {
-  const metadata = cart.metadata as
-    | {
-        ttv_cart_rules?: {
-          combo_progress?: {
-            rule_id: string
-            matching_quantity: number
-          }[]
-        }
-      }
-    | undefined
-
-  return metadata?.ttv_cart_rules?.combo_progress ?? []
-}
-
-function formatAppliedDiscount(
-  discount: ReturnType<typeof getAppliedComboDiscounts>[number],
-  currencyCode: string
-) {
-  return `${discount.minimum_quantity}+ - ${formatDiscountValue(
-    discount.discount_type,
-    discount.discount_value,
-    currencyCode
-  )}`
-}
-
-function formatTier(tier: ComboTier, currencyCode: string) {
-  const suffix = tier.is_free_shipping ? " + freeship" : ""
-
-  return `${tier.minimum_quantity}+ ${formatDiscountValue(
-    tier.discount_type,
-    tier.discount_value,
-    currencyCode
-  )}${suffix}`
-}
-
-function formatDiscountValue(
-  type: ComboTier["discount_type"],
-  value: number,
-  currencyCode: string
-) {
-  if (type === "percentage") {
-    return `${value}% off`
-  }
-
-  if (type === "fixed_total") {
-    return `${convertToLocale({
-      amount: value,
-      currency_code: currencyCode,
-    })} total`
-  }
-
-  return `${convertToLocale({
-    amount: value,
-    currency_code: currencyCode,
-  })} off/item`
-}

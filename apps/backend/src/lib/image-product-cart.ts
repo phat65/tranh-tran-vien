@@ -1,4 +1,7 @@
-import { ContainerRegistrationKeys, MedusaError } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+} from "@medusajs/framework/utils"
 import type { MedusaContainer } from "@medusajs/framework/types"
 
 import {
@@ -66,12 +69,29 @@ export async function canonicalizeImageProductLineMetadata(input: {
     index: imageIndex,
   })
 
-  if (!normalized.active) {
+  if (!normalized.active || normalized.role !== "primary") {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Selected image product is not active."
+      "Selected image product is not an active primary image."
     )
   }
+
+  const galleryImageUrls = images
+    .map((candidate, index) => ({
+      candidate,
+      metadata: normalizeImageProductMetadata({
+        parent,
+        image: candidate,
+        index,
+      }),
+    }))
+    .filter(
+      (candidate) =>
+        candidate.metadata.role === "gallery" &&
+        candidate.metadata.primary_image_id === image.id &&
+        candidate.metadata.active
+    )
+    .map((candidate) => candidate.candidate.url)
 
   return {
     ...input.metadata,
@@ -86,6 +106,10 @@ export async function canonicalizeImageProductLineMetadata(input: {
     ttv_explore_image_alt: normalized.alt,
     ttv_image_product_handle: normalized.handle,
     ttv_explore_original_filename: normalized.original_filename,
+    ttv_primary_image_id: image.id,
+    ttv_print_file_url: image.url,
+    ttv_display_image_url: image.url,
+    ttv_gallery_image_urls: galleryImageUrls,
   }
 }
 

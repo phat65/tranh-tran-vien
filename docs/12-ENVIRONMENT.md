@@ -3,10 +3,12 @@
 ## Environments
 
 Tối thiểu:
+
 - development,
 - production.
 
 Khuyến nghị:
+
 - development,
 - staging,
 - production.
@@ -49,6 +51,7 @@ S3_PUBLIC_BASE_URL
 ```
 
 Nếu dùng R2:
+
 - endpoint theo account.
 - region/provider config theo SDK.
 
@@ -64,12 +67,14 @@ Không prefix `NEXT_PUBLIC_` cho secret.
 ## Secrets
 
 Không commit:
+
 - `.env`,
 - private keys,
 - production credentials,
 - webhook secrets.
 
 Commit:
+
 - `.env.example`.
 
 ## `.env.example`
@@ -79,9 +84,11 @@ Chỉ để placeholder, không chứa secret thật.
 ## Database
 
 Development:
+
 - local/container PostgreSQL hoặc managed dev DB.
 
 Production:
+
 - managed PostgreSQL.
 - backups enabled.
 
@@ -99,11 +106,13 @@ internal/
 ```
 
 Private:
+
 - customer-source,
 - production,
 - internal.
 
 Public:
+
 - catalog.
 
 ## CORS
@@ -115,11 +124,13 @@ Không dùng `*` cho authenticated production APIs.
 ## Logging
 
 Production logs:
+
 - request ID,
 - error context,
 - audit events.
 
 Không log:
+
 - password,
 - token,
 - secret,
@@ -128,10 +139,12 @@ Không log:
 ## Backups
 
 Database:
+
 - automated daily backup tối thiểu.
 - retention theo ngân sách.
 
 Storage:
+
 - versioning hoặc backup strategy.
 
 ## Migrations
@@ -181,9 +194,31 @@ pnpm backend:payos:setup
 
 Never expose PayOS secrets in storefront code or `NEXT_PUBLIC_*` variables.
 
+## SePay inline QR
+
+Backend variables:
+
+```txt
+SEPAY_BANK_ACCOUNT
+SEPAY_BANK_CODE
+SEPAY_ACCOUNT_HOLDER
+SEPAY_STORE_NAME
+SEPAY_WEBHOOK_SECRET
+```
+
+SePay is enabled only when `SEPAY_BANK_ACCOUNT`, `SEPAY_BANK_CODE`, and
+`SEPAY_WEBHOOK_SECRET` are all set. Configure the SePay bank webhook to the
+public HTTPS Medusa payment hook for provider `sepay` (normally
+`/hooks/payment/sepay_sepay`). Hosted checkout merchant keys and return URLs are
+not used. Never expose `SEPAY_WEBHOOK_SECRET` to the storefront.
+
 ## Cloudflare R2 / Admin Uploads
 
-Project uses Medusa file provider for image uploads. In production and shared environments, configure Cloudflare R2 with the `S3_*` variables in `apps/backend/.env` and expose the same public asset base to storefront through `NEXT_PUBLIC_STORAGE_PUBLIC_URL`.
+Project uses Medusa file provider for image uploads. Local development falls
+back to `apps/backend/static` when S3/R2 is not configured. In production and
+shared environments, configure Cloudflare R2 with the `S3_*` variables in
+`apps/backend/.env` and expose the same public asset base to storefront through
+`NEXT_PUBLIC_STORAGE_PUBLIC_URL`.
 
 Required for R2-backed public images:
 

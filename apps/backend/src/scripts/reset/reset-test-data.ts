@@ -10,7 +10,6 @@ import {
 } from "@medusajs/medusa/core-flows"
 
 import { BRAND_MODULE } from "../../modules/brand"
-import { TAXONOMY_MODULE } from "../../modules/taxonomy"
 
 type IdRecord = {
   id: string
@@ -26,26 +25,8 @@ type InventoryItemRecord = IdRecord & {
   title?: string | null
 }
 
-type TaxonomyRecord = IdRecord & {
-  code: string
-}
-
-type TaxonomyTermRecord = IdRecord & {
-  taxonomy_id: string
-  image_url?: string | null
-  metadata?: Record<string, unknown> | null
-}
-
 const PAGE_SIZE = 100
 const DELETE_BATCH_SIZE = 20
-
-const EXPLORE_GROUP_CODES = [
-  "explore_shop_by_shape",
-  "explore_shop_by_category",
-  "explore_popular_anime",
-  "explore_popular_games",
-  "explore_shop_extras",
-]
 
 const IMAGE_EXTENSIONS = new Set([
   ".avif",
@@ -71,7 +52,6 @@ export default async function reset_test_data({
 
   await clearProducts(container)
   await clearInventory(container)
-  await clearExploreGalleries(container)
   await clearImageFiles()
 
   logger.info("Finished resetting Tranh Tran Vien test data.")
@@ -82,7 +62,6 @@ async function clearProducts(container: MedusaContainer) {
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
   const query = container.resolve(ContainerRegistrationKeys.QUERY)
   const brandService = container.resolve(BRAND_MODULE) as any
-  const taxonomyService = container.resolve(TAXONOMY_MODULE) as any
   const products = await listAll<ProductRecord>(query, "product", [
     "id",
     "title",
@@ -105,16 +84,6 @@ async function clearProducts(container: MedusaContainer) {
     if (productBrands.length) {
       await brandService.deleteProductBrands(
         productBrands.map((link) => link.id)
-      )
-    }
-
-    const productTaxonomyTerms =
-      (await taxonomyService.listProductTaxonomyTerms({
-        product_id: product.id,
-      })) as IdRecord[]
-    if (productTaxonomyTerms.length) {
-      await taxonomyService.deleteProductTaxonomyTerms(
-        productTaxonomyTerms.map((link) => link.id)
       )
     }
   }
@@ -175,48 +144,6 @@ async function clearInventory(container: MedusaContainer) {
   console.log(`deleted_inventory_items=${inventoryItems.length}`)
 }
 
-async function clearExploreGalleries(container: MedusaContainer) {
-  const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
-  const taxonomyService = container.resolve(TAXONOMY_MODULE) as any
-  const taxonomies = (await taxonomyService.listTaxonomies(
-    { code: EXPLORE_GROUP_CODES },
-    { take: 100 }
-  )) as TaxonomyRecord[]
-  const taxonomyIds = new Set(taxonomies.map((taxonomy) => taxonomy.id))
-
-  if (!taxonomyIds.size) {
-    logger.info("No Explore groups found for gallery cleanup.")
-    console.log("explore_gallery_terms=0")
-    return
-  }
-
-  let cleared = 0
-
-  for (const taxonomyId of taxonomyIds) {
-    const terms = (await taxonomyService.listTaxonomyTerms(
-      { taxonomy_id: taxonomyId },
-      { take: 500 }
-    )) as TaxonomyTermRecord[]
-
-    for (const term of terms) {
-      const metadata = { ...(term.metadata ?? {}) }
-      delete metadata.gallery_images
-
-      await taxonomyService.updateTaxonomyTerms({
-        selector: { id: term.id },
-        data: {
-          image_url: null,
-          metadata,
-        },
-      })
-      cleared += 1
-    }
-  }
-
-  logger.info(`Cleared Explore gallery metadata for ${cleared} term(s).`)
-  console.log(`cleared_explore_gallery_terms=${cleared}`)
-}
-
 async function clearImageFiles() {
   const roots = [
     path.resolve(process.cwd(), "static"),
@@ -260,7 +187,10 @@ async function deleteImagesInDirectory(root: string): Promise<number> {
       continue
     }
 
-    if (entry.isFile() && IMAGE_EXTENSIONS.has(path.extname(entry.name).toLowerCase())) {
+    if (
+      entry.isFile() &&
+      IMAGE_EXTENSIONS.has(path.extname(entry.name).toLowerCase())
+    ) {
       await fs.rm(fullPath, { force: true })
       deleted += 1
     }
@@ -328,5 +258,9 @@ function chunk<T>(items: T[], size: number): T[][] {
 function isInside(root: string, target: string) {
   const relative = path.relative(path.resolve(root), path.resolve(target))
 
-  return Boolean(relative) && !relative.startsWith("..") && !path.isAbsolute(relative)
+  return (
+    Boolean(relative) &&
+    !relative.startsWith("..") &&
+    !path.isAbsolute(relative)
+  )
 }

@@ -26,16 +26,13 @@ export default async function setupSePay({
   const query = container.resolve(ContainerRegistrationKeys.QUERY)
 
   if (
-    !env.SEPAY_ENVIRONMENT ||
-    !env.SEPAY_MERCHANT_ID ||
-    !env.SEPAY_SECRET_KEY ||
-    !env.SEPAY_SUCCESS_URL ||
-    !env.SEPAY_ERROR_URL ||
-    !env.SEPAY_CANCEL_URL
+    !env.SEPAY_BANK_ACCOUNT ||
+    !env.SEPAY_BANK_CODE ||
+    !env.SEPAY_WEBHOOK_SECRET
   ) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Configure SEPAY_ENVIRONMENT, SEPAY_MERCHANT_ID, SEPAY_SECRET_KEY, SEPAY_SUCCESS_URL, SEPAY_ERROR_URL and SEPAY_CANCEL_URL first"
+      "Configure SEPAY_BANK_ACCOUNT, SEPAY_BANK_CODE and SEPAY_WEBHOOK_SECRET first"
     )
   }
 

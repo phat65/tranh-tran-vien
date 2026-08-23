@@ -5,9 +5,11 @@
 ## Product
 
 For the printable catalog, a Medusa Product is an album/collection of designs,
-not one storefront card. Every active ProductImage is one virtual storefront
-product. All images inherit the parent Product's category, Medusa collection,
-price, options, and production method.
+not one storefront card. Every active primary ProductImage is one virtual
+storefront product. Gallery ProductImages are supporting media linked to one
+primary and never create their own storefront card. All images inherit the
+parent Product's category, Medusa collection, price, options, and production
+method.
 
 The parent must retain at least one internal variant for Medusa pricing and
 checkout. Images must not be modeled as variants.
@@ -16,16 +18,22 @@ All printable image products are made-to-order. Their internal variants use
 `manage_inventory = false` and `allow_backorder = true`; fulfillment begins
 only after the order identifies the selected ProductImage.
 
-Combo tiers such as 3/5/7 images are backend rules. A `fixed_total` tier fixes
-the total at its threshold, while quantity between thresholds is prorated from
-the highest matched tier. Combo scope uses the parent Product's native Medusa
-Category or Collection, so images can be combined even when they share the same
-parent internal variant.
+Quantity tiers are native Medusa Price List prices attached to the parent
+Product's internal variant. The configured amount is the actual unit price for
+its `min_quantity`/`max_quantity` range. Storefront may display these calculated
+tiers but must not calculate or override checkout pricing.
+
+Medusa applies native quantity pricing per line item/variant quantity. Different
+virtual image products stay as separate cart lines so their selected image
+metadata remains unambiguous; their quantities are not aggregated by a custom
+rule. Custom Combo Rule, Gift Rule, and Shipping Rule modules are not part of the
+system. Promotions and shipping methods remain native Medusa responsibilities.
 
 Explore is storefront navigation only. It reads native Categories and
 Collections and must not introduce a second catalog-assignment system.
 
 Một product có thể có:
+
 - material,
 - size,
 - frame,
@@ -40,6 +48,7 @@ Frontend chỉ render combination backend cho phép.
 Giá cuối cùng do backend/commerce engine tính.
 
 Frontend không:
+
 - tự tính discount cuối cùng,
 - tự quyết định tax,
 - tự quyết định shipping fee,
@@ -57,10 +66,12 @@ Variant disabled/out-of-stock không add-to-cart được.
 ## Inventory
 
 Nếu `trackInventory = true`:
+
 - backend check stock,
 - cart/checkout không được vượt available stock.
 
 Nếu product made-to-order:
+
 - có thể `trackInventory = false`.
 
 ## Promotions
@@ -68,6 +79,7 @@ Nếu product made-to-order:
 Promotion phải đến từ backend/config.
 
 Types:
+
 - percentage,
 - fixed amount,
 - free shipping,
@@ -78,6 +90,7 @@ Không hard-code campaign vào component.
 ## Custom Artwork
 
 Custom product phải có:
+
 - source file hợp lệ,
 - configuration hợp lệ,
 - metadata liên kết order item.
@@ -87,6 +100,7 @@ Customer upload không mặc định public.
 ## Artwork Approval
 
 Approval states:
+
 - not_sent,
 - sent,
 - approved,
@@ -114,6 +128,7 @@ waiting_for_file
 ```
 
 Có:
+
 - on_hold,
 - cancelled.
 
@@ -124,6 +139,7 @@ Mặc định chỉ cho phép chuyển sang bước kế tiếp hoặc bước �
 Không nhảy tự do.
 
 Manager/Admin có thể override nhưng:
+
 - phải có permission,
 - phải ghi reason,
 - phải audit log.
@@ -135,6 +151,7 @@ Production nằm theo order item/artwork.
 Order-level status được derive.
 
 Ví dụ:
+
 - Item A completed.
 - Item B printing.
 
@@ -146,6 +163,7 @@ Chỉ `ready_to_ship` khi mọi item cần production đã ready.
 ## Refund
 
 Refund:
+
 - backend/provider source of truth,
 - cần amount,
 - reason,
@@ -160,6 +178,7 @@ Shipping status riêng production status.
 
 Production kết thúc ở `ready_to_ship`.
 Fulfillment xử lý:
+
 - shipped,
 - delivered,
 - returned.
@@ -167,6 +186,7 @@ Fulfillment xử lý:
 ## SLA
 
 Có thể cấu hình:
+
 - review,
 - design,
 - printing,
@@ -179,6 +199,7 @@ Overdue chỉ tạo cảnh báo, không auto-cancel.
 ## Deletion
 
 Ưu tiên archive/soft delete cho:
+
 - products,
 - collections,
 - customers,

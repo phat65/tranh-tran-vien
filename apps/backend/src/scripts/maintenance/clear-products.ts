@@ -3,7 +3,6 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { deleteProductsWorkflow } from "@medusajs/medusa/core-flows"
 
 import { BRAND_MODULE } from "../../modules/brand"
-import { TAXONOMY_MODULE } from "../../modules/taxonomy"
 
 type ProductRecord = {
   id: string
@@ -26,7 +25,6 @@ export default async function clear_products({
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
   const query = container.resolve(ContainerRegistrationKeys.QUERY)
   const brandService = container.resolve(BRAND_MODULE) as any
-  const taxonomyService = container.resolve(TAXONOMY_MODULE) as any
 
   const products: ProductRecord[] = []
   let offset = 0
@@ -67,16 +65,6 @@ export default async function clear_products({
     if (productBrands.length) {
       await brandService.deleteProductBrands(
         productBrands.map((link) => link.id)
-      )
-    }
-
-    const productTaxonomyTerms =
-      (await taxonomyService.listProductTaxonomyTerms({
-        product_id: product.id,
-      })) as LinkRecord[]
-    if (productTaxonomyTerms.length) {
-      await taxonomyService.deleteProductTaxonomyTerms(
-        productTaxonomyTerms.map((link) => link.id)
       )
     }
   }

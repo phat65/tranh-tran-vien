@@ -4,6 +4,7 @@ import { Metadata } from "next"
 import { notFound } from "next/navigation"
 
 import { listCollections } from "@lib/data/collections"
+import { getCustomHexagonPriceProduct } from "@lib/data/custom-products"
 import { addCustomWallItemsToCart } from "@lib/data/custom-wall"
 import { listImageProducts } from "@lib/data/image-products"
 import { getRegion } from "@lib/data/regions"
@@ -30,22 +31,25 @@ export default async function CustomWallPage(props: CustomWallPageProps) {
     notFound()
   }
 
-  const [{ response }, collectionsResponse] = await Promise.all([
-    listImageProducts({
-      countryCode: params.countryCode,
-      queryParams: {
-        limit: 100,
-      },
-    }),
-    listCollections({ limit: "100" }, { cache: "no-store" }).catch(() => ({
-      collections: [],
-      count: 0,
-    })),
-  ])
+  const [{ response }, collectionsResponse, customPriceProduct] =
+    await Promise.all([
+      listImageProducts({
+        countryCode: params.countryCode,
+        queryParams: {
+          limit: 100,
+        },
+      }),
+      listCollections({ limit: "100" }, { cache: "no-store" }).catch(() => ({
+        collections: [],
+        count: 0,
+      })),
+      getCustomHexagonPriceProduct(params.countryCode),
+    ])
 
   return (
     <CustomWallTemplate
       products={response.products}
+      customPriceProduct={customPriceProduct}
       collections={collectionsResponse.collections}
       countryCode={params.countryCode}
       currencyCode={region.currency_code}

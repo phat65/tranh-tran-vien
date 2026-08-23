@@ -4,6 +4,7 @@
 
 import { Table, Text, clx } from "@modules/common/components/ui"
 import { updateLineItem } from "@lib/data/cart"
+import { getImageProductDisplayImageUrl } from "@lib/util/line-item-image"
 import { HttpTypes } from "@medusajs/types"
 import ErrorMessage from "@modules/checkout/components/error-message"
 import DeleteButton from "@modules/common/components/delete-button"
@@ -51,6 +52,7 @@ const Item = ({ item, type = "full", currencyCode }: ItemProps) => {
   const customFilename = getCustomFilename(item)
   const customDisplayTitle = getCustomDisplayTitle(item)
   const exploreImage = getExploreImageSelection(item)
+  const imageProductUrl = getImageProductDisplayImageUrl(item)
   const productHref = customImageUrl
     ? "/custom/tranh-luc-giac"
     : `/products/${exploreImage?.handle || item.product_handle}`
@@ -69,8 +71,8 @@ const Item = ({ item, type = "full", currencyCode }: ItemProps) => {
             <CustomLineItemThumbnail item={item} />
           ) : (
             <Thumbnail
-              thumbnail={item.thumbnail}
-              images={item.variant?.product?.images}
+              thumbnail={imageProductUrl ?? item.thumbnail}
+              images={imageProductUrl ? [] : item.variant?.product?.images}
               size="square"
             />
           )}
@@ -208,7 +210,7 @@ function getCustomDisplayTitle(item: HttpTypes.StoreCartLineItem) {
 function getExploreImageSelection(item: HttpTypes.StoreCartLineItem) {
   const metadata = item.metadata
   const code = metadata?.ttv_explore_image_code
-  const url = metadata?.ttv_explore_image_url
+  const url = getImageProductDisplayImageUrl(item)
 
   if (typeof code !== "string" || typeof url !== "string") {
     return null

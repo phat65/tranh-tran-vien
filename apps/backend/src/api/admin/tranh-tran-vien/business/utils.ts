@@ -7,10 +7,6 @@ import { CONTENT_MODULE } from "../../../../modules/content"
 import ContentModuleService from "../../../../modules/content/service"
 import { FEEDBACK_MODULE } from "../../../../modules/feedback"
 import FeedbackModuleService from "../../../../modules/feedback/service"
-import { GIFT_RULE_MODULE } from "../../../../modules/gift-rule"
-import GiftRuleModuleService from "../../../../modules/gift-rule/service"
-import { SHIPPING_RULE_MODULE } from "../../../../modules/shipping-rule"
-import ShippingRuleModuleService from "../../../../modules/shipping-rule/service"
 import { BusinessListQuery, businessListQuerySchema } from "./validators"
 
 export type ListConfig = {
@@ -33,18 +29,6 @@ export function toBusinessListConfig(query: BusinessListQuery): ListConfig {
       created_at: "DESC",
     },
   }
-}
-
-export function getGiftRuleService(
-  scope: MedusaContainer
-): GiftRuleModuleService {
-  return scope.resolve(GIFT_RULE_MODULE)
-}
-
-export function getShippingRuleService(
-  scope: MedusaContainer
-): ShippingRuleModuleService {
-  return scope.resolve(SHIPPING_RULE_MODULE)
 }
 
 export function getFeedbackService(

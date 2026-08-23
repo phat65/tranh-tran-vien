@@ -21,14 +21,20 @@ import {
 
 import { listImageProductQueryConfig } from "./store/image-products/query-config"
 import { StoreGetImageProductsParams } from "./store/image-products/validators"
+import { StoreGetQuantityPricesParams } from "./store/quantity-prices/validators"
 import { canonicalizeImageProductLineMetadata } from "../lib/image-product-cart"
+import {
+  exposeNativeQuantityRulesToDashboard,
+  normalizePriceListQuantityRules,
+} from "../lib/price-list-quantity"
+import { preventDuplicateProductCreate } from "./admin/products/prevent-duplicate-create"
 
 export default defineMiddlewares({
   routes: [
     {
       matcher: "/admin/products",
       methods: ["POST"],
-      middlewares: [forceMadeToOrderInventory],
+      middlewares: [preventDuplicateProductCreate, forceMadeToOrderInventory],
     },
     {
       matcher: "/admin/products/*",
@@ -53,6 +59,16 @@ export default defineMiddlewares({
       },
     },
     {
+      matcher: "/admin/price-lists/*/prices/batch",
+      methods: ["POST"],
+      middlewares: [normalizePriceListQuantityPayload],
+    },
+    {
+      matcher: "/admin/price-lists/*",
+      methods: ["GET"],
+      middlewares: [exposePriceListQuantityRules],
+    },
+    {
       matcher: "/admin/uploads/*",
       methods: ["POST"],
       bodyParser: {
@@ -60,7 +76,7 @@ export default defineMiddlewares({
       },
     },
     {
-      matcher: "/admin/tranh-tran-vien/catalog/explore/product-images",
+      matcher: "/admin/tranh-tran-vien/catalog/product-images",
       methods: ["POST"],
       bodyParser: {
         sizeLimit: "50mb",
@@ -103,12 +119,23 @@ export default defineMiddlewares({
         normalizeDataForContext(),
         setPricingContext(),
         setTaxContext(),
-        clearFiltersByKey([
-          "region_id",
-          "country_code",
-          "province",
-          "cart_id",
-        ]),
+        clearFiltersByKey(["region_id", "country_code", "province", "cart_id"]),
+      ],
+    },
+    {
+      matcher: "/store/quantity-prices",
+      methods: ["GET"],
+      middlewares: [
+        authenticate("customer", ["session", "bearer"], {
+          allowUnauthenticated: true,
+        }),
+        validateAndTransformQuery(StoreGetQuantityPricesParams, {
+          defaults: ["calculated_price.*"],
+          isList: true,
+        }),
+        normalizeDataForContext(),
+        setPricingContext({ priceFieldPaths: ["calculated_price"] }),
+        clearFiltersByKey(["region_id", "country_code", "province", "cart_id"]),
       ],
     },
     {
@@ -125,6 +152,34 @@ export default defineMiddlewares({
     },
   ],
 })
+
+function normalizePriceListQuantityPayload(
+  req: MedusaRequest,
+  _res: MedusaResponse,
+  next: MedusaNextFunction
+) {
+  try {
+    normalizePriceListQuantityRules(req.body)
+    next()
+  } catch (error) {
+    next(error)
+  }
+}
+
+function exposePriceListQuantityRules(
+  _req: MedusaRequest,
+  res: MedusaResponse,
+  next: MedusaNextFunction
+) {
+  const sendJson = res.json.bind(res)
+
+  res.json = ((body: unknown) => {
+    exposeNativeQuantityRulesToDashboard(body)
+    return sendJson(body)
+  }) as typeof res.json
+
+  next()
+}
 
 function forceMadeToOrderInventory(
   req: MedusaRequest,

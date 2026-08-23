@@ -5,6 +5,7 @@ Tài liệu này mô tả logical schema. Nếu Medusa đã có entity tương �
 ## Core Commerce
 
 Medusa là source of truth cho:
+
 - Product.
 - Product Variant.
 - Customer.
@@ -32,18 +33,28 @@ For the printable catalog, native Medusa entities have these roles:
 
 - `Product` is the album/group and owns categories, collection, description,
   price configuration, and the internal commerce variant.
-- Each native `ProductImage` is projected as one storefront image product.
-- `ProductImage.metadata` stores `title`, `handle`, `code`, `active`, `alt`, and
-  `original_filename`.
+- A `ProductImage` with metadata `role = primary` is projected as one storefront
+  image product.
+- A `ProductImage` with `role = gallery` belongs to one primary image through
+  `primary_image_id` and is only supporting media for that image product.
+- `ProductImage.metadata` also stores `title`, `handle`, `code`, `active`, `alt`,
+  and `original_filename`.
 - The image is not a Medusa variant. Cart and checkout still use the parent
   product's internal variant.
 - Cart/order line metadata snapshots the image ID, name, code, URL, virtual
   handle, and parent product ID so production can identify the selected print.
 
-The native `ProductImage.id` is the stable catalog-image identity. A URL or
-image rank must not be used as the identity.
+The native primary `ProductImage.id` is the stable virtual-product identity. A
+URL or image rank must not be used as the identity.
+
+### SePay Integration State
+
+`sepay_payment_attempt` maps a unique transfer description to one Medusa
+`payment_session_id`. It stores only the inline QR/session state and bank
+webhook result. Medusa remains the source of truth for payment and order state.
 
 Các metadata/custom relation có thể gồm:
+
 - material,
 - size,
 - frame,
@@ -228,6 +239,7 @@ Một order có thể có nhiều artwork vì relation nằm ở Order Item.
 ## Indexes
 
 Index các field thường search/filter:
+
 - orderId,
 - orderItemId,
 - customerId,
@@ -244,10 +256,12 @@ DB lưu metadata/object key.
 Binary file nằm ở R2/S3.
 
 Private files:
+
 - customer upload,
 - production file,
 - internal attachment.
 
 Public files:
+
 - catalog images,
 - marketing assets được duyệt.

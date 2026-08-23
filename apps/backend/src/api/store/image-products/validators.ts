@@ -21,7 +21,6 @@ export const StoreGetImageProductsParams = createFindParams({
       parent_handle: stringOrArray.optional(),
       category_id: stringOrArray.optional(),
       collection_id: stringOrArray.optional(),
-      taxonomy_term_id: stringOrArray.optional(),
     })
   )
   .strict()

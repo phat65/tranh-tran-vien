@@ -1,14 +1,16 @@
-type SePayCheckoutForm = {
-  checkoutUrl: string
-  fields: Record<string, string>
+export type SePayQrDetails = {
+  qrCodeUrl: string
+  bankAccount: string
+  bankCode: string
+  accountHolder: string
+  transferContent: string
+  amount: number
 }
 
-export const getSePayCheckoutForm = (
-  checkoutUrl: unknown,
-  checkoutFields: unknown
-): SePayCheckoutForm | null => {
+export const getSePayQrDetails = (
+  checkoutFields: unknown,
+): SePayQrDetails | null => {
   if (
-    typeof checkoutUrl !== "string" ||
     !checkoutFields ||
     typeof checkoutFields !== "object" ||
     Array.isArray(checkoutFields)
@@ -16,73 +18,42 @@ export const getSePayCheckoutForm = (
     return null
   }
 
-  let url: URL
+  const fields = checkoutFields as Record<string, unknown>
+  const qrCodeUrl = readString(fields.qr_code_url)
+  const bankAccount = readString(fields.bank_account)
+  const bankCode = readString(fields.bank_code)
+  const transferContent = readString(fields.transfer_content)
+  const accountHolder = readString(fields.account_holder)
+  const amount = Number(fields.order_amount)
 
   try {
-    url = new URL(checkoutUrl)
+    const url = new URL(qrCodeUrl)
+
+    if (
+      url.protocol !== "https:" ||
+      url.hostname !== "vietqr.app" ||
+      !bankAccount ||
+      !bankCode ||
+      !transferContent ||
+      !Number.isSafeInteger(amount) ||
+      amount <= 0
+    ) {
+      return null
+    }
   } catch {
     return null
   }
 
-  if (url.protocol !== "https:") {
-    return null
-  }
-
-  const fields = Object.entries(checkoutFields).reduce<Record<string, string>>(
-    (result, [name, value]) => {
-      if (
-        name &&
-        (typeof value === "string" || typeof value === "number")
-      ) {
-        result[name] = String(value)
-      }
-
-      return result
-    },
-    {}
-  )
-
-  if (!Object.keys(fields).length) {
-    return null
-  }
-
   return {
-    checkoutUrl: url.toString(),
-    fields,
+    qrCodeUrl,
+    bankAccount,
+    bankCode,
+    accountHolder,
+    transferContent,
+    amount,
   }
 }
 
-export const submitSePayCheckout = (
-  checkoutUrl: unknown,
-  checkoutFields: unknown
-): boolean => {
-  const checkout = getSePayCheckoutForm(checkoutUrl, checkoutFields)
-
-  if (
-    !checkout ||
-    typeof document === "undefined" ||
-    typeof HTMLFormElement === "undefined"
-  ) {
-    return false
-  }
-
-  const form = document.createElement("form")
-  form.method = "POST"
-  form.action = checkout.checkoutUrl
-  form.acceptCharset = "UTF-8"
-  form.hidden = true
-
-  Object.entries(checkout.fields).forEach(([name, value]) => {
-    const input = document.createElement("input")
-    input.type = "hidden"
-    input.name = name
-    input.value = value
-    form.appendChild(input)
-  })
-
-  document.body.appendChild(form)
-  HTMLFormElement.prototype.submit.call(form)
-  form.remove()
-
-  return true
+function readString(value: unknown) {
+  return typeof value === "string" ? value.trim() : ""
 }

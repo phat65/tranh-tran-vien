@@ -10,10 +10,6 @@ import { CUSTOM_DESIGN_MODULE } from "../../../../modules/custom-design"
 import CustomDesignModuleService from "../../../../modules/custom-design/service"
 import { FEEDBACK_MODULE } from "../../../../modules/feedback"
 import FeedbackModuleService from "../../../../modules/feedback/service"
-import { GIFT_RULE_MODULE } from "../../../../modules/gift-rule"
-import GiftRuleModuleService from "../../../../modules/gift-rule/service"
-import { SHIPPING_RULE_MODULE } from "../../../../modules/shipping-rule"
-import ShippingRuleModuleService from "../../../../modules/shipping-rule/service"
 import { WISHLIST_MODULE } from "../../../../modules/wishlist"
 import WishlistModuleService from "../../../../modules/wishlist/service"
 
@@ -33,8 +29,6 @@ export async function GET(
     designRequestCount,
     designAssetCount,
     layoutTemplateCount,
-    giftRuleCount,
-    shippingRuleCount,
     feedbackCount,
     feedbackMediaCount,
     postCount,
@@ -57,15 +51,6 @@ export async function GET(
       const service =
         req.scope.resolve<CustomDesignModuleService>(CUSTOM_DESIGN_MODULE)
       return service.listAndCountLayoutTemplates({}, { take: 1 })
-    }),
-    safeCount(async () => {
-      const service = req.scope.resolve<GiftRuleModuleService>(GIFT_RULE_MODULE)
-      return service.listAndCountGiftRules({}, { take: 1 })
-    }),
-    safeCount(async () => {
-      const service =
-        req.scope.resolve<ShippingRuleModuleService>(SHIPPING_RULE_MODULE)
-      return service.listAndCountShippingRules({}, { take: 1 })
     }),
     safeCount(async () => {
       const service = req.scope.resolve<FeedbackModuleService>(FEEDBACK_MODULE)
@@ -110,20 +95,6 @@ export async function GET(
         "layout_template",
       ],
       count: designRequestCount + designAssetCount + layoutTemplateCount,
-    },
-    {
-      key: "gift-rule",
-      label: "Gift rules",
-      status: "schema_ready",
-      tables: ["gift_rule"],
-      count: giftRuleCount,
-    },
-    {
-      key: "shipping-rule",
-      label: "Shipping rules",
-      status: "schema_ready",
-      tables: ["shipping_rule"],
-      count: shippingRuleCount,
     },
     {
       key: "feedback",

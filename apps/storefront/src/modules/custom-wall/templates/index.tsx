@@ -136,6 +136,7 @@ export type CustomUploadDraft = {
 
 type CustomWallTemplateProps = {
   products: HttpTypes.StoreProduct[]
+  customPriceProduct?: HttpTypes.StoreProduct | null
   collections: HttpTypes.StoreCollection[]
   countryCode: string
   currencyCode: string
@@ -149,6 +150,7 @@ type AddItemsToCartAction = (input: {
 
 const CustomWallTemplate = ({
   products,
+  customPriceProduct,
   collections,
   countryCode,
   currencyCode,
@@ -173,8 +175,11 @@ const CustomWallTemplate = ({
   )
 
   const customProduct = useMemo(
-    () => productOptions.find(isCustomWallProduct) ?? null,
-    [productOptions]
+    () =>
+      customPriceProduct
+        ? toProductOption(customPriceProduct)
+        : (productOptions.find(isCustomWallProduct) ?? null),
+    [customPriceProduct, productOptions]
   )
   const shopProductOptions = useMemo(
     () => productOptions.filter((product) => !isCustomWallProduct(product)),
@@ -577,7 +582,7 @@ const CustomWallTemplate = ({
               </h1>
               <p className="mt-4 max-w-[42rem] text-base leading-7 text-[#62695d]">
                 Chọn tranh có sẵn để xem bố cục lục giác trước khi thêm vào giỏ
-                hàng. Giá combo sẽ được tính tự động trong cart.
+                hàng. Giá được lấy trực tiếp từ sản phẩm Medusa.
               </p>
             </div>
             <LocalizedClientLink

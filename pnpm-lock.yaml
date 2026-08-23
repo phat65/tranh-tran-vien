@@ -66,9 +66,6 @@ importers:
       react-router-dom:
         specifier: 6.30.4
         version: 6.30.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      sepay-pg-node:
-        specifier: ^1.0.0
-        version: 1.0.0
       zod:
         specifier: 4.2.0
         version: 4.2.0
@@ -7460,10 +7457,6 @@ packages:
 
   sentence-case@3.0.4:
     resolution: {integrity: sha512-8LS0JInaQMCRoQ7YUytAo/xUu5W2XnQxV2HI/6uM6U7CITS1RqPElr30V6uIqyMKM9lJGRVFy5/4CuzcixNYSg==}
-
-  sepay-pg-node@1.0.0:
-    resolution: {integrity: sha512-MeU0o3vf6IQRecSxrDYDbcDQUg625jZVR+aLSPDhBKAbjttfapCFoJ6vro7BFngIW3ylIMSf+Y5safC7iRJmJQ==}
-    engines: {node: '>=16.0.0'}
 
   serialize-javascript@6.0.2:
     resolution: {integrity: sha512-Saa1xPByTTq2gdeFZYLLo+RFE35NHZkAbqZeWNd3BpzppeVisAqpDjcp8dyf6uIvEqJRd46jemmyA4iFIeVk8g==}
@@ -17426,12 +17419,6 @@ snapshots:
       no-case: 3.0.4
       tslib: 2.8.1
       upper-case-first: 2.0.2
-
-  sepay-pg-node@1.0.0:
-    dependencies:
-      axios: 1.13.2
-    transitivePeerDependencies:
-      - debug
 
   serialize-javascript@6.0.2:
     dependencies:

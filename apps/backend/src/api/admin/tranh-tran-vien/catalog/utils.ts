@@ -6,10 +6,6 @@ import { MedusaError } from "@medusajs/framework/utils"
 
 import { BRAND_MODULE } from "../../../../modules/brand"
 import BrandModuleService from "../../../../modules/brand/service"
-import { TAXONOMY_MODULE } from "../../../../modules/taxonomy"
-import TaxonomyModuleService from "../../../../modules/taxonomy/service"
-import { NAVIGATION_MODULE } from "../../../../modules/navigation"
-import NavigationModuleService from "../../../../modules/navigation/service"
 import { SITE_SETTING_MODULE } from "../../../../modules/site-setting"
 import SiteSettingModuleService from "../../../../modules/site-setting/service"
 import { ListQuery, listQuerySchema } from "./validators"
@@ -49,18 +45,6 @@ export function getBrandService(scope: MedusaContainer): BrandModuleService {
   return scope.resolve(BRAND_MODULE)
 }
 
-export function getTaxonomyService(
-  scope: MedusaContainer
-): TaxonomyModuleService {
-  return scope.resolve(TAXONOMY_MODULE)
-}
-
-export function getNavigationService(
-  scope: MedusaContainer
-): NavigationModuleService {
-  return scope.resolve(NAVIGATION_MODULE)
-}
-
 export function getSiteSettingService(
   scope: MedusaContainer
 ): SiteSettingModuleService {
@@ -86,7 +70,10 @@ export async function assertProductExists(
   }
 }
 
-export function assertFound<T>(value: T | null | undefined, message: string): T {
+export function assertFound<T>(
+  value: T | null | undefined,
+  message: string
+): T {
   if (!value) {
     throw new MedusaError(MedusaError.Types.NOT_FOUND, message)
   }

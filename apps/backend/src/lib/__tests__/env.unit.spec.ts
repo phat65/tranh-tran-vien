@@ -11,51 +11,35 @@ const baseEnv: NodeJS.ProcessEnv = {
 }
 
 describe("parseBackendEnv SePay configuration", () => {
-  it("keeps SePay disabled when credentials are empty", () => {
+  it("keeps SePay disabled when direct QR settings are empty", () => {
     const env = parseBackendEnv({
       ...baseEnv,
-      SEPAY_ENVIRONMENT: "sandbox",
-      SEPAY_MERCHANT_ID: "",
-      SEPAY_SECRET_KEY: "",
-      SEPAY_SUCCESS_URL:
-        "http://localhost:8000/vn/checkout/sepay/return?result=success",
-      SEPAY_ERROR_URL:
-        "http://localhost:8000/vn/checkout/sepay/return?result=error",
-      SEPAY_CANCEL_URL:
-        "http://localhost:8000/vn/checkout/sepay/return?result=cancel",
+      SEPAY_BANK_ACCOUNT: "",
+      SEPAY_BANK_CODE: "",
+      SEPAY_WEBHOOK_SECRET: "",
     })
 
-    expect(env.SEPAY_MERCHANT_ID).toBeUndefined()
-    expect(env.SEPAY_SECRET_KEY).toBeUndefined()
+    expect(env.SEPAY_BANK_ACCOUNT).toBeUndefined()
+    expect(env.SEPAY_WEBHOOK_SECRET).toBeUndefined()
   })
 
-  it("accepts a complete SePay configuration", () => {
+  it("accepts a complete direct QR configuration", () => {
     const env = parseBackendEnv({
       ...baseEnv,
-      SEPAY_ENVIRONMENT: "sandbox",
-      SEPAY_MERCHANT_ID: "merchant-id",
-      SEPAY_SECRET_KEY: "secret-key",
-      SEPAY_SUCCESS_URL:
-        "http://localhost:8000/vn/checkout/sepay/return?result=success",
-      SEPAY_ERROR_URL:
-        "http://localhost:8000/vn/checkout/sepay/return?result=error",
-      SEPAY_CANCEL_URL:
-        "http://localhost:8000/vn/checkout/sepay/return?result=cancel",
-      SEPAY_PAYMENT_METHOD: "BANK_TRANSFER",
+      SEPAY_BANK_ACCOUNT: "0123456789",
+      SEPAY_BANK_CODE: "Vietcombank",
+      SEPAY_WEBHOOK_SECRET: "webhook-secret",
     })
 
-    expect(env.SEPAY_ENVIRONMENT).toBe("sandbox")
-    expect(env.SEPAY_PAYMENT_METHOD).toBe("BANK_TRANSFER")
+    expect(env.SEPAY_BANK_CODE).toBe("Vietcombank")
   })
 
-  it("requires callback URLs when SePay credentials are configured", () => {
+  it("requires all critical direct QR settings", () => {
     expect(() =>
       parseBackendEnv({
         ...baseEnv,
-        SEPAY_ENVIRONMENT: "sandbox",
-        SEPAY_MERCHANT_ID: "merchant-id",
-        SEPAY_SECRET_KEY: "secret-key",
+        SEPAY_BANK_ACCOUNT: "0123456789",
       })
-    ).toThrow("SEPAY_SUCCESS_URL is required when SePay is configured")
+    ).toThrow("SEPAY_BANK_CODE is required for inline SePay QR payments")
   })
 })

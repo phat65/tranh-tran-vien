@@ -3,13 +3,10 @@
 import { Metadata } from "next"
 import { notFound } from "next/navigation"
 
+import { getCustomHexagonPriceProduct } from "@lib/data/custom-products"
 import { addCustomWallItemsToCart } from "@lib/data/custom-wall"
-import { listProducts } from "@lib/data/products"
+import { listQuantityPrices } from "@lib/data/quantity-prices"
 import { getRegion } from "@lib/data/regions"
-import {
-  listTtvComboRules,
-  retrieveTtvProductCatalogLinks,
-} from "@lib/data/ttv"
 import HexagonCustomTemplate from "@modules/custom/templates/hexagon"
 
 export const dynamic = "force-dynamic"
@@ -33,52 +30,26 @@ export default async function CustomHexagonPage(props: CustomHexagonPageProps) {
     notFound()
   }
 
-  const product = await resolveCustomHexagonPriceProduct(params.countryCode)
+  const product = await getCustomHexagonPriceProduct(params.countryCode)
 
   if (!product) {
     notFound()
   }
 
-  const [rules, catalogLinks] = await Promise.all([
-    listTtvComboRules({ regionId: region.id }),
-    retrieveTtvProductCatalogLinks(product.id),
-  ])
-  const taxonomyTermIds = new Set(
-    catalogLinks.product_taxonomy_terms.map((link) => link.term_id)
-  )
-  const comboRules = rules.filter(
-    (rule) =>
-      rule.scope_type === "taxonomy" &&
-      Boolean(
-        rule.taxonomy_term_id && taxonomyTermIds.has(rule.taxonomy_term_id)
-      )
-  )
+  const quantityPrices = await listQuantityPrices({
+    variantIds: (product.variants ?? []).map((variant) => variant.id),
+    regionId: region.id,
+  })
 
   return (
     <HexagonCustomTemplate
       product={product}
       countryCode={params.countryCode}
-      comboRules={comboRules}
-      displayDescription="Tải ảnh riêng và tạo tranh lục giác custom. Giá và combo được tính theo dòng tranh lục giác."
+      displayDescription="Tải ảnh riêng và tạo tranh lục giác custom. Giá được lấy trực tiếp từ sản phẩm Medusa."
       displayTitle="Custom Hexagon Poster"
+      currencyCode={region.currency_code}
+      quantityPrices={quantityPrices}
       addItemsToCartAction={addCustomWallItemsToCart}
     />
   )
-}
-
-async function resolveCustomHexagonPriceProduct(countryCode: string) {
-  const customProduct = await listProducts({
-    countryCode,
-    queryParams: {
-      handle: "custom-hexagon-poster",
-      fields:
-        "*variants.calculated_price,*variants.images,*variants.options,+metadata,+tags,*categories,*collection,*images",
-    },
-  }).then(({ response }) => response.products[0])
-
-  if (customProduct) {
-    return customProduct
-  }
-
-  return null
 }

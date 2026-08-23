@@ -14,7 +14,6 @@ import {
 } from "@lib/data/ttv-explore"
 import { getRegion, listRegions } from "@lib/data/regions"
 import ProductTemplate from "@modules/products/templates"
-import { HttpTypes } from "@medusajs/types"
 
 type Props = {
   params: Promise<{ countryCode: string; handle: string }>
@@ -29,7 +28,7 @@ type Props = {
 export async function generateStaticParams() {
   try {
     const countryCodes = await listRegions().then((regions) =>
-      regions?.map((r) => r.countries?.map((c) => c.iso_2)).flat()
+      regions?.map((r) => r.countries?.map((c) => c.iso_2)).flat(),
     )
 
     if (!countryCodes) {
@@ -55,29 +54,12 @@ export async function generateStaticParams() {
         countryData.products.map((product) => ({
           countryCode: countryData.country,
           handle: product.handle,
-        }))
+        })),
       )
       .filter((param) => param.handle)
   } catch {
     return []
   }
-}
-
-function getImagesForVariant(
-  product: HttpTypes.StoreProduct,
-  selectedVariantId?: string
-) {
-  if (!selectedVariantId || !product.variants) {
-    return product.images
-  }
-
-  const variant = product.variants!.find((v) => v.id === selectedVariantId)
-  if (!variant || !variant.images?.length) {
-    return product.images
-  }
-
-  const imageIdsMap = new Map(variant.images!.map((i) => [i.id, true]))
-  return product.images?.filter((i) => imageIdsMap.has(i.id)) ?? null
 }
 
 function normalizeHandle(handle: string): string {
@@ -122,8 +104,6 @@ export default async function ProductPage(props: Props) {
   const region = await getRegion(params.countryCode)
   const searchParams = await props.searchParams
 
-  const selectedVariantId = searchParams.v_id
-
   if (!region) {
     notFound()
   }
@@ -149,15 +129,14 @@ export default async function ProductPage(props: Props) {
     if (replacement?.handle) {
       redirect(
         `/${encodeURIComponent(params.countryCode)}/products/${encodeURIComponent(
-          replacement.handle
-        )}`
+          replacement.handle,
+        )}`,
       )
     }
 
     notFound()
   }
 
-  const images = getImagesForVariant(pricedProduct, selectedVariantId)
   const selectedExploreImage = await toSelectedImageProduct({
     product: pricedProduct,
     headingSlug: searchParams.explore_heading,
@@ -169,7 +148,7 @@ export default async function ProductPage(props: Props) {
       product={pricedProduct}
       region={region}
       countryCode={params.countryCode}
-      images={images ?? []}
+      images={pricedProduct.images ?? []}
       selectedExploreImage={selectedExploreImage}
       parentProductId={pricedProduct.parent_product_id}
     />

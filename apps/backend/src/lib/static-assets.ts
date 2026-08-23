@@ -1,7 +1,5 @@
 // Helper backend xử lý static assets dùng lại giữa API, module và script.
 
-import { MedusaError } from "@medusajs/framework/utils"
-
 function trimTrailingSlashes(value: string) {
   return value.replace(/\/+$/, "")
 }
@@ -13,8 +11,7 @@ export function getStaticAssetBaseUrl(env: NodeJS.ProcessEnv = process.env) {
     return trimTrailingSlashes(storagePublicUrl)
   }
 
-  throw new MedusaError(
-    MedusaError.Types.INVALID_DATA,
-    "S3_PUBLIC_BASE_URL or S3_FILE_URL is required for catalog image URLs"
-  )
+  const backendUrl = env.MEDUSA_BACKEND_URL ?? "http://localhost:9000"
+
+  return `${trimTrailingSlashes(backendUrl)}/static`
 }

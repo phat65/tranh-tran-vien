@@ -2,10 +2,7 @@
 
 import { addToCart } from "@lib/data/cart"
 import { listProducts } from "@lib/data/products"
-import {
-  listTtvComboRules,
-  retrieveTtvProductCatalogLinks,
-} from "@lib/data/ttv"
+import { listQuantityPrices } from "@lib/data/quantity-prices"
 import type { TtvSelectedExploreImage } from "@lib/data/ttv-explore"
 import { HttpTypes } from "@medusajs/types"
 import ProductActions from "@modules/products/components/product-actions"
@@ -35,41 +32,16 @@ export default async function ProductActionsWrapper({
     return null
   }
 
-  const [rules, catalogLinks] = await Promise.all([
-    listTtvComboRules({ regionId: region.id }),
-    retrieveTtvProductCatalogLinks(product.id),
-  ])
-  const taxonomyTermIds = new Set(
-    catalogLinks.product_taxonomy_terms.map((link) => link.term_id)
-  )
-  const categoryIds = new Set((product.categories ?? []).map(({ id }) => id))
-  const comboRules = rules.filter((rule) => {
-    if (rule.scope_type === "category") {
-      return Boolean(rule.category_id && categoryIds.has(rule.category_id))
-    }
-
-    if (rule.scope_type === "collection") {
-      return rule.collection_id === product.collection_id
-    }
-
-    if (rule.scope_type === "product") {
-      return rule.product_id === product.id
-    }
-
-    if (rule.scope_type === "taxonomy") {
-      return Boolean(
-        rule.taxonomy_term_id && taxonomyTermIds.has(rule.taxonomy_term_id)
-      )
-    }
-
-    return rule.scope_type === "all"
+  const quantityPrices = await listQuantityPrices({
+    variantIds: (product.variants ?? []).map((variant) => variant.id),
+    regionId: region.id,
   })
 
   return (
     <ProductActions
       product={product}
       region={region}
-      comboRules={comboRules}
+      quantityPrices={quantityPrices}
       addToCartAction={addToCart}
       selectedExploreImage={selectedExploreImage}
     />

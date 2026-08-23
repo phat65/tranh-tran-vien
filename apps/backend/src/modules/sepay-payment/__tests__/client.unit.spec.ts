@@ -1,47 +1,51 @@
-import { SePayClient, verifySePayIpnSecret } from "../client"
+import { createHmac } from "node:crypto"
 
-describe("SePay client", () => {
-  it("creates signed sandbox checkout fields without exposing the secret", () => {
-    const client = new SePayClient({
-      environment: "sandbox",
-      merchantId: "MERCHANT_TEST",
-      secretKey: "merchant-secret",
-    })
+import { createSePayQrCodeUrl, verifySePayWebhookSignature } from "../client"
 
-    const checkout = client.createCheckout({
-      invoiceNumber: "TTV123456",
+describe("SePay direct QR helpers", () => {
+  it("builds a VietQR URL without exposing webhook credentials", () => {
+    const result = createSePayQrCodeUrl({
+      bankAccount: "0123456789",
+      bankCode: "Vietcombank",
       amount: 150000,
-      description: "Thanh toan don hang TTV123456",
-      paymentMethod: "BANK_TRANSFER",
-      successUrl: "https://shop.example/success",
-      errorUrl: "https://shop.example/error",
-      cancelUrl: "https://shop.example/cancel",
+      description: "TTV1234567890123456",
+      accountHolder: "TRANH TRAN VIEN",
     })
+    const url = new URL(result)
 
-    expect(checkout.checkoutUrl).toBe(
-      "https://pay-sandbox.sepay.vn/v1/checkout/init"
-    )
-    expect(checkout.fields).toEqual(
-      expect.objectContaining({
-        merchant: "MERCHANT_TEST",
-        operation: "PURCHASE",
-        payment_method: "BANK_TRANSFER",
-        order_invoice_number: "TTV123456",
-        order_amount: 150000,
-        currency: "VND",
-        signature: expect.any(String),
-      })
-    )
-    expect(JSON.stringify(checkout.fields)).not.toContain("merchant-secret")
+    expect(url.origin).toBe("https://vietqr.app")
+    expect(url.pathname).toBe("/img")
+    expect(url.searchParams.get("acc")).toBe("0123456789")
+    expect(url.searchParams.get("bank")).toBe("Vietcombank")
+    expect(url.searchParams.get("amount")).toBe("150000")
+    expect(url.searchParams.get("des")).toBe("TTV1234567890123456")
   })
 
-  it("compares the IPN secret without accepting malformed values", () => {
-    expect(verifySePayIpnSecret("merchant-secret", "merchant-secret")).toBe(
-      true
-    )
-    expect(verifySePayIpnSecret("changed-secret", "merchant-secret")).toBe(
-      false
-    )
-    expect(verifySePayIpnSecret(undefined, "merchant-secret")).toBe(false)
+  it("accepts a valid webhook signature and rejects stale requests", () => {
+    const rawData = JSON.stringify({ id: 1, transferAmount: 150000 })
+    const timestamp = "1787392800"
+    const secret = "webhook-secret"
+    const signature = `sha256=${createHmac("sha256", secret)
+      .update(`${timestamp}.${rawData}`)
+      .digest("hex")}`
+
+    expect(
+      verifySePayWebhookSignature({
+        rawData,
+        signature,
+        timestamp,
+        secret,
+        now: Number(timestamp) * 1000,
+      })
+    ).toBe(true)
+    expect(
+      verifySePayWebhookSignature({
+        rawData,
+        signature,
+        timestamp,
+        secret,
+        now: (Number(timestamp) + 301) * 1000,
+      })
+    ).toBe(false)
   })
 })

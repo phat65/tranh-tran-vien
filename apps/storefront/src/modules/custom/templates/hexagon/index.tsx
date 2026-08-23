@@ -4,11 +4,12 @@
 
 import { uploadCustomWallImage } from "@lib/client/custom-wall"
 import type { CustomWallCartItemInput } from "@lib/data/custom-wall"
-import { getProductPrice } from "@lib/util/get-product-price"
+import type { StoreQuantityPrice } from "@lib/data/quantity-prices"
 import { HttpTypes } from "@medusajs/types"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import { Button, clx } from "@modules/common/components/ui"
 import ProductPrice from "@modules/products/components/product-price"
+import QuantityPriceList from "@modules/products/components/quantity-price-list"
 import {
   buildCropImageStyle,
   clampCrop,
@@ -20,22 +21,6 @@ import {
 import { useRouter } from "next/navigation"
 import { ChangeEvent, useMemo, useState, useTransition } from "react"
 
-type ComboTier = {
-  minimum_quantity: number
-  discount_type: "percentage" | "fixed" | "fixed_total"
-  discount_value: number
-  label?: string | null
-  is_featured?: boolean
-  is_free_shipping?: boolean
-}
-
-type ComboRule = {
-  id: string
-  name: string
-  tiers: ComboTier[]
-  ends_at?: string | null
-}
-
 type UploadedCustomImage = {
   id: string
   imageUrl: string
@@ -46,9 +31,10 @@ type UploadedCustomImage = {
 type HexagonCustomTemplateProps = {
   product: HttpTypes.StoreProduct
   countryCode: string
-  comboRules?: ComboRule[]
   displayDescription?: string
   displayTitle?: string
+  currencyCode: string
+  quantityPrices?: StoreQuantityPrice[]
   addItemsToCartAction: AddItemsToCartAction
 }
 
@@ -65,9 +51,10 @@ const PREVIEW_HEX_HEIGHT = 594
 const HexagonCustomTemplate = ({
   product,
   countryCode,
-  comboRules = [],
   displayDescription,
   displayTitle,
+  currencyCode,
+  quantityPrices = [],
   addItemsToCartAction,
 }: HexagonCustomTemplateProps) => {
   const router = useRouter()
@@ -92,24 +79,6 @@ const HexagonCustomTemplate = ({
         : false,
     [itemCount, selectedVariant]
   )
-  const comboTiers = useMemo(() => {
-    return comboRules
-      .flatMap((rule) =>
-        rule.tiers.map((tier) => ({
-          rule,
-          tier,
-        }))
-      )
-      .filter(({ tier }) => tier.minimum_quantity > 1)
-      .sort((a, b) => {
-        if (a.tier.minimum_quantity !== b.tier.minimum_quantity) {
-          return a.tier.minimum_quantity - b.tier.minimum_quantity
-        }
-
-        return Number(b.tier.is_featured) - Number(a.tier.is_featured)
-      })
-  }, [comboRules])
-
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     event.target.value = ""
@@ -324,50 +293,14 @@ const HexagonCustomTemplate = ({
             </p>
           </div>
 
-          {!!comboTiers.length && (
-            <div className="grid gap-3 rounded-lg border border-[#d8ddd7] bg-[#f7f8f5] p-4 shadow-sm">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-sm font-semibold uppercase tracking-[0.08em] text-[#343a33]">
-                  Deal combo
-                </p>
-                <p className="text-sm text-[#687064]">
-                  Tự động tính trong giỏ hàng
-                </p>
-              </div>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {comboTiers.map(({ rule, tier }) => (
-                  <div
-                    key={`${rule.id}-${tier.minimum_quantity}`}
-                    className={clx(
-                      "relative flex min-h-[4.25rem] flex-col justify-center rounded-lg border bg-white px-4 py-3 text-left shadow-sm",
-                      {
-                        "border-[#cfd7cf] text-[#20251f]": !tier.is_featured,
-                        "border-[#9aa86f] bg-[#fbfcf2] text-[#20251f] ring-1 ring-[#bdc890]":
-                          tier.is_featured,
-                      }
-                    )}
-                  >
-                    {tier.is_featured && (
-                      <span className="absolute right-3 top-2 rounded-full bg-[#52613f] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-white">
-                        Nên chọn
-                      </span>
-                    )}
-                    <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#72806c]">
-                      Từ {tier.minimum_quantity} tranh
-                    </span>
-                    <span className="mt-1 pr-12 text-sm font-bold leading-5">
-                      {formatComboDealTitle(tier, product)}
-                    </span>
-                    {tier.is_free_shipping && (
-                      <span className="mt-1 text-xs font-medium text-[#4d7b42]">
-                        Freeship
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          <QuantityPriceList
+            prices={quantityPrices.filter(
+              (price) => price.variant_id === selectedVariant?.id
+            )}
+            currencyCode={currencyCode}
+            quantity={itemCount}
+            highlightActiveTier={false}
+          />
 
           <div className="rounded-lg border border-[#d8ddd7] bg-[#f7f8f5] p-4">
             <p className="text-sm font-bold text-[#252a22]">
@@ -376,8 +309,7 @@ const HexagonCustomTemplate = ({
                 : "Upload ảnh custom"}
             </p>
             <p className="mt-1 text-sm leading-6 text-[#687064]">
-              Mỗi ảnh sẽ thành một tranh riêng trong cart, combo sẽ tính theo
-              tổng số tranh custom.
+              Mỗi ảnh sẽ thành một tranh riêng trong giỏ hàng.
             </p>
             <label className="mt-4 grid h-11 cursor-pointer place-items-center rounded-md border border-[#d4dacd] bg-white px-5 text-sm font-bold uppercase text-[#252a22] transition-colors hover:border-[#8edb24] hover:text-[#4f7c13]">
               Thêm ảnh
@@ -558,28 +490,6 @@ function isVariantInStock(
   _quantity: number
 ) {
   return Boolean(variant.id)
-}
-
-function formatComboDealTitle(tier: ComboTier, product: HttpTypes.StoreProduct) {
-  if (tier.label?.trim()) {
-    return tier.label.trim()
-  }
-
-  if (tier.discount_type === "percentage") {
-    return `giảm ${tier.discount_value}%`
-  }
-
-  if (tier.discount_type === "fixed_total") {
-    return `${tier.discount_value.toLocaleString("vi-VN")}d`
-  }
-
-  const variant = pickVariant(product)
-  const price = variant
-    ? getProductPrice({ product, variantId: variant.id }).variantPrice
-    : getProductPrice({ product }).cheapestPrice
-  const currencyCode = price?.currency_code ?? "vnd"
-
-  return `${tier.discount_value.toLocaleString("vi-VN")} ${currencyCode}`
 }
 
 function createImageId() {

@@ -31,31 +31,14 @@ import {
 import { randomInt } from "node:crypto"
 
 import SepayModuleService from "../sepay/service"
-import {
-  SePayApiError,
-  SePayClient,
-  type SePayCheckoutFields,
-  type SePayEnvironment,
-  type SePayIpnBody,
-  type SePayPaymentMethod,
-  type SePayRemoteOrder,
-  verifySePayIpnSecret,
-} from "./client"
+import { createSePayQrCodeUrl, verifySePayWebhookSignature } from "./client"
 
 export type SePayPaymentProviderOptions = {
-  environment: SePayEnvironment
-  merchantId: string
-  secretKey: string
-  successUrl: string
-  errorUrl: string
-  cancelUrl: string
-  paymentMethod?: SePayPaymentMethod
-  ipnSecret?: string
-}
-
-type ResolvedSePayOptions = SePayPaymentProviderOptions & {
-  paymentMethod: SePayPaymentMethod
-  ipnSecret: string
+  bankAccount: string
+  bankCode: string
+  webhookSecret: string
+  accountHolder?: string
+  storeName?: string
 }
 
 type InjectedDependencies = {
@@ -66,7 +49,6 @@ type InjectedDependencies = {
 type SePayAttemptStatus =
   | "creating"
   | "pending"
-  | "processing"
   | "paid"
   | "cancelled"
   | "failed"
@@ -75,96 +57,59 @@ type SePayAttempt = {
   id: string
   payment_session_id: string
   invoice_number: string
-  sepay_order_id?: string | null
   transaction_id?: string | null
   amount: unknown
   currency_code: string
-  payment_method: SePayPaymentMethod
+  payment_method: "BANK_TRANSFER"
   status: SePayAttemptStatus
-  checkout_url?: string | null
   checkout_fields?: Record<string, unknown> | null
   metadata?: Record<string, unknown> | null
   created_at?: Date | string
 }
 
+type SePayAttemptUpdate = Partial<
+  Pick<
+    SePayAttempt,
+    "status" | "transaction_id" | "checkout_fields" | "metadata"
+  >
+>
+
 type SePaySessionData = Record<string, unknown> & {
   session_id?: string
   invoice_number?: string
-  sepay_order_id?: string
   transaction_id?: string
-  checkout_url?: string
-  checkout_fields?: SePayCheckoutFields
-  payment_method?: SePayPaymentMethod
+  checkout_fields?: Record<string, string | number>
+  payment_method?: "BANK_TRANSFER"
   sepay_status?: string
   amount?: number
 }
 
-type SePayAttemptUpdate = Partial<
-  Pick<
-    SePayAttempt,
-    | "status"
-    | "sepay_order_id"
-    | "transaction_id"
-    | "checkout_url"
-    | "checkout_fields"
-    | "metadata"
-  >
->
+type SePayBankWebhookBody = {
+  id: string | number
+  gateway: string
+  accountNumber: string
+  code?: string
+  content?: string
+  transferType: string
+  transferAmount: number
+  referenceCode?: string
+}
 
 class SePayPaymentProviderService extends AbstractPaymentProvider<SePayPaymentProviderOptions> {
   static identifier = "sepay"
 
   private readonly logger: Logger
   private readonly sepayService: SepayModuleService
-  private readonly client: SePayClient
-  private readonly options: ResolvedSePayOptions
+  private readonly options: SePayPaymentProviderOptions
 
   static validateOptions(options: Record<string, unknown>) {
-    for (const key of [
-      "environment",
-      "merchantId",
-      "secretKey",
-      "successUrl",
-      "errorUrl",
-      "cancelUrl",
-    ]) {
+    for (const key of ["bankAccount", "bankCode", "webhookSecret"] as const) {
       if (typeof options[key] !== "string" || !options[key]) {
         throw new MedusaError(
           MedusaError.Types.INVALID_DATA,
           `SePay option ${key} is required`
         )
       }
-    }
-
-    if (!isSePayEnvironment(options.environment)) {
-      throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
-        "SePay environment must be sandbox or production"
-      )
-    }
-
-    if (
-      options.paymentMethod !== undefined &&
-      !isSePayPaymentMethod(options.paymentMethod)
-    ) {
-      throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
-        "SePay paymentMethod must be BANK_TRANSFER or NAPAS_BANK_TRANSFER"
-      )
-    }
-
-    if (
-      options.ipnSecret !== undefined &&
-      (typeof options.ipnSecret !== "string" || !options.ipnSecret)
-    ) {
-      throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
-        "SePay ipnSecret must be a non-empty string"
-      )
-    }
-
-    for (const key of ["successUrl", "errorUrl", "cancelUrl"] as const) {
-      validateCallbackUrl(options[key] as string, key)
     }
   }
 
@@ -175,12 +120,7 @@ class SePayPaymentProviderService extends AbstractPaymentProvider<SePayPaymentPr
     super(container, options)
     this.logger = container.logger
     this.sepayService = container.sepay
-    this.options = {
-      ...options,
-      paymentMethod: options.paymentMethod ?? "BANK_TRANSFER",
-      ipnSecret: options.ipnSecret ?? options.secretKey,
-    }
-    this.client = new SePayClient(options)
+    this.options = options
   }
 
   async initiatePayment(
@@ -189,49 +129,46 @@ class SePayPaymentProviderService extends AbstractPaymentProvider<SePayPaymentPr
     const sessionId = getRequiredSessionId(input.data)
     const amount = normalizeVndAmount(input.amount)
     validateCurrency(input.currency_code)
-
-    const attempts = await this.listAttemptsForSession(sessionId)
-    const reusable = attempts.find(
+    const reusable = (await this.listAttemptsForSession(sessionId)).find(
       (attempt) =>
         Number(attempt.amount) === amount &&
-        attempt.payment_method === this.options.paymentMethod &&
-        ["creating", "pending", "processing"].includes(attempt.status)
+        ["creating", "pending"].includes(attempt.status)
     )
 
-    if (reusable) {
-      return this.ensureCheckout(reusable)
-    }
-
-    return this.createPaymentAttempt(sessionId, amount)
+    return reusable
+      ? this.ensureQrDetails(reusable)
+      : this.createPaymentAttempt(sessionId, amount)
   }
 
   async updatePayment(input: UpdatePaymentInput): Promise<UpdatePaymentOutput> {
     const sessionId = getRequiredSessionId(input.data)
     const amount = normalizeVndAmount(input.amount)
     validateCurrency(input.currency_code)
-    const data = asSessionData(input.data)
+    const current = await this.getAttempt(asSessionData(input.data))
 
     if (
-      Number(data.amount) === amount &&
-      data.payment_method === this.options.paymentMethod &&
-      data.checkout_url &&
-      data.checkout_fields
+      current &&
+      Number(current.amount) === amount &&
+      ["creating", "pending", "paid"].includes(current.status)
     ) {
       return {
-        data,
-        status: mapSePayStatusToPaymentSession(data.sepay_status),
+        data: toPublicSessionData(current),
+        status: mapStatus(current.status),
       }
     }
 
-    await this.cancelRemotePayment(data, "Cart total or payment method changed")
+    if (current && !isFinalStatus(current.status)) {
+      await this.cancelAttempt(current, "Cart total changed")
+    }
+
     return this.createPaymentAttempt(sessionId, amount)
   }
 
   async deletePayment(input: DeletePaymentInput): Promise<DeletePaymentOutput> {
     return {
-      data: await this.cancelRemotePayment(
+      data: await this.cancelFromSession(
         asSessionData(input.data),
-        "Payment method was changed"
+        "Payment method changed"
       ),
     }
   }
@@ -241,10 +178,7 @@ class SePayPaymentProviderService extends AbstractPaymentProvider<SePayPaymentPr
   ): Promise<AuthorizePaymentOutput> {
     const result = await this.getPaymentStatus(input)
 
-    return {
-      data: result.data,
-      status: result.status,
-    }
+    return { data: result.data, status: result.status }
   }
 
   async capturePayment(
@@ -255,7 +189,7 @@ class SePayPaymentProviderService extends AbstractPaymentProvider<SePayPaymentPr
     if (result.status !== PaymentSessionStatus.CAPTURED) {
       throw new MedusaError(
         MedusaError.Types.PAYMENT_AUTHORIZATION_ERROR,
-        "SePay payment has not been completed"
+        "SePay bank transfer has not been confirmed"
       )
     }
 
@@ -267,40 +201,23 @@ class SePayPaymentProviderService extends AbstractPaymentProvider<SePayPaymentPr
   ): Promise<RefundPaymentOutput> {
     throw new MedusaError(
       MedusaError.Types.NOT_ALLOWED,
-      "Automatic SePay refunds are not configured. Refund the payment through the acquiring bank and record it in Medusa."
+      "Automatic SePay refunds are not configured. Refund through the bank and record it in Medusa."
     )
   }
 
   async retrievePayment(
     input: RetrievePaymentInput
   ): Promise<RetrievePaymentOutput> {
-    const data = asSessionData(input.data)
-    const attempt = await this.getRequiredAttempt(data)
+    const attempt = await this.getRequiredAttempt(asSessionData(input.data))
 
-    if (isFinalAttemptStatus(attempt.status)) {
-      return { data: toPublicSessionData(attempt) }
-    }
-
-    try {
-      const order = await this.client.retrieveOrder(attempt.invoice_number)
-      const updated = await this.updateAttemptFromRemoteOrder(attempt, order)
-      return { data: toPublicSessionData(updated) }
-    } catch (error) {
-      if (error instanceof SePayApiError && error.httpStatus === 404) {
-        return { data: toPublicSessionData(attempt) }
-      }
-
-      throw error
-    }
+    return { data: toPublicSessionData(attempt) }
   }
 
-  async cancelPayment(
-    input: CancelPaymentInput
-  ): Promise<CancelPaymentOutput> {
+  async cancelPayment(input: CancelPaymentInput): Promise<CancelPaymentOutput> {
     return {
-      data: await this.cancelRemotePayment(
+      data: await this.cancelFromSession(
         asSessionData(input.data),
-        "Order was cancelled"
+        "Order cancelled"
       ),
     }
   }
@@ -310,240 +227,163 @@ class SePayPaymentProviderService extends AbstractPaymentProvider<SePayPaymentPr
   ): Promise<GetPaymentStatusOutput> {
     const { data } = await this.retrievePayment(input)
 
-    return {
-      data,
-      status: mapSePayStatusToPaymentSession(data?.sepay_status),
-    }
+    return { data, status: mapStatus(data?.sepay_status) }
   }
 
   async getWebhookActionAndData(
     payload: ProviderWebhookPayload["payload"]
   ): Promise<WebhookActionResult> {
-    const receivedSecret = getHeader(payload.headers, "x-secret-key")
-    if (!verifySePayIpnSecret(receivedSecret, this.options.ipnSecret)) {
+    const body = parseBankWebhookBody(payload.data)
+    const rawData =
+      typeof payload.rawData === "string" || Buffer.isBuffer(payload.rawData)
+        ? payload.rawData
+        : JSON.stringify(payload.data)
+
+    if (
+      !verifySePayWebhookSignature({
+        rawData,
+        signature: getHeader(payload.headers, "x-sepay-signature"),
+        timestamp: getHeader(payload.headers, "x-sepay-timestamp"),
+        secret: this.options.webhookSecret,
+      })
+    ) {
       throw new MedusaError(
         MedusaError.Types.UNAUTHORIZED,
-        "Invalid SePay IPN secret"
+        "Invalid SePay webhook signature"
       )
     }
 
-    const body = parseIpnBody(payload.data)
+    if (body.transferType.toLowerCase() !== "in") {
+      return { action: PaymentActions.NOT_SUPPORTED }
+    }
+
+    const invoiceNumber = findInvoiceNumber(body)
+
+    if (!invoiceNumber) {
+      return { action: PaymentActions.NOT_SUPPORTED }
+    }
+
     const [attempt] = (await this.sepayService.listSepayPaymentAttempts({
-      invoice_number: body.order.order_invoice_number,
+      invoice_number: invoiceNumber,
     })) as SePayAttempt[]
 
     if (!attempt) {
       return { action: PaymentActions.NOT_SUPPORTED }
     }
 
-    const amount = normalizeVndAmount(body.order.order_amount)
+    const amount = normalizeVndAmount(body.transferAmount)
+
     if (
       Number(attempt.amount) !== amount ||
-      body.order.order_currency.toLowerCase() !== attempt.currency_code
+      body.accountNumber !== this.options.bankAccount
     ) {
       await this.updateAttempt(attempt.id, {
         status: "failed",
-        metadata: toIpnMetadata(body),
+        metadata: toWebhookMetadata(body),
       })
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "SePay IPN amount or currency does not match the payment session"
+        "SePay transfer amount or receiving account does not match the payment session"
       )
     }
 
-    if (
-      body.notification_type === "ORDER_PAID" &&
-      body.order.order_status === "CAPTURED"
-    ) {
-      await this.updateAttempt(attempt.id, {
-        status: "paid",
-        sepay_order_id: body.order.order_id,
-        transaction_id: readTransactionId(body),
-        metadata: toIpnMetadata(body),
-      })
+    const updated = await this.updateAttempt(attempt.id, {
+      status: "paid",
+      transaction_id: body.referenceCode || String(body.id),
+      metadata: toWebhookMetadata(body),
+    })
 
-      if (attempt.status === "cancelled") {
-        this.logger.error(
-          `SePay received money for cancelled invoice ${attempt.invoice_number}; manual reconciliation is required`
-        )
-        return { action: PaymentActions.NOT_SUPPORTED }
-      }
-
-      return {
-        action: PaymentActions.SUCCESSFUL,
-        data: {
-          session_id: attempt.payment_session_id,
-          amount: new BigNumber(amount),
-        },
-      }
+    if (attempt.status === "cancelled") {
+      this.logger.error(
+        `SePay received money for cancelled invoice ${attempt.invoice_number}; manual reconciliation is required`
+      )
+      return { action: PaymentActions.NOT_SUPPORTED }
     }
 
-    if (
-      body.notification_type === "TRANSACTION_VOID" ||
-      isCanceledSePayStatus(body.order.order_status)
-    ) {
-      if (attempt.status === "paid") {
-        this.logger.error(
-          `SePay voided paid invoice ${attempt.invoice_number}; manual reconciliation is required`
-        )
-        return { action: PaymentActions.NOT_SUPPORTED }
-      }
-
-      await this.updateAttempt(attempt.id, {
-        status: "cancelled",
-        sepay_order_id: body.order.order_id,
-        transaction_id: readTransactionId(body),
-        metadata: toIpnMetadata(body),
-      })
-
-      return {
-        action: PaymentActions.FAILED,
-        data: {
-          session_id: attempt.payment_session_id,
-          amount: new BigNumber(amount),
-        },
-      }
+    return {
+      action: PaymentActions.SUCCESSFUL,
+      data: {
+        session_id: updated.payment_session_id,
+        amount: new BigNumber(amount),
+      },
     }
-
-    return { action: PaymentActions.NOT_SUPPORTED }
   }
 
-  private async createPaymentAttempt(
-    sessionId: string,
-    amount: number
-  ): Promise<InitiatePaymentOutput> {
+  private async createPaymentAttempt(sessionId: string, amount: number) {
     const attempt = (await this.sepayService.createSepayPaymentAttempts({
       payment_session_id: sessionId,
       invoice_number: createInvoiceNumber(),
       amount,
       currency_code: "vnd",
-      payment_method: this.options.paymentMethod,
+      payment_method: "BANK_TRANSFER",
       status: "creating",
     })) as SePayAttempt
 
-    return this.ensureCheckout(attempt)
+    return this.ensureQrDetails(attempt)
   }
 
-  private async ensureCheckout(
+  private async ensureQrDetails(
     attempt: SePayAttempt
   ): Promise<InitiatePaymentOutput> {
-    if (attempt.checkout_url && attempt.checkout_fields) {
+    if (attempt.checkout_fields) {
       return toInitiatePaymentOutput(attempt)
     }
 
-    try {
-      const checkout = this.client.createCheckout({
-        invoiceNumber: attempt.invoice_number,
-        amount: normalizeVndAmount(attempt.amount),
-        description: createDescription(attempt.invoice_number),
-        paymentMethod: attempt.payment_method,
-        successUrl: this.options.successUrl,
-        errorUrl: this.options.errorUrl,
-        cancelUrl: this.options.cancelUrl,
-      })
-      const updated = await this.updateAttempt(attempt.id, {
-        status: "pending",
-        checkout_url: checkout.checkoutUrl,
-        checkout_fields: checkout.fields,
-      })
+    const amount = normalizeVndAmount(attempt.amount)
+    const updated = await this.updateAttempt(attempt.id, {
+      status: "pending",
+      checkout_fields: {
+        qr_code_url: createSePayQrCodeUrl({
+          bankAccount: this.options.bankAccount,
+          bankCode: this.options.bankCode,
+          amount,
+          description: attempt.invoice_number,
+          accountHolder: this.options.accountHolder,
+          storeName: this.options.storeName,
+        }),
+        bank_account: this.options.bankAccount,
+        bank_code: this.options.bankCode,
+        account_holder: this.options.accountHolder ?? "",
+        transfer_content: attempt.invoice_number,
+        order_amount: amount,
+      },
+    })
 
-      return toInitiatePaymentOutput(updated)
-    } catch (error) {
-      await this.updateAttempt(attempt.id, { status: "failed" })
-      throw error
-    }
+    return toInitiatePaymentOutput(updated)
   }
 
-  private async cancelRemotePayment(
-    data: SePaySessionData,
-    reason: string
-  ): Promise<SePaySessionData> {
+  private async cancelFromSession(data: SePaySessionData, reason: string) {
     const attempt = await this.getAttempt(data)
-    if (!attempt || attempt.status === "cancelled") {
-      return attempt ? toPublicSessionData(attempt) : data
+
+    if (!attempt) {
+      return data
     }
 
-    if (attempt.status === "paid") {
+    if (attempt.status === "paid" || attempt.status === "cancelled") {
       return toPublicSessionData(attempt)
     }
 
-    try {
-      await this.client.cancelOrder(attempt.invoice_number)
-    } catch (error) {
-      if (!(error instanceof SePayApiError && error.httpStatus === 404)) {
-        try {
-          const remoteOrder = await this.client.retrieveOrder(
-            attempt.invoice_number
-          )
-          const updated = await this.updateAttemptFromRemoteOrder(
-            attempt,
-            remoteOrder
-          )
+    return toPublicSessionData(await this.cancelAttempt(attempt, reason))
+  }
 
-          if (!isFinalAttemptStatus(updated.status)) {
-            throw error
-          }
-
-          return toPublicSessionData(updated)
-        } catch (retrieveError) {
-          if (
-            !(retrieveError instanceof SePayApiError) ||
-            retrieveError.httpStatus !== 404
-          ) {
-            throw error
-          }
-        }
-      }
-    }
-
-    const updated = await this.updateAttempt(attempt.id, {
+  private async cancelAttempt(attempt: SePayAttempt, reason: string) {
+    return this.updateAttempt(attempt.id, {
       status: "cancelled",
       metadata: {
         ...(attempt.metadata ?? {}),
         cancellation_reason: reason,
       },
     })
-    return toPublicSessionData(updated)
   }
 
-  private async updateAttemptFromRemoteOrder(
-    attempt: SePayAttempt,
-    order: SePayRemoteOrder
-  ): Promise<SePayAttempt> {
-    if (
-      order.invoiceNumber !== attempt.invoice_number ||
-      order.currency.toLowerCase() !== attempt.currency_code ||
-      order.amount !== Number(attempt.amount)
-    ) {
-      await this.updateAttempt(attempt.id, { status: "failed" })
-      throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
-        "SePay order does not match the payment session"
-      )
-    }
-
-    return this.updateAttempt(attempt.id, {
-      status: mapSePayStatusToAttempt(order.status),
-      sepay_order_id: order.orderId,
-      transaction_id: order.transactionId ?? attempt.transaction_id,
-      metadata: {
-        order_status: order.status,
-      },
-    })
-  }
-
-  private async listAttemptsForSession(
-    sessionId: string
-  ): Promise<SePayAttempt[]> {
+  private async listAttemptsForSession(sessionId: string) {
     return (await this.sepayService.listSepayPaymentAttempts(
       { payment_session_id: sessionId },
       { order: { created_at: "DESC" }, take: 20 }
     )) as SePayAttempt[]
   }
 
-  private async getAttempt(
-    data: SePaySessionData
-  ): Promise<SePayAttempt | undefined> {
+  private async getAttempt(data: SePaySessionData) {
     if (data.invoice_number) {
       return (
         (await this.sepayService.listSepayPaymentAttempts({
@@ -561,6 +401,7 @@ class SePayPaymentProviderService extends AbstractPaymentProvider<SePayPaymentPr
 
   private async getRequiredAttempt(data: SePaySessionData) {
     const attempt = await this.getAttempt(data)
+
     if (!attempt) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
@@ -582,94 +423,35 @@ class SePayPaymentProviderService extends AbstractPaymentProvider<SePayPaymentPr
   }
 }
 
-export function mapSePayStatusToPaymentSession(
-  status: unknown
-): (typeof PaymentSessionStatus)[keyof typeof PaymentSessionStatus] {
-  switch (String(status).toUpperCase()) {
-    case "CAPTURED":
-    case "PAID":
-      return PaymentSessionStatus.CAPTURED
-    case "CANCELLED":
-    case "CANCELED":
-      return PaymentSessionStatus.CANCELED
-    case "FAILED":
-    case "ERROR":
-    case "DECLINED":
-    case "AUTHENTICATION_FAILED":
-      return PaymentSessionStatus.ERROR
-    default:
-      return PaymentSessionStatus.PENDING
-  }
-}
-
-function mapSePayStatusToAttempt(status: unknown): SePayAttemptStatus {
-  switch (String(status).toUpperCase()) {
-    case "CAPTURED":
-    case "PAID":
-      return "paid"
-    case "CANCELLED":
-    case "CANCELED":
-      return "cancelled"
-    case "FAILED":
-    case "ERROR":
-    case "DECLINED":
-    case "AUTHENTICATION_FAILED":
-      return "failed"
-    case "AUTHENTICATION_NOT_NEEDED":
-    case "PENDING":
-      return "pending"
-    default:
-      return "processing"
-  }
-}
-
-function toInitiatePaymentOutput(
-  attempt: SePayAttempt
-): InitiatePaymentOutput {
+function toInitiatePaymentOutput(attempt: SePayAttempt): InitiatePaymentOutput {
   return {
     id: attempt.invoice_number,
-    status: mapSePayStatusToPaymentSession(attempt.status),
+    status: mapStatus(attempt.status),
     data: toPublicSessionData(attempt),
   }
 }
 
 function toPublicSessionData(attempt: SePayAttempt): SePaySessionData {
-  const checkoutFields = asCheckoutFields(attempt.checkout_fields)
-
   return {
     session_id: attempt.payment_session_id,
     invoice_number: attempt.invoice_number,
-    ...(attempt.sepay_order_id
-      ? { sepay_order_id: attempt.sepay_order_id }
-      : {}),
     ...(attempt.transaction_id
       ? { transaction_id: attempt.transaction_id }
       : {}),
-    ...(attempt.checkout_url ? { checkout_url: attempt.checkout_url } : {}),
-    ...(checkoutFields ? { checkout_fields: checkoutFields } : {}),
-    payment_method: attempt.payment_method,
+    ...(attempt.checkout_fields
+      ? { checkout_fields: toPublicFields(attempt.checkout_fields) }
+      : {}),
+    payment_method: "BANK_TRANSFER",
     sepay_status: attempt.status.toUpperCase(),
     amount: Number(attempt.amount),
   }
 }
 
-function asSessionData(
-  data: Record<string, unknown> | undefined
-): SePaySessionData {
-  return (data ?? {}) as SePaySessionData
-}
-
-function asCheckoutFields(
-  value: Record<string, unknown> | null | undefined
-): SePayCheckoutFields | undefined {
-  if (!value) {
-    return undefined
-  }
-
-  return Object.entries(value).reduce<SePayCheckoutFields>(
-    (result, [key, fieldValue]) => {
-      if (typeof fieldValue === "string" || typeof fieldValue === "number") {
-        result[key] = fieldValue
+function toPublicFields(fields: Record<string, unknown>) {
+  return Object.entries(fields).reduce<Record<string, string | number>>(
+    (result, [key, value]) => {
+      if (typeof value === "string" || typeof value === "number") {
+        result[key] = value
       }
 
       return result
@@ -678,8 +460,87 @@ function asCheckoutFields(
   )
 }
 
-function getRequiredSessionId(data?: Record<string, unknown>): string {
+function mapStatus(status: unknown) {
+  switch (String(status).toUpperCase()) {
+    case "PAID":
+    case "CAPTURED":
+      return PaymentSessionStatus.CAPTURED
+    case "CANCELLED":
+      return PaymentSessionStatus.CANCELED
+    case "FAILED":
+      return PaymentSessionStatus.ERROR
+    default:
+      return PaymentSessionStatus.PENDING
+  }
+}
+
+function parseBankWebhookBody(value: unknown): SePayBankWebhookBody {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Invalid SePay bank webhook body"
+    )
+  }
+
+  const body = value as Record<string, unknown>
+  const transferAmount = Number(body.transferAmount)
+  const accountNumber = readString(body.accountNumber)
+  const transferType = readString(body.transferType)
+  const gateway = readString(body.gateway)
+  const id = body.id
+
+  if (
+    !Number.isSafeInteger(transferAmount) ||
+    transferAmount <= 0 ||
+    !accountNumber ||
+    !transferType ||
+    !gateway ||
+    (typeof id !== "string" && typeof id !== "number")
+  ) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Invalid SePay bank webhook fields"
+    )
+  }
+
+  return {
+    id,
+    gateway,
+    accountNumber,
+    code: readString(body.code),
+    content: readString(body.content),
+    transferType,
+    transferAmount,
+    referenceCode: readString(body.referenceCode),
+  }
+}
+
+function findInvoiceNumber(body: SePayBankWebhookBody) {
+  for (const value of [body.code, body.content]) {
+    const match = value?.toUpperCase().match(/TTV\d{16,20}/)
+
+    if (match) {
+      return match[0]
+    }
+  }
+
+  return undefined
+}
+
+function toWebhookMetadata(body: SePayBankWebhookBody) {
+  return {
+    webhook_type: "bank_transfer",
+    sepay_transaction_id: body.id,
+    gateway: body.gateway,
+    account_number: body.accountNumber,
+    transfer_content: body.content,
+    reference_code: body.referenceCode,
+  }
+}
+
+function getRequiredSessionId(data?: Record<string, unknown>) {
   const sessionId = data?.session_id
+
   if (typeof sessionId !== "string" || !sessionId) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
@@ -690,8 +551,9 @@ function getRequiredSessionId(data?: Record<string, unknown>): string {
   return sessionId
 }
 
-function normalizeVndAmount(amount: unknown): number {
+function normalizeVndAmount(amount: unknown) {
   const value = Number(amount)
+
   if (!Number.isSafeInteger(value) || value <= 0) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
@@ -711,104 +573,28 @@ function validateCurrency(currencyCode: string) {
   }
 }
 
-function validateCallbackUrl(value: string, key: string) {
-  let url: URL | undefined
-
-  try {
-    url = new URL(value)
-  } catch {
-    url = undefined
-  }
-
-  if (!url || !["http:", "https:"].includes(url.protocol)) {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      `SePay option ${key} must be a valid HTTP(S) URL`
-    )
-  }
-}
-
-function createInvoiceNumber(): string {
+function createInvoiceNumber() {
   return `TTV${Date.now()}${randomInt(1000, 10000)}`
 }
 
-function createDescription(invoiceNumber: string): string {
-  return `Thanh toan don hang ${invoiceNumber}`
-}
-
-function isFinalAttemptStatus(status: SePayAttemptStatus): boolean {
+function isFinalStatus(status: SePayAttemptStatus) {
   return ["paid", "cancelled", "failed"].includes(status)
 }
 
-function isCanceledSePayStatus(status: string): boolean {
-  return ["CANCELLED", "CANCELED"].includes(status.toUpperCase())
+function asSessionData(data: Record<string, unknown> | undefined) {
+  return (data ?? {}) as SePaySessionData
 }
 
-function isSePayEnvironment(value: unknown): value is SePayEnvironment {
-  return value === "sandbox" || value === "production"
-}
-
-function isSePayPaymentMethod(value: unknown): value is SePayPaymentMethod {
-  return value === "BANK_TRANSFER" || value === "NAPAS_BANK_TRANSFER"
-}
-
-function getHeader(
-  headers: Record<string, unknown>,
-  expectedName: string
-): unknown {
-  const entry = Object.entries(headers).find(
+function getHeader(headers: Record<string, unknown>, expectedName: string) {
+  const value = Object.entries(headers).find(
     ([name]) => name.toLowerCase() === expectedName.toLowerCase()
-  )
-  const value = entry?.[1]
+  )?.[1]
 
   return Array.isArray(value) ? value[0] : value
 }
 
-function parseIpnBody(data: unknown): SePayIpnBody {
-  if (!data || typeof data !== "object") {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      "Invalid SePay IPN body"
-    )
-  }
-
-  const body = data as Partial<SePayIpnBody>
-  const order = body.order
-  if (
-    !Number.isSafeInteger(Number(body.timestamp)) ||
-    typeof body.notification_type !== "string" ||
-    !order ||
-    typeof order !== "object" ||
-    typeof order.order_id !== "string" ||
-    typeof order.order_invoice_number !== "string" ||
-    typeof order.order_status !== "string" ||
-    typeof order.order_currency !== "string" ||
-    !Number.isSafeInteger(Number(order.order_amount))
-  ) {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      "Invalid SePay IPN fields"
-    )
-  }
-
-  return body as SePayIpnBody
-}
-
-function readTransactionId(body: SePayIpnBody): string | undefined {
-  const transactionId =
-    body.transaction?.transaction_id ?? body.transaction?.id
-  return typeof transactionId === "string" && transactionId
-    ? transactionId
-    : undefined
-}
-
-function toIpnMetadata(body: SePayIpnBody): Record<string, unknown> {
-  return {
-    notification_type: body.notification_type,
-    timestamp: body.timestamp,
-    order_status: body.order.order_status,
-    transaction_status: body.transaction?.transaction_status,
-  }
+function readString(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined
 }
 
 export default SePayPaymentProviderService

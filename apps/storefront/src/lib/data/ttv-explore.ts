@@ -1,6 +1,6 @@
 "use server"
 
-// Storefront data layer cho Explore động từ taxonomy.
+// Storefront data layer for Explore backed by native categories and collections.
 
 import { sdk } from "@lib/config"
 import { getExploreGalleryImages } from "@lib/util/ttv-explore"
@@ -108,17 +108,17 @@ export async function listTtvExploreGroups(): Promise<TtvExploreGroup[]> {
   return sdk.client
     .fetch<{ groups: TtvExploreGroup[] }>(
       "/store/tranh-tran-vien/catalog/explore",
-      { cache: "no-store" }
+      { cache: "no-store" },
     )
     .then(({ groups }) =>
-      Array.isArray(groups) && groups.length ? groups : defaultExploreGroups
+      Array.isArray(groups) && groups.length ? groups : defaultExploreGroups,
     )
     .catch(() => defaultExploreGroups)
 }
 
 export async function retrieveTtvExploreItem(
   headingSlug: string,
-  itemSlug: string
+  itemSlug: string,
 ): Promise<TtvExploreItemResponse | null> {
   return sdk.client
     .fetch<TtvExploreItemResponse>("/store/tranh-tran-vien/catalog/explore", {
@@ -152,7 +152,7 @@ export async function retrieveTtvSelectedExploreImage({
   }
 
   const image = getExploreGalleryImages(result.item).find(
-    (entry) => entry.image_id === imageId && entry.visibility === "visible"
+    (entry) => entry.image_id === imageId && entry.visibility === "visible",
   )
 
   if (!image) {

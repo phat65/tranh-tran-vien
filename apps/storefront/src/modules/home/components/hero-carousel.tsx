@@ -57,7 +57,11 @@ const HomeHeroCarousel = ({
         >
           {slides.map((slide, index) => (
             <div className="relative h-full w-full shrink-0" key={index}>
-              <HeroMedia slide={slide} priority={index === 0} />
+              <HeroMedia
+                slide={slide}
+                priority={index === 0}
+                fallbackMediaUrl={fallbackMediaUrl}
+              />
             </div>
           ))}
         </div>
@@ -141,33 +145,56 @@ function BannerLinkOverlay({ href }: { href: string }) {
 function HeroMedia({
   slide,
   priority,
+  fallbackMediaUrl,
 }: {
   slide: TtvHomeHeroSlide
   priority: boolean
+  fallbackMediaUrl?: string | null
 }) {
-  if (slide.media_type === "video") {
+  const [mediaUrl, setMediaUrl] = useState<string | null>(slide.media_url)
+
+  useEffect(() => {
+    setMediaUrl(slide.media_url)
+  }, [slide.media_url])
+
+  const handleMediaError = () => {
+    setMediaUrl((current) =>
+      fallbackMediaUrl && current !== fallbackMediaUrl
+        ? fallbackMediaUrl
+        : null
+    )
+  }
+
+  if (!mediaUrl) {
+    return <div className="absolute inset-0 bg-[#202327]" />
+  }
+
+  if (slide.media_type === "video" && mediaUrl === slide.media_url) {
     return (
       <video
-        src={slide.media_url}
+        src={mediaUrl}
         className="absolute inset-0 h-full w-full object-cover"
         style={{ objectPosition: slide.media_object_position }}
         autoPlay
         loop
         muted
         playsInline
+        onError={handleMediaError}
       />
     )
   }
 
   return (
     <Image
-      src={slide.media_url}
+      key={mediaUrl}
+      src={mediaUrl}
       alt=""
       className="object-cover"
       style={{ objectPosition: slide.media_object_position }}
       sizes="100vw"
       priority={priority}
       fill
+      onError={handleMediaError}
     />
   )
 }

@@ -19,25 +19,22 @@ const adminMaxUploadFileSize = Number.isFinite(configuredAdminMaxUploadFileSize)
 const s3FileUrl = backendEnv.S3_FILE_URL ?? backendEnv.S3_PUBLIC_BASE_URL
 const useS3FileProvider = Boolean(
   s3FileUrl &&
-    backendEnv.S3_ENDPOINT &&
-    backendEnv.S3_BUCKET &&
-    backendEnv.S3_ACCESS_KEY_ID &&
-    backendEnv.S3_SECRET_ACCESS_KEY
+  backendEnv.S3_ENDPOINT &&
+  backendEnv.S3_BUCKET &&
+  backendEnv.S3_ACCESS_KEY_ID &&
+  backendEnv.S3_SECRET_ACCESS_KEY
 )
 const usePayOSPaymentProvider = Boolean(
   backendEnv.PAYOS_CLIENT_ID &&
-    backendEnv.PAYOS_API_KEY &&
-    backendEnv.PAYOS_CHECKSUM_KEY &&
-    backendEnv.PAYOS_RETURN_URL &&
-    backendEnv.PAYOS_CANCEL_URL
+  backendEnv.PAYOS_API_KEY &&
+  backendEnv.PAYOS_CHECKSUM_KEY &&
+  backendEnv.PAYOS_RETURN_URL &&
+  backendEnv.PAYOS_CANCEL_URL
 )
 const useSePayPaymentProvider = Boolean(
-  backendEnv.SEPAY_ENVIRONMENT &&
-    backendEnv.SEPAY_MERCHANT_ID &&
-    backendEnv.SEPAY_SECRET_KEY &&
-    backendEnv.SEPAY_SUCCESS_URL &&
-    backendEnv.SEPAY_ERROR_URL &&
-    backendEnv.SEPAY_CANCEL_URL
+  backendEnv.SEPAY_BANK_ACCOUNT &&
+  backendEnv.SEPAY_BANK_CODE &&
+  backendEnv.SEPAY_WEBHOOK_SECRET
 )
 const paymentProviders: Array<{
   resolve: string
@@ -69,14 +66,11 @@ if (useSePayPaymentProvider) {
     resolve: "./src/modules/sepay-payment",
     id: "sepay",
     options: {
-      environment: backendEnv.SEPAY_ENVIRONMENT,
-      merchantId: backendEnv.SEPAY_MERCHANT_ID,
-      secretKey: backendEnv.SEPAY_SECRET_KEY,
-      successUrl: backendEnv.SEPAY_SUCCESS_URL,
-      errorUrl: backendEnv.SEPAY_ERROR_URL,
-      cancelUrl: backendEnv.SEPAY_CANCEL_URL,
-      paymentMethod: backendEnv.SEPAY_PAYMENT_METHOD,
-      ipnSecret: backendEnv.SEPAY_IPN_SECRET,
+      bankAccount: backendEnv.SEPAY_BANK_ACCOUNT,
+      bankCode: backendEnv.SEPAY_BANK_CODE,
+      accountHolder: backendEnv.SEPAY_ACCOUNT_HOLDER,
+      storeName: backendEnv.SEPAY_STORE_NAME,
+      webhookSecret: backendEnv.SEPAY_WEBHOOK_SECRET,
     },
   })
 }
@@ -149,25 +143,10 @@ module.exports = defineConfig({
       resolve: "./src/modules/brand",
     },
     {
-      resolve: "./src/modules/taxonomy",
-    },
-    {
-      resolve: "./src/modules/navigation",
-    },
-    {
       resolve: "./src/modules/site-setting",
     },
     {
       resolve: "./src/modules/custom-design",
-    },
-    {
-      resolve: "./src/modules/gift-rule",
-    },
-    {
-      resolve: "./src/modules/shipping-rule",
-    },
-    {
-      resolve: "./src/modules/combo-rule",
     },
     {
       resolve: "./src/modules/payos",

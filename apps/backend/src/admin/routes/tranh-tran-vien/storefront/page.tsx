@@ -34,16 +34,22 @@ type LinkOption = {
   group: string
 }
 
-type RuleOption = {
+type NativeProductLink = {
   id: string
-  label: string
-  subtitle?: string
+  title: string
+  handle?: string | null
 }
 
-type RuleOptions = {
-  products: RuleOption[]
-  categories: RuleOption[]
-  collections: RuleOption[]
+type NativeCategoryLink = {
+  id: string
+  name: string
+  handle?: string | null
+}
+
+type NativeCollectionLink = {
+  id: string
+  title: string
+  handle?: string | null
 }
 
 type PageRecord = {
@@ -86,9 +92,17 @@ const baseLinkOptions: LinkOption[] = [
   { label: "Posts", href: "/posts", group: "Default" },
 ]
 
-const emptyRuleOptions: RuleOptions = {
+const emptyProductsResponse: { products: NativeProductLink[] } = {
   products: [],
-  categories: [],
+}
+
+const emptyCategoriesResponse: {
+  product_categories: NativeCategoryLink[]
+} = {
+  product_categories: [],
+}
+
+const emptyCollectionsResponse: { collections: NativeCollectionLink[] } = {
   collections: [],
 }
 
@@ -101,9 +115,9 @@ const emptyPostsResponse: { posts: PostRecord[] } = {
 }
 
 const defaultHeroForm: HeroForm = {
-  eyebrow: "Combo decor for anime, Pokemon and custom walls",
+  eyebrow: "Made-to-order decor for collectors",
   title: "Build a wall your collection deserves.",
-  body: "Pick hexagon art, Pokemon frames or acrylic displays. Combo pricing is applied automatically in the cart.",
+  body: "Pick hexagon art, Pokemon frames or acrylic displays. Quantity pricing comes directly from Medusa Price Lists.",
   media_type: "image",
   media_url: "",
   media_aspect_ratio: "16 / 9",
@@ -140,10 +154,22 @@ const TtvStorefrontPage = () => {
   }
 
   const loadLinkOptions = async () => {
-    const [ruleOptions, pagesResponse, postsResponse] = await Promise.all([
-      adminFetch<RuleOptions>("/admin/tranh-tran-vien/rules/options").catch(
-        () => emptyRuleOptions
-      ),
+    const [
+      productsResponse,
+      categoriesResponse,
+      collectionsResponse,
+      pagesResponse,
+      postsResponse,
+    ] = await Promise.all([
+      adminFetch<{ products: NativeProductLink[] }>(
+        "/admin/products?limit=200&fields=id,title,handle"
+      ).catch(() => emptyProductsResponse),
+      adminFetch<{ product_categories: NativeCategoryLink[] }>(
+        "/admin/product-categories?limit=200&fields=id,name,handle"
+      ).catch(() => emptyCategoriesResponse),
+      adminFetch<{ collections: NativeCollectionLink[] }>(
+        "/admin/collections?limit=200&fields=id,title,handle"
+      ).catch(() => emptyCollectionsResponse),
       adminFetch<{ pages: PageRecord[] }>(
         "/admin/tranh-tran-vien/business/pages?limit=200"
       ).catch(() => emptyPagesResponse),
@@ -154,29 +180,25 @@ const TtvStorefrontPage = () => {
 
     setLinkOptions([
       ...baseLinkOptions,
-      ...ruleOptions.categories
-        .filter((option) => option.subtitle)
-        .map((option) => ({
-          label: option.label,
-          href: `/categories/${option.subtitle}`,
+      ...categoriesResponse.product_categories
+        .filter((category) => category.handle)
+        .map((category) => ({
+          label: category.name,
+          href: `/categories/${category.handle}`,
           group: "Categories",
         })),
-      ...ruleOptions.collections
-        .filter((option) => option.subtitle)
-        .map((option) => ({
-          label: option.label,
-          href: `/collections/${option.subtitle}`,
+      ...collectionsResponse.collections
+        .filter((collection) => collection.handle)
+        .map((collection) => ({
+          label: collection.title,
+          href: `/collections/${collection.handle}`,
           group: "Collections",
         })),
-      ...ruleOptions.products
-        .map((option) => ({
-          ...option,
-          handle: option.subtitle?.split(" / ")[0],
-        }))
-        .filter((option) => option.handle)
-        .map((option) => ({
-          label: option.label,
-          href: `/products/${option.handle}`,
+      ...productsResponse.products
+        .filter((product) => product.handle)
+        .map((product) => ({
+          label: product.title,
+          href: `/products/${product.handle}`,
           group: "Products",
         })),
       ...pagesResponse.pages

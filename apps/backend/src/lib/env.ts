@@ -18,14 +18,6 @@ const optionalUrl = z.preprocess(
   (value) => (value === "" ? undefined : value),
   z.string().url().optional()
 )
-const optionalSePayEnvironment = z.preprocess(
-  (value) => (value === "" ? undefined : value),
-  z.enum(["sandbox", "production"]).optional()
-)
-const optionalSePayPaymentMethod = z.preprocess(
-  (value) => (value === "" ? undefined : value),
-  z.enum(["BANK_TRANSFER", "NAPAS_BANK_TRANSFER"]).optional()
-)
 
 const backendEnvSchema = z.object({
   NODE_ENV: z
@@ -57,14 +49,11 @@ const backendEnvSchema = z.object({
   PAYOS_WEBHOOK_URL: optionalUrl,
   PAYOS_API_URL: optionalUrl,
   PAYOS_PARTNER_CODE: optionalString,
-  SEPAY_ENVIRONMENT: optionalSePayEnvironment,
-  SEPAY_MERCHANT_ID: optionalString,
-  SEPAY_SECRET_KEY: optionalString,
-  SEPAY_SUCCESS_URL: optionalUrl,
-  SEPAY_ERROR_URL: optionalUrl,
-  SEPAY_CANCEL_URL: optionalUrl,
-  SEPAY_PAYMENT_METHOD: optionalSePayPaymentMethod,
-  SEPAY_IPN_SECRET: optionalString,
+  SEPAY_BANK_ACCOUNT: optionalString,
+  SEPAY_BANK_CODE: optionalString,
+  SEPAY_ACCOUNT_HOLDER: optionalString,
+  SEPAY_STORE_NAME: optionalString,
+  SEPAY_WEBHOOK_SECRET: optionalString,
 }).superRefine((env, ctx) => {
   const hasS3Value = [
     env.S3_ENDPOINT,
@@ -129,27 +118,25 @@ const backendEnvSchema = z.object({
     }
   }
 
-  const hasSePayCredential = [
-    env.SEPAY_MERCHANT_ID,
-    env.SEPAY_SECRET_KEY,
-  ].some(Boolean)
+  const hasSePayInlineQr = Boolean(
+    env.SEPAY_BANK_ACCOUNT ||
+      env.SEPAY_BANK_CODE ||
+      env.SEPAY_WEBHOOK_SECRET ||
+      env.SEPAY_ACCOUNT_HOLDER ||
+      env.SEPAY_STORE_NAME
+  )
 
-  if (hasSePayCredential) {
-    const requiredFields = [
-      "SEPAY_ENVIRONMENT",
-      "SEPAY_MERCHANT_ID",
-      "SEPAY_SECRET_KEY",
-      "SEPAY_SUCCESS_URL",
-      "SEPAY_ERROR_URL",
-      "SEPAY_CANCEL_URL",
-    ] as const
-
-    for (const field of requiredFields) {
+  if (hasSePayInlineQr) {
+    for (const field of [
+      "SEPAY_BANK_ACCOUNT",
+      "SEPAY_BANK_CODE",
+      "SEPAY_WEBHOOK_SECRET",
+    ] as const) {
       if (!env[field]) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: [field],
-          message: `${field} is required when SePay is configured`,
+          message: `${field} is required for inline SePay QR payments`,
         })
       }
     }

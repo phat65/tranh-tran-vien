@@ -3,6 +3,7 @@
 ## Mục tiêu
 
 Admin phục vụ vận hành:
+
 - catalog,
 - order,
 - customer,
@@ -14,6 +15,7 @@ Admin phục vụ vận hành:
 - staff.
 
 Ưu tiên:
+
 - nhanh,
 - rõ,
 - ít click,
@@ -90,6 +92,7 @@ Dashboard phải drill-down được.
 ## Product List
 
 Columns:
+
 - thumbnail,
 - name,
 - SKU,
@@ -100,6 +103,7 @@ Columns:
 - updated at.
 
 Có:
+
 - search,
 - filter,
 - sort,
@@ -116,6 +120,10 @@ Admin can upload multiple ProductImages and edit each image's storefront name,
 unique handle, code, alt text, active state, and order. Upload derives safe
 defaults from the filename; an operator can edit them before publishing.
 
+Each image must be marked `primary` or `gallery`. A gallery image must select
+its owning primary image. Admin supports selecting individual/all images and
+bulk deletion; deleting a primary with linked gallery images must be explicit.
+
 Category and Collection are edited with Medusa's native Product fields. Admin
 must not assign a second Explore taxonomy to the same Product.
 
@@ -123,6 +131,7 @@ Deleting or hiding an image affects future storefront visibility only. Existing
 orders keep their immutable line-item snapshot.
 
 Sections:
+
 - basic info,
 - media,
 - commerce,
@@ -130,6 +139,7 @@ Sections:
 - SEO.
 
 Options:
+
 - material,
 - size,
 - frame,
@@ -138,6 +148,7 @@ Options:
 ## Orders
 
 Search:
+
 - order number,
 - phone,
 - email,
@@ -145,6 +156,7 @@ Search:
 - tracking.
 
 Filters:
+
 - payment,
 - order,
 - production,
@@ -154,6 +166,7 @@ Filters:
 ## Order Detail
 
 Sections:
+
 - customer,
 - items,
 - payment,
@@ -163,6 +176,7 @@ Sections:
 - notes.
 
 Custom item hiển thị:
+
 - source file,
 - preview,
 - approved file,
@@ -175,6 +189,7 @@ Route:
 `/admin/custom-artwork`
 
 Phải hỗ trợ:
+
 - list/filter,
 - detail,
 - version history,
@@ -189,6 +204,7 @@ Phải hỗ trợ:
 Optional phase sau.
 
 Columns:
+
 - file review,
 - design,
 - waiting approval,
@@ -203,6 +219,7 @@ Backend validate transition kể cả khi UI drag-drop.
 ## Staff
 
 Fields:
+
 - name,
 - email,
 - role,
@@ -210,6 +227,7 @@ Fields:
 - last login.
 
 Actions:
+
 - invite,
 - disable,
 - change role,
@@ -218,6 +236,7 @@ Actions:
 ## Activity Log
 
 Log action quan trọng:
+
 - product update,
 - order status,
 - refund,
@@ -230,6 +249,7 @@ Không log mọi page view.
 ## Dangerous Actions
 
 Confirmation required:
+
 - refund,
 - cancel,
 - delete/archive,
@@ -240,6 +260,7 @@ Confirmation required:
 ## Admin Mobile
 
 Không cần mobile-first, nhưng phải dùng được cho:
+
 - order lookup,
 - status update,
 - tracking,

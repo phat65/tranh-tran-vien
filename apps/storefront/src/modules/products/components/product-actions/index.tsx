@@ -3,12 +3,13 @@
 // Component giao diện xử lý phần product actions trong storefront.
 
 import { useIntersection } from "@lib/hooks/use-in-view"
-import { convertToLocale } from "@lib/util/money"
+import type { StoreQuantityPrice } from "@lib/data/quantity-prices"
 import { HttpTypes } from "@medusajs/types"
 import type { TtvSelectedExploreImage } from "@lib/data/ttv-explore"
 import { Button, Text, clx } from "@modules/common/components/ui"
 import Divider from "@modules/common/components/divider"
 import OptionSelect from "@modules/products/components/product-actions/option-select"
+import QuantityPriceList from "@modules/products/components/quantity-price-list"
 import { isEqual } from "lodash"
 import { useParams, usePathname, useSearchParams } from "next/navigation"
 import { useEffect, useMemo, useRef, useState } from "react"
@@ -20,7 +21,7 @@ type ProductActionsProps = {
   product: HttpTypes.StoreProduct
   region: HttpTypes.StoreRegion
   disabled?: boolean
-  comboRules?: ComboRule[]
+  quantityPrices?: StoreQuantityPrice[]
   addToCartAction?: AddToCartAction
   selectedExploreImage?: TtvSelectedExploreImage | null
 }
@@ -31,22 +32,6 @@ type AddToCartAction = (input: {
   countryCode: string
   metadata?: Record<string, unknown>
 }) => Promise<void>
-
-type ComboTier = {
-  minimum_quantity: number
-  discount_type: "percentage" | "fixed" | "fixed_total"
-  discount_value: number
-  label?: string | null
-  is_featured?: boolean
-  is_free_shipping?: boolean
-}
-
-type ComboRule = {
-  id: string
-  name: string
-  tiers: ComboTier[]
-  ends_at?: string | null
-}
 
 const optionsAsKeymap = (
   variantOptions: HttpTypes.StoreProductVariant["options"]
@@ -61,7 +46,7 @@ export default function ProductActions({
   product,
   region,
   disabled,
-  comboRules = [],
+  quantityPrices = [],
   addToCartAction,
   selectedExploreImage,
 }: ProductActionsProps) {
@@ -75,7 +60,6 @@ export default function ProductActions({
   )
   const [isAdding, setIsAdding] = useState(false)
   const [addToCartError, setAddToCartError] = useState<string | null>(null)
-  const [now, setNow] = useState(() => Date.now())
   const countryCode = useParams().countryCode as string
 
   // If there is only 1 variant, preselect the options
@@ -142,46 +126,13 @@ export default function ProductActions({
     return "Add to cart"
   }, [isValidVariant, selectedVariant])
 
-  const comboTiers = useMemo(() => {
-    return comboRules
-      .flatMap((rule) =>
-        rule.tiers.map((tier) => ({
-          rule,
-          tier,
-        }))
-      )
-      .filter(({ tier }) => tier.minimum_quantity > 1)
-      .sort((a, b) => {
-        if (a.tier.minimum_quantity !== b.tier.minimum_quantity) {
-          return a.tier.minimum_quantity - b.tier.minimum_quantity
-        }
-
-        return Number(b.tier.is_featured) - Number(a.tier.is_featured)
-      })
-  }, [comboRules])
-
-  const comboDeadline = useMemo(() => {
-    return comboRules
-      .map((rule) => rule.ends_at)
-      .filter((value): value is string => Boolean(value))
-      .map((value) => new Date(value).getTime())
-      .filter((value) => Number.isFinite(value) && value > Date.now())
-      .sort((a, b) => a - b)[0]
-  }, [comboRules])
-
-  useEffect(() => {
-    if (!comboDeadline) {
-      return
-    }
-
-    const timer = window.setInterval(() => setNow(Date.now()), 1000)
-
-    return () => window.clearInterval(timer)
-  }, [comboDeadline])
-
-  const comboTimeLeft = comboDeadline
-    ? formatDealCountdown(comboDeadline - now)
-    : ""
+  const selectedQuantityPrices = useMemo(
+    () =>
+      quantityPrices.filter(
+        (price) => price.variant_id === selectedVariant?.id
+      ),
+    [quantityPrices, selectedVariant?.id]
+  )
 
   const actionsRef = useRef<HTMLDivElement>(null)
 
@@ -247,58 +198,11 @@ export default function ProductActions({
   return (
     <>
       <div className="flex flex-col gap-y-5" ref={actionsRef}>
-        {!!comboTiers.length && (
-          <div className="grid gap-3 rounded-lg border border-[#d8ddd7] bg-[#f7f8f5] p-4 shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <Text className="text-sm font-semibold uppercase tracking-[0.08em] text-[#343a33]">
-                Deal combo
-              </Text>
-              {comboTimeLeft ? (
-                <div className="rounded-full border border-[#7aa66b]/35 bg-white px-3 py-1 text-xs font-semibold text-[#3f6f36] shadow-sm">
-                  Sale ends in{" "}
-                  <span className="font-bold tabular-nums">{comboTimeLeft}</span>
-                </div>
-              ) : (
-                <Text className="text-sm text-[#687064]">
-                  Tự động tính trong giỏ hàng
-                </Text>
-              )}
-            </div>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {comboTiers.map(({ rule, tier }) => (
-                <div
-                  key={`${rule.id}-${tier.minimum_quantity}`}
-                  className={clx(
-                    "relative flex min-h-[4.25rem] flex-col justify-center rounded-lg border bg-white px-4 py-3 text-left shadow-sm transition-colors",
-                    {
-                      "border-[#cfd7cf] text-[#20251f]":
-                        !tier.is_featured,
-                      "border-[#9aa86f] bg-[#fbfcf2] text-[#20251f] ring-1 ring-[#bdc890]":
-                        tier.is_featured,
-                    }
-                  )}
-                >
-                  {tier.is_featured && (
-                    <span className="absolute right-3 top-2 rounded-full bg-[#52613f] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-white">
-                      Nên chọn
-                    </span>
-                  )}
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#72806c]">
-                    Từ {tier.minimum_quantity} tranh
-                  </span>
-                  <span className="mt-1 pr-12 text-sm font-bold leading-5">
-                    {formatComboDealTitle(tier, region.currency_code)}
-                  </span>
-                  {tier.is_free_shipping && (
-                    <span className="mt-1 text-xs font-medium text-[#4d7b42]">
-                      Freeship
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        <QuantityPriceList
+          prices={selectedQuantityPrices}
+          currencyCode={region.currency_code}
+          quantity={quantity}
+        />
 
         <div>
           {selectedExploreImage ? (
@@ -455,42 +359,4 @@ function parseQuantity(value: string | null): number {
   return Math.min(99, Math.floor(parsed))
 }
 
-function formatDealCountdown(milliseconds: number): string {
-  if (milliseconds <= 0) {
-    return ""
-  }
 
-  const totalSeconds = Math.floor(milliseconds / 1000)
-  const days = Math.floor(totalSeconds / 86400)
-  const hours = Math.floor((totalSeconds % 86400) / 3600)
-  const minutes = Math.floor((totalSeconds % 3600) / 60)
-  const seconds = totalSeconds % 60
-
-  return `${padTime(days)}d : ${padTime(hours)}h : ${padTime(minutes)}m : ${padTime(seconds)}s`
-}
-
-function padTime(value: number): string {
-  return String(value).padStart(2, "0")
-}
-
-function formatComboDealTitle(tier: ComboTier, currencyCode: string): string {
-  if (tier.label?.trim()) {
-    return tier.label.trim()
-  }
-
-  if (tier.discount_type === "fixed_total") {
-    return `Combo ${tier.minimum_quantity} tranh: ${convertToLocale({
-      amount: tier.discount_value,
-      currency_code: currencyCode,
-    })}`
-  }
-
-  if (tier.discount_type === "percentage") {
-    return `Mua từ ${tier.minimum_quantity} tranh: giảm ${tier.discount_value}%`
-  }
-
-  return `Mua từ ${tier.minimum_quantity} tranh: giảm ${convertToLocale({
-    amount: tier.discount_value,
-    currency_code: currencyCode,
-  })}/tranh`
-}

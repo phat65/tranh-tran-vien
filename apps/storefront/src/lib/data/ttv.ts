@@ -4,34 +4,6 @@
 
 import { sdk } from "@lib/config"
 
-export type TtvNavigationMenu = {
-  id: string
-  code: string
-  name: string
-  status: "draft" | "active" | "archived"
-}
-
-export type TtvNavigationItem = {
-  id: string
-  menu_id: string
-  parent_id?: string | null
-  label: string
-  link_type:
-    | "url"
-    | "product"
-    | "category"
-    | "brand"
-    | "taxonomy"
-    | "page"
-    | "post"
-  entity_id?: string | null
-  url?: string | null
-  image_url?: string | null
-  sort_order: number
-  visibility: "visible" | "hidden"
-  metadata?: Record<string, unknown> | null
-}
-
 export type TtvSiteSetting = {
   id: string
   key: string
@@ -77,55 +49,6 @@ export type TtvFeedback = {
   published_at?: string | null
 }
 
-export type TtvComboTier = {
-  minimum_quantity: number
-  discount_type: "percentage" | "fixed" | "fixed_total"
-  discount_value: number
-  label?: string | null
-  is_featured?: boolean
-  is_free_shipping?: boolean
-}
-
-export type TtvComboRule = {
-  id: string
-  name: string
-  description?: string | null
-  scope_type:
-    | "all"
-    | "product"
-    | "category"
-    | "collection"
-    | "option"
-    | "taxonomy"
-  product_id?: string | null
-  category_id?: string | null
-  collection_id?: string | null
-  option_value_id?: string | null
-  taxonomy_term_id?: string | null
-  sales_channel_id?: string | null
-  region_id?: string | null
-  tiers: TtvComboTier[]
-  priority: number
-  is_stackable: boolean
-  starts_at?: string | null
-  ends_at?: string | null
-  status: "draft" | "active" | "archived"
-}
-
-export type TtvProductCatalogLinks = {
-  product_id: string
-  product_taxonomy_terms: {
-    product_id: string
-    term_id: string
-  }[]
-  taxonomy_terms: {
-    id: string
-    name: string
-    slug: string
-    taxonomy_id: string
-  }[]
-}
-
 export type TtvHomeHeroConfig = {
   eyebrow: string
   title: string
@@ -165,9 +88,9 @@ export type TtvCategoryPageConfig = {
 }
 
 const defaultHomeHeroConfig: TtvHomeHeroConfig = {
-  eyebrow: "Combo decor for anime, Pokemon and custom walls",
+  eyebrow: "Tranh in theo yêu cầu cho không gian của bạn",
   title: "Build a wall your collection deserves.",
-  body: "Pick hexagon art, Pokemon frames or acrylic displays. Combo pricing is applied automatically in the cart.",
+  body: "Chọn mẫu tranh yêu thích và nhận giá tốt hơn khi mua nhiều theo bảng giá của cửa hàng.",
   media_type: "image",
   media_url: null,
   media_aspect_ratio: "16 / 9",
@@ -189,31 +112,11 @@ const defaultCategoryPageConfig: TtvCategoryPageConfig = {
   media_url: null,
   media_aspect_ratio: "16 / 9",
   banner_image_url: null,
-  promo_title: "Combo được tự động tính trong giỏ hàng.",
+  promo_title: "Giá số lượng được thiết lập trực tiếp trong Medusa.",
   promo_body:
-    "Chọn nhiều mẫu trong cùng một dòng sản phẩm, ưu đãi sẽ được áp dụng khi đủ điều kiện.",
+    "Mở chi tiết sản phẩm để xem các mức giá đang áp dụng.",
   search_placeholder: "Tìm tên tranh, chủ đề hoặc mã sản phẩm",
   topic_label: "Chủ đề",
-}
-
-export async function getTtvNavigationMenu(code: string) {
-  return sdk.client
-    .fetch<{
-      navigation_menu: TtvNavigationMenu | null
-      navigation_items: TtvNavigationItem[]
-    }>(`/store/tranh-tran-vien/catalog/navigation-menus/${code}`, {
-      cache: "no-store",
-    })
-    .then((response) => ({
-      navigation_menu: response.navigation_menu ?? null,
-      navigation_items: Array.isArray(response.navigation_items)
-        ? response.navigation_items
-        : [],
-    }))
-    .catch(() => ({
-      navigation_menu: null,
-      navigation_items: [],
-    }))
 }
 
 export async function listTtvSiteSettings() {
@@ -223,7 +126,7 @@ export async function listTtvSiteSettings() {
       {
         query: { limit: 200 },
         cache: "no-store",
-      }
+      },
     )
     .then(({ site_settings }) => site_settings)
     .catch(() => [])
@@ -239,8 +142,7 @@ export async function getTtvSiteConfig() {
       getSettingString(byKey, "brand_name") ??
       "Medusa Store",
     footerText:
-      getSettingString(byKey, "footer_text") ??
-      "All rights reserved.",
+      getSettingString(byKey, "footer_text") ?? "All rights reserved.",
   }
 }
 
@@ -266,8 +168,7 @@ export async function getTtvHomeHeroConfig(): Promise<TtvHomeHeroConfig> {
   })
 
   return {
-    eyebrow:
-      getString(config.eyebrow) ?? defaultHomeHeroConfig.eyebrow,
+    eyebrow: getString(config.eyebrow) ?? defaultHomeHeroConfig.eyebrow,
     title: getString(config.title) ?? defaultHomeHeroConfig.title,
     body: getString(config.body) ?? defaultHomeHeroConfig.body,
     media_type: mediaSlides[0]?.media_type ?? getMediaType(config.media_type),
@@ -288,7 +189,8 @@ export async function getTtvHomeHeroConfig(): Promise<TtvHomeHeroConfig> {
     primary_href:
       getString(config.primary_href) ?? defaultHomeHeroConfig.primary_href,
     secondary_label:
-      getString(config.secondary_label) ?? defaultHomeHeroConfig.secondary_label,
+      getString(config.secondary_label) ??
+      defaultHomeHeroConfig.secondary_label,
     secondary_href:
       getString(config.secondary_href) ?? defaultHomeHeroConfig.secondary_href,
     background_image_url: getString(config.background_image_url),
@@ -296,7 +198,7 @@ export async function getTtvHomeHeroConfig(): Promise<TtvHomeHeroConfig> {
 }
 
 export async function getTtvCategoryPageConfig(
-  categoryId?: string
+  categoryId?: string,
 ): Promise<TtvCategoryPageConfig> {
   const key = categoryId ? `category_page:${categoryId}` : "category_page"
   const settings = await sdk.client
@@ -305,14 +207,13 @@ export async function getTtvCategoryPageConfig(
       {
         query: { q: key, limit: 50 },
         cache: "no-store",
-      }
+      },
     )
     .then(({ site_settings }) => site_settings)
     .catch(() => [])
   const byKey = new Map(settings.map((setting) => [setting.key, setting]))
   const value =
-    byKey.get(key)?.value_json ??
-    byKey.get("category_page")?.value_json
+    byKey.get(key)?.value_json ?? byKey.get("category_page")?.value_json
 
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return defaultCategoryPageConfig
@@ -363,7 +264,7 @@ export async function retrieveTtvPost(slug: string) {
       `/store/tranh-tran-vien/business/posts/${slug}`,
       {
         cache: "no-store",
-      }
+      },
     )
     .then(({ post }) => post)
     .catch(() => null)
@@ -375,7 +276,7 @@ export async function retrieveTtvPage(slug: string) {
       `/store/tranh-tran-vien/business/pages/${slug}`,
       {
         cache: "no-store",
-      }
+      },
     )
     .then(({ page }) => page)
     .catch(() => null)
@@ -391,56 +292,15 @@ export async function listTtvFeedbacks(productId?: string, limit = 12) {
           ...(productId ? { product_id: productId } : {}),
         },
         cache: "no-store",
-      }
+      },
     )
     .then(({ feedbacks }) => feedbacks)
     .catch(() => [])
 }
 
-export async function listTtvComboRules({
-  regionId,
-  salesChannelId,
-}: {
-  regionId?: string
-  salesChannelId?: string
-} = {}) {
-  return sdk.client
-    .fetch<{ combo_rules: TtvComboRule[] }>(
-      "/store/tranh-tran-vien/rules/combo-rules",
-      {
-        query: {
-          ...(regionId ? { region_id: regionId } : {}),
-          ...(salesChannelId ? { sales_channel_id: salesChannelId } : {}),
-        },
-        cache: "no-store",
-      }
-    )
-    .then(({ combo_rules }) =>
-      Array.isArray(combo_rules) ? combo_rules : []
-    )
-    .catch(() => [])
-}
-
-export async function retrieveTtvProductCatalogLinks(
-  productId: string
-): Promise<TtvProductCatalogLinks> {
-  return sdk.client
-    .fetch<TtvProductCatalogLinks>(
-      `/store/tranh-tran-vien/catalog/product-links/${productId}`,
-      {
-        cache: "no-store",
-      }
-    )
-    .catch(() => ({
-      product_id: productId,
-      product_taxonomy_terms: [],
-      taxonomy_terms: [],
-    }))
-}
-
 function getSettingString(
   settings: Map<string, TtvSiteSetting>,
-  key: string
+  key: string,
 ): string | null {
   const value = settings.get(key)?.value_json
 
@@ -470,7 +330,7 @@ function getMediaType(value: unknown): "image" | "video" {
 
 function getHomeHeroSlides(
   value: unknown,
-  fallback: TtvHomeHeroSlide
+  fallback: TtvHomeHeroSlide,
 ): TtvHomeHeroSlide[] {
   if (Array.isArray(value)) {
     const slides = value
