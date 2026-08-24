@@ -123,6 +123,11 @@ module.exports = defineConfig({
   },
   projectConfig: {
     databaseUrl: backendEnv.DATABASE_URL,
+    databaseDriverOptions: {
+      connection: {
+        ssl: false,
+      },
+    },
     redisUrl: backendEnv.REDIS_URL,
     http: {
       storeCors: backendEnv.STORE_CORS,
