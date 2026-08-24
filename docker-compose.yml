@@ -1,0 +1,39 @@
+name: tranh-tran-vien
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ttv-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: tranh_tran_vien
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - ttv-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d tranh_tran_vien"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: ttv-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6380:6379"
+    volumes:
+      - ttv-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  ttv-postgres-data:
+  ttv-redis-data:
