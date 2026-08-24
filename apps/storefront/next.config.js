@@ -1,5 +1,6 @@
 // Cấu hình Next.js của storefront, gồm compiler, image domain và option build/runtime.
 
+const path = require("path")
 const checkEnvVariables = require("./check-env-variables")
 
 checkEnvVariables()
@@ -19,6 +20,8 @@ const storageRemotePattern = toRemotePattern(STORAGE_PUBLIC_URL)
  * @type {import('next').NextConfig}
  */
 const nextConfig = {
+  output: "standalone",
+  outputFileTracingRoot: path.join(__dirname, "../.."),
   reactStrictMode: true,
   logging: {
     fetches: {

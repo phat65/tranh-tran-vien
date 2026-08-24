@@ -1,0 +1,69 @@
+name: tranh-tran-vien
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-tranh_tran_vien}
+      POSTGRES_USER: ${POSTGRES_USER:-medusa}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ./deploy/env/backend.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    ports:
+      - "127.0.0.1:9000:9000"
+
+  storefront:
+    build:
+      context: .
+      dockerfile: apps/storefront/Dockerfile
+      args:
+        NEXT_PUBLIC_BASE_URL: ${NEXT_PUBLIC_BASE_URL}
+        NEXT_PUBLIC_MEDUSA_BACKEND_URL: ${NEXT_PUBLIC_MEDUSA_BACKEND_URL}
+        NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: ${NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY}
+        NEXT_PUBLIC_STORAGE_PUBLIC_URL: ${NEXT_PUBLIC_STORAGE_PUBLIC_URL}
+        NEXT_PUBLIC_DEFAULT_REGION: ${NEXT_PUBLIC_DEFAULT_REGION:-vn}
+        NEXT_PUBLIC_STRIPE_KEY: ${NEXT_PUBLIC_STRIPE_KEY:-}
+        NEXT_PUBLIC_MEDUSA_PAYMENTS_PUBLISHABLE_KEY: ${NEXT_PUBLIC_MEDUSA_PAYMENTS_PUBLISHABLE_KEY:-}
+        NEXT_PUBLIC_MEDUSA_PAYMENTS_ACCOUNT_ID: ${NEXT_PUBLIC_MEDUSA_PAYMENTS_ACCOUNT_ID:-}
+        MEDUSA_CLOUD_S3_HOSTNAME: ${MEDUSA_CLOUD_S3_HOSTNAME:-}
+        MEDUSA_CLOUD_S3_PATHNAME: ${MEDUSA_CLOUD_S3_PATHNAME:-}
+    restart: unless-stopped
+    env_file:
+      - ./deploy/env/storefront.env
+    depends_on:
+      - backend
+    ports:
+      - "127.0.0.1:8000:8000"
+
+volumes:
+  postgres_data:
+  redis_data:

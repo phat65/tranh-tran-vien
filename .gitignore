@@ -56,6 +56,8 @@ yarn-error.log*
 **/.env.development.local
 **/.env.test.local
 **/.env.production.local
+deploy/env/backend.env
+deploy/env/storefront.env
 
 # Turbo
 .turbo

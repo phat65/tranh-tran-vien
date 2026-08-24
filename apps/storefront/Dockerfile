@@ -1,0 +1,66 @@
+FROM node:20-bookworm-slim AS builder
+
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+
+RUN corepack enable
+
+WORKDIR /server
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/backend/package.json apps/backend/package.json
+COPY apps/storefront/package.json apps/storefront/package.json
+
+RUN pnpm install --frozen-lockfile --filter @dtc/storefront...
+
+COPY . .
+
+ARG NEXT_PUBLIC_MEDUSA_BACKEND_URL
+ARG NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
+ARG NEXT_PUBLIC_BASE_URL
+ARG NEXT_PUBLIC_STORAGE_PUBLIC_URL
+ARG NEXT_PUBLIC_DEFAULT_REGION=vn
+ARG NEXT_PUBLIC_STRIPE_KEY
+ARG NEXT_PUBLIC_MEDUSA_PAYMENTS_PUBLISHABLE_KEY
+ARG NEXT_PUBLIC_MEDUSA_PAYMENTS_ACCOUNT_ID
+ARG MEDUSA_CLOUD_S3_HOSTNAME
+ARG MEDUSA_CLOUD_S3_PATHNAME
+
+ENV NEXT_PUBLIC_MEDUSA_BACKEND_URL=$NEXT_PUBLIC_MEDUSA_BACKEND_URL
+ENV NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=$NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
+ENV NEXT_PUBLIC_BASE_URL=$NEXT_PUBLIC_BASE_URL
+ENV NEXT_PUBLIC_STORAGE_PUBLIC_URL=$NEXT_PUBLIC_STORAGE_PUBLIC_URL
+ENV NEXT_PUBLIC_DEFAULT_REGION=$NEXT_PUBLIC_DEFAULT_REGION
+ENV NEXT_PUBLIC_STRIPE_KEY=$NEXT_PUBLIC_STRIPE_KEY
+ENV NEXT_PUBLIC_MEDUSA_PAYMENTS_PUBLISHABLE_KEY=$NEXT_PUBLIC_MEDUSA_PAYMENTS_PUBLISHABLE_KEY
+ENV NEXT_PUBLIC_MEDUSA_PAYMENTS_ACCOUNT_ID=$NEXT_PUBLIC_MEDUSA_PAYMENTS_ACCOUNT_ID
+ENV MEDUSA_CLOUD_S3_HOSTNAME=$MEDUSA_CLOUD_S3_HOSTNAME
+ENV MEDUSA_CLOUD_S3_PATHNAME=$MEDUSA_CLOUD_S3_PATHNAME
+
+RUN pnpm -C apps/storefront build
+
+
+FROM node:20-bookworm-slim AS runner
+
+ENV NODE_ENV=production
+ENV HOSTNAME=0.0.0.0
+ENV PORT=8000
+
+WORKDIR /server
+
+COPY --from=builder --chown=node:node \
+  /server/apps/storefront/.next/standalone ./
+
+COPY --from=builder --chown=node:node \
+  /server/apps/storefront/.next/static \
+  ./apps/storefront/.next/static
+
+COPY --from=builder --chown=node:node \
+  /server/apps/storefront/public \
+  ./apps/storefront/public
+
+USER node
+
+EXPOSE 8000
+
+CMD ["node", "apps/storefront/server.js"]
